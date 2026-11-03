@@ -35,20 +35,18 @@ fn column(canvas: &mut Canvas, area: Area, title: &str, items: &[Item], selected
     let bg = theme::POPUP;
     let title_color = if selected.is_some() { theme::TITLE } else { theme::DIM };
     canvas.text_max(area.x, area.y, title, area.w, title_color, bg);
-    let mut y = area.y + 1;
     if items.is_empty() {
-        canvas.text(area.x, y, " (empty)", theme::DIM, bg);
+        canvas.text(area.x, area.y + 1, " (empty)", theme::DIM, bg);
         return;
     }
     let visible = area.h.saturating_sub(1) as usize;
     let offset = scroll_offset(selected.unwrap_or(0), visible);
-    for (i, item) in items.iter().enumerate().skip(offset).take(visible) {
+    for (y, (i, item)) in (area.y + 1..).zip(items.iter().enumerate().skip(offset).take(visible)) {
         let rbg = if selected == Some(i) { theme::SELECTED } else { bg };
         canvas.fill(area.x, y, area.w, 1, rbg);
         let wt = fmt_lb(item.weight());
         let name_w = area.w.saturating_sub(wt.len() as u16 + 1);
         canvas.text_max(area.x, y, &format!("{} {}", item.glyph(), item.display_name()), name_w, theme::TEXT, rbg);
         canvas.text(area.x + area.w.saturating_sub(wt.len() as u16), y, &wt, theme::DIM, rbg);
-        y += 1;
     }
 }

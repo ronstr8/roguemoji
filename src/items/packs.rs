@@ -1,6 +1,8 @@
 //! Packs: worn carrying gear that raises how much you can haul before the
 //! load starts slowing you down.
 
+// "Hiking Pack" and "Frame Pack" are the real names of the gear.
+#[allow(clippy::enum_variant_names)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Pack {
     RagSatchel,
