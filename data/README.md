@@ -176,6 +176,13 @@ artifact (30%). Each slot is picked from the priced items of its kind by `loot`
 (by `loot_weight` for food and components). Guns, ammo, armor and packs are
 rolled as if one level deeper. A slot with nothing priced to sell is left empty.
 Ammo `price` is for a full box; a partial box costs its share, rounded up.
+A gun's price includes the rounds loaded in it.
+
+**Selling.** Press Tab at an Autovend to sell from your pack, at half the
+item's price on that depth (rounded down, at least 1 💎). Ammo sells a whole
+stack at a time; anything else sells one at a time. An Autovend won't buy
+anything without a price, so leaving out `price` keeps an item out of shops
+both ways.
 
 Stock prices: guns by quality, from 15 (snub .38) to 55 (AR-15), +3 per depth; armor 25, +3 per depth;
 packs 18, +3 per depth; Visitor artifacts 60, +5 per depth. Tools and crafted

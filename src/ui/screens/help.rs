@@ -21,7 +21,7 @@ const LINES: &[(&str, &str)] = &[
     ("", "Getting hurt, missing, or switching targets resets it."),
     ("GUNS", "Damage comes from muzzle energy: bullet weight × velocity², which depends on barrel"),
     ("", "length. JHP/SP wound more; FMJ/slugs penetrate armor. Buckshot spreads with distance."),
-    ("CRYSTALS", "Everything that dies leaves 💎. Absorb them to heal, or spend them at Autovends."),
+    ("CRYSTALS", "Everything that dies leaves 💎. Absorb them to heal, or buy and sell at Autovends."),
     ("FOOD", "Harvest components and craft meals and drinks for timed attribute buffs."),
     ("LOAD", "Carry 45 lb + 6 per Brawn point over 5, plus a worn pack 🎒. Over that you're Burdened"),
     ("", "(slower, -1 DEF); over 1.5× Strained (half speed, -3 DEF); over 2× you can't move."),

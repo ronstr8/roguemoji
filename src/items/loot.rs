@@ -123,46 +123,91 @@ pub fn random_floor_item(dice: &mut Dice, depth: u32) -> Item {
 pub fn kiosk_stock(dice: &mut Dice, depth: u32) -> Vec<(Item, u32)> {
     let deeper = depth + 1;
     let mut stock = Vec::new();
+    let mut offer = |item: Item| {
+        if let Some(price) = shop_price(&item, depth) {
+            stock.push((item, price));
+        }
+    };
     for _ in 0..3 {
         if let Some((ammo, rounds)) = shop_ammo(dice, deeper) {
-            let def = ammo.def();
-            // A full box costs `price`; partial boxes pay their share.
-            let price = (def.price.at(depth) * rounds).div_ceil(def.box_size).max(1);
-            stock.push((Item::ammo(ammo, rounds), price));
+            offer(Item::ammo(ammo, rounds));
         }
     }
     for _ in 0..2 {
-        let food = shop_pick(dice, Consumable::all().map(|c| (c, c.def().loot_weight, c.def().price)));
-        if let Some(food) = food {
-            stock.push((Item::food(food, 1), food.def().price.at(depth)));
+        if let Some(food) = shop_pick(dice, Consumable::all().map(|c| (c, c.def().loot_weight, c.def().price))) {
+            offer(Item::food(food, 1));
         }
     }
     if let Some(c) = shop_pick(dice, Component::all().map(|c| (c, c.def().loot_weight, c.def().price))) {
-        stock.push((Item::component(c, 2), 2 * c.def().price.at(depth)));
+        offer(Item::component(c, 2));
     }
     let guns = GunModel::all().filter(|g| g.def().price.for_sale());
     if let Some(model) = pick_loot(dice, guns.map(|g| (g, g.def().loot)), deeper) {
-        stock.push((Item::gun(gun_from(model, dice)), model.def().price.at(depth)));
+        offer(Item::gun(gun_from(model, dice)));
     }
     if dice.chance(0.5) {
         let armor = Armor::all().filter(|a| a.def().price.for_sale());
         if let Some(a) = pick_loot(dice, armor.map(|a| (a, a.def().loot)), deeper) {
-            stock.push((Item::one(ItemKind::Armor(a)), a.def().price.at(depth)));
+            offer(Item::one(ItemKind::Armor(a)));
         }
     }
     if dice.chance(0.35) {
         let packs = Pack::all().filter(|p| p.def().price.for_sale());
         if let Some(p) = pick_loot(dice, packs.map(|p| (p, p.def().loot)), deeper) {
-            stock.push((Item::one(ItemKind::Pack(p)), p.def().price.at(depth)));
+            offer(Item::one(ItemKind::Pack(p)));
         }
     }
     if depth >= 4 && dice.chance(0.3) {
         let artifacts = MeleeWeapon::all().filter(|m| m.def().origin == Origin::Alien && m.def().price.for_sale());
         if let Some(m) = pick_loot(dice, artifacts.map(|m| (m, m.def().loot)), depth) {
-            stock.push((Item::one(ItemKind::Melee(m)), m.def().price.at(depth)));
+            offer(Item::one(ItemKind::Melee(m)));
         }
     }
     stock
+}
+
+/// What an Autovend on `depth` charges for `item` (the whole stack), or
+/// `None` if it doesn't deal in it: crystals, or anything without a price.
+/// A gun's loaded rounds are included; ammo `price` is per full box.
+pub fn shop_price(item: &Item, depth: u32) -> Option<u32> {
+    let priced = |p: Price| p.for_sale().then(|| p.at(depth));
+    let ammo_price = |a: Ammo, rounds: u32| {
+        let def = a.def();
+        priced(def.price).map(|box_price| (box_price * rounds).div_ceil(def.box_size).max(1))
+    };
+    let n = item.qty;
+    match &item.kind {
+        ItemKind::Crystals => None,
+        ItemKind::Gun(g) => {
+            let rounds = g.ammo.filter(|_| g.loaded > 0).and_then(|a| ammo_price(a, g.loaded)).unwrap_or(0);
+            priced(g.model.def().price).map(|p| p + rounds)
+        }
+        ItemKind::Ammo(a) => ammo_price(*a, n),
+        ItemKind::Melee(m) => priced(m.def().price).map(|p| p * n),
+        ItemKind::Armor(a) => priced(a.def().price).map(|p| p * n),
+        ItemKind::Pack(p) => priced(p.def().price).map(|p| p * n),
+        ItemKind::Component(c) => priced(c.def().price).map(|p| p * n),
+        ItemKind::Consumable(c) => priced(c.def().price).map(|p| p * n),
+    }
+}
+
+/// Autovends buy back at this fraction of their own price.
+const SELL_RATE: f64 = 0.5;
+
+/// How much of a pack stack one sale hands over: a whole stack of ammo,
+/// otherwise one at a time.
+pub fn sell_qty(item: &Item) -> u32 {
+    match item.kind {
+        ItemKind::Ammo(_) => item.qty,
+        _ => 1,
+    }
+}
+
+/// What an Autovend on `depth` pays for one sale of `item` (see
+/// [`sell_qty`]), or `None` if it won't buy it.
+pub fn sell_price(item: &Item, depth: u32) -> Option<u32> {
+    let sold = Item { kind: item.kind.clone(), qty: sell_qty(item) };
+    shop_price(&sold, depth).map(|p| ((p as f64 * SELL_RATE) as u32).max(1))
 }
 
 /// A box of ammo to sell: a priced load for a gun found at `depth`.
@@ -188,6 +233,29 @@ fn shop_pick<T: Copy>(dice: &mut Dice, items: impl Iterator<Item = (T, u32, Pric
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn sale_prices() {
+        let vest = Item::one(ItemKind::Armor(Armor::named("kevlar_vest")));
+        assert_eq!((shop_price(&vest, 2), sell_price(&vest, 2)), (Some(31), Some(15)));
+        // Ammo sells by the stack, priced as a share of the box.
+        let ammo = Ammo::named("22lr");
+        let half_box = Item::ammo(ammo, ammo.def().box_size / 2);
+        assert_eq!(sell_qty(&half_box), half_box.qty);
+        assert_eq!(sell_price(&half_box, 1), Some(2));
+        // Stacks sell one at a time; unpriced things and crystals don't sell.
+        let hardtack = Consumable::named("hardtack");
+        let one = shop_price(&Item::food(hardtack, 1), 1).unwrap();
+        assert_eq!(sell_price(&Item::food(hardtack, 3), 1), Some((one / 2).max(1)));
+        assert_eq!(sell_price(&Item::one(ItemKind::Melee(MeleeWeapon::named("crowbar"))), 1), None);
+        assert_eq!(sell_price(&Item::crystals(5), 1), None);
+        // A loaded gun is worth more than an empty one.
+        let model = GunModel::named("service_pistol_9mm");
+        let empty = Item::gun(Gun::loaded_with(model, Ammo::named("9mm_fmj"), 0));
+        let full = Item::gun(Gun::loaded_with(model, Ammo::named("9mm_fmj"), 15));
+        assert_eq!(shop_price(&empty, 1), Some(31));
+        assert!(shop_price(&full, 1) > shop_price(&empty, 1));
+    }
 
     #[test]
     fn kiosks_sell_only_priced_items() {

@@ -23,7 +23,7 @@ enum Screen {
     Inventory { selected: usize },
     Character,
     Crafting { selected: usize },
-    Shop { kiosk: usize, selected: usize },
+    Shop { kiosk: usize, selling: bool, selected: usize },
     Stash { side: StashSide, selected: usize },
     Targeting { targets: Vec<u32>, index: usize },
     Help,
@@ -88,7 +88,7 @@ impl App {
             Screen::Inventory { selected } => screens::inventory::draw(canvas, game, *selected),
             Screen::Character => screens::character::draw(canvas, game),
             Screen::Crafting { selected } => screens::crafting::draw(canvas, game, *selected),
-            Screen::Shop { kiosk, selected } => screens::shop::draw(canvas, game, *kiosk, *selected),
+            Screen::Shop { kiosk, selling, selected } => screens::shop::draw(canvas, game, *kiosk, *selling, *selected),
             Screen::Stash { side, selected } => screens::stash::draw(canvas, game, *side, *selected),
             Screen::Help => screens::help::draw(canvas),
             Screen::Ended => screens::ended::draw(canvas, game),
@@ -132,7 +132,7 @@ impl App {
                 }
             }
             Screen::Crafting { selected } => self.on_crafting(key, selected),
-            Screen::Shop { kiosk, selected } => self.on_shop(key, kiosk, selected),
+            Screen::Shop { kiosk, selling, selected } => self.on_shop(key, kiosk, selling, selected),
             Screen::Stash { side, selected } => self.on_stash(key, side, selected),
             Screen::Targeting { targets, index } => self.on_targeting(key, targets, index),
             Screen::ConfirmQuit => match key.code {
@@ -185,7 +185,7 @@ impl App {
         let Some(game) = self.game.as_mut() else { return Screen::Play };
         match cmd {
             Command::Move(dir) => match game.move_player(dir) {
-                Event::OpenShop(kiosk) => return Screen::Shop { kiosk, selected: 0 },
+                Event::OpenShop(kiosk) => return Screen::Shop { kiosk, selling: false, selected: 0 },
                 Event::OpenStash => return Screen::Stash { side: StashSide::Pack, selected: 0 },
                 Event::None => {}
             },
@@ -288,18 +288,30 @@ impl App {
         Screen::Crafting { selected: input::list_nav(key, selected, recipes().len()) }
     }
 
-    fn on_shop(&mut self, key: KeyEvent, kiosk: usize, selected: usize) -> Screen {
+    fn on_shop(&mut self, key: KeyEvent, kiosk: usize, selling: bool, selected: usize) -> Screen {
         let Some(game) = self.game.as_mut() else { return Screen::Play };
         if input::is_cancel(key) {
             return Screen::Play;
         }
-        let len = game.kiosks.get(kiosk).map_or(0, |k| k.stock.len());
-        if key.code == KeyCode::Enter {
-            game.buy(kiosk, selected);
-            let len = game.kiosks.get(kiosk).map_or(0, |k| k.stock.len());
-            return Screen::Shop { kiosk, selected: selected.min(len.saturating_sub(1)) };
+        let len_of = |game: &Game, selling: bool| {
+            if selling { game.player.inventory.len() } else { game.kiosks.get(kiosk).map_or(0, |k| k.stock.len()) }
+        };
+        match key.code {
+            KeyCode::Tab | KeyCode::BackTab | KeyCode::Left | KeyCode::Right => {
+                let selected = selected.min(len_of(game, !selling).saturating_sub(1));
+                Screen::Shop { kiosk, selling: !selling, selected }
+            }
+            KeyCode::Enter => {
+                if selling {
+                    game.sell(selected);
+                } else {
+                    game.buy(kiosk, selected);
+                }
+                let selected = selected.min(len_of(game, selling).saturating_sub(1));
+                Screen::Shop { kiosk, selling, selected }
+            }
+            _ => Screen::Shop { kiosk, selling, selected: input::list_nav(key, selected, len_of(game, selling)) },
         }
-        Screen::Shop { kiosk, selected: input::list_nav(key, selected, len) }
     }
 
     fn on_stash(&mut self, key: KeyEvent, side: StashSide, selected: usize) -> Screen {

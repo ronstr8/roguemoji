@@ -197,3 +197,25 @@ fn equipping_a_pack_swaps_the_old_one_back() {
     assert_eq!(g.player.pack, Some(Pack::named("hiking_pack")));
     assert!(g.player.inventory.items().iter().any(|i| i.kind == ItemKind::Pack(Pack::named("rag_satchel"))));
 }
+
+#[test]
+fn selling_pays_crystals_and_takes_the_item() {
+    use crate::items::{Armor, Item, MeleeWeapon};
+    let mut g = new_game(3);
+    let vest = Item::one(ItemKind::Armor(Armor::named("kevlar_vest")));
+    let price = crate::items::loot::sell_price(&vest, g.depth).unwrap();
+    g.player.inventory.add(vest.clone()).unwrap();
+    let before = g.player.crystals;
+    let idx = g.player.inventory.items().iter().position(|i| *i == vest).unwrap();
+    g.sell(idx);
+    assert_eq!(g.player.crystals, before + price);
+    assert!(!g.player.inventory.items().contains(&vest));
+
+    // Unpriced items stay put.
+    let bar = Item::one(ItemKind::Melee(MeleeWeapon::named("crowbar")));
+    g.player.inventory.add(bar.clone()).unwrap();
+    let idx = g.player.inventory.items().iter().position(|i| *i == bar).unwrap();
+    g.sell(idx);
+    assert_eq!(g.player.crystals, before + price);
+    assert!(g.player.inventory.items().contains(&bar));
+}

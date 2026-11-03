@@ -84,7 +84,8 @@ it accepts.
 - rare Visitor artifacts 💠: Phase Edge, Graviton Maul, Hum Filament, Siphon Gauntlet
 
 **Crystals** 💎 drop from everything that dies. Absorb them to heal (Willpower improves
-the yield), or spend them at Autovend kiosks. Crystals you spend can't heal you.
+the yield), or spend them at Autovend kiosks. Crystals you spend can't heal you. Autovends
+also buy gear, ammo, food and components for half their price (Tab in the kiosk).
 
 **Harvesting and crafting.** Bump plants, pumps, wrecks, toolboxes, electronics and crates
 to gather components with Survival or Scavenging. Then craft food and drink with timed

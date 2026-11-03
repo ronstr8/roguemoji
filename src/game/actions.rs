@@ -7,6 +7,7 @@ use crate::crafting::{Recipe, recipes};
 use crate::creatures::player::{Burden, MAX_SATIETY};
 use crate::effects::{EffectKind, EffectSpec};
 use crate::geometry::{Dir, Pos, line};
+use crate::items::loot;
 use crate::items::melee::Special;
 use crate::items::{Consumable, Gun, Item, ItemKind};
 use crate::stats::Skill;
@@ -616,6 +617,21 @@ impl Game {
         self.kiosks[kiosk].stock.remove(idx);
         self.log.push(format!("*ka-chunk* The Autovend dispenses {}.", item.display_name()), Tone::Loot);
         self.give_player(item);
+        self.note_burden();
+    }
+
+    /// Sell from the pack: a whole stack of ammo, otherwise one item.
+    pub fn sell(&mut self, idx: usize) {
+        let Some(item) = self.player.inventory.get(idx) else { return };
+        let Some(price) = loot::sell_price(item, self.depth) else {
+            self.log.push("The Autovend flashes: ITEM NOT RECOGNIZED.", Tone::Bad);
+            return;
+        };
+        let n = loot::sell_qty(item);
+        let Some(sold) = self.player.inventory.take(idx, n) else { return };
+        self.player.crystals += price;
+        self.log
+            .push(format!("*whirr* The Autovend takes {} and pays out {price} 💎.", sold.display_name()), Tone::Loot);
         self.note_burden();
     }
 }
