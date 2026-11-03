@@ -128,23 +128,23 @@ mod tests {
     #[test]
     fn stacks_merge_and_consume() {
         let mut inv = Inventory::default();
-        inv.add(Item::component(Component::Nails, 2)).unwrap();
-        inv.add(Item::component(Component::Nails, 3)).unwrap();
+        inv.add(Item::component(Component::named("nails"), 2)).unwrap();
+        inv.add(Item::component(Component::named("nails"), 3)).unwrap();
         assert_eq!(inv.len(), 1);
-        assert!(inv.consume_component(Component::Nails, 4));
-        assert_eq!(inv.count_component(Component::Nails), 1);
-        assert!(!inv.consume_component(Component::Nails, 2));
-        assert!(inv.consume_component(Component::Nails, 1));
+        assert!(inv.consume_component(Component::named("nails"), 4));
+        assert_eq!(inv.count_component(Component::named("nails")), 1);
+        assert!(!inv.consume_component(Component::named("nails"), 2));
+        assert!(inv.consume_component(Component::named("nails"), 1));
         assert!(inv.is_empty());
     }
 
     #[test]
     fn slot_cap_and_weight() {
         let mut inv = Inventory::with_slots(1);
-        inv.add(Item::component(Component::ScrapMetal, 2)).unwrap();
+        inv.add(Item::component(Component::named("scrap_metal"), 2)).unwrap();
         assert_eq!(inv.weight(), 600);
-        assert!(inv.add(Item::component(Component::Nails, 1)).is_err());
-        assert!(inv.add(Item::component(Component::ScrapMetal, 1)).is_ok());
+        assert!(inv.add(Item::component(Component::named("nails"), 1)).is_err());
+        assert!(inv.add(Item::component(Component::named("scrap_metal"), 1)).is_ok());
         assert_eq!(inv.weight(), 900);
     }
 }

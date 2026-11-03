@@ -1,0 +1,5 @@
+name = "Canned Beans"
+glyph = "🥫"
+description = "Dented but intact."
+weight = 1
+loot_weight = 1

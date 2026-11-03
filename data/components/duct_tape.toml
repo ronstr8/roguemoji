@@ -1,0 +1,5 @@
+name = "Duct Tape"
+glyph = "🩹"
+description = "Holds the world together."
+weight = 0.3
+loot_weight = 1

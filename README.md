@@ -110,6 +110,7 @@ spare guns and armor in one, then take them out of a lockbox on a deeper level.
 ```
 data/
   monsters/        one TOML file per monster (see data/README.md)
+  components/      one TOML file per crafting component
 build.rs           embeds data/ into the binary
 src/
   main.rs          entry point, content validation, terminal setup
@@ -129,6 +130,7 @@ src/
   ui/              canvas (wide-char aware), terminal (diffed output), HUD, map view, pop-up screens
 ```
 
-Monsters are data-driven: each is a TOML file under `data/monsters/`, and you can
-add or override them without recompiling (see [data/README.md](data/README.md)).
-Items and recipes are still enum variants with a `def()` table. Game rules never touch the terminal, and views never mutate the game.
+Monsters and crafting components are data-driven: each is a TOML file under
+`data/`, and you can add or override them without recompiling (see
+[data/README.md](data/README.md)). Other items and recipes are still enum
+variants with a `def()` table. Game rules never touch the terminal, and views never mutate the game.

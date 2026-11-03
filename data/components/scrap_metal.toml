@@ -1,0 +1,5 @@
+name = "Scrap Metal"
+glyph = "🔩"
+description = "Sheet steel, bolts and brackets."
+weight = 3
+loot_weight = 1

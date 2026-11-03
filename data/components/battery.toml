@@ -1,0 +1,5 @@
+name = "Battery"
+glyph = "🔋"
+description = "Still holds a charge."
+weight = 0.5
+loot_weight = 1

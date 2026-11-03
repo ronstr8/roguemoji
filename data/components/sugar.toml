@@ -1,0 +1,5 @@
+name = "Sugar Packets"
+glyph = "🍬"
+description = "Diner sugar, still sealed."
+weight = 0.05
+loot_weight = 1

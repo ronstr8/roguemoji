@@ -180,7 +180,7 @@ impl Game {
                         n += 1;
                     }
                     if n > 0 {
-                        gathered.push((*c, n));
+                        gathered.push((crate::items::Component::named(c), n));
                     }
                     if tier == Tier::Partial && !gathered.is_empty() {
                         break;
@@ -188,7 +188,7 @@ impl Game {
                 }
                 if gathered.is_empty() {
                     let (c, lo, _) = def.yields[0];
-                    gathered.push((c, lo.max(1)));
+                    gathered.push((crate::items::Component::named(c), lo.max(1)));
                 }
                 self.train(def.skill, if tier == Tier::Critical { 2 } else { 1 });
             }
@@ -551,7 +551,7 @@ impl Game {
     }
 
     pub fn can_craft(&self, recipe: &Recipe) -> bool {
-        self.has_tool(recipe) && recipe.ingredients.iter().all(|(c, n)| self.player.inventory.count_component(*c) >= *n)
+        self.has_tool(recipe) && recipe.components().all(|(c, n)| self.player.inventory.count_component(c) >= n)
     }
 
     pub fn craft(&mut self, recipe_idx: usize) {
@@ -579,8 +579,8 @@ impl Game {
                     if recipe.output.is_food() {
                         item.qty = 2;
                         msg = format!("Masterful! You make a double batch of {}.", item.base_name());
-                    } else if let Some((c, _)) = recipe.ingredients.first() {
-                        self.give_player(Item::component(*c, 1));
+                    } else if let Some((c, _)) = recipe.components().next() {
+                        self.give_player(Item::component(c, 1));
                         msg = format!("Masterful! You craft {} with material to spare.", item.base_name());
                     }
                 }
@@ -593,8 +593,8 @@ impl Game {
     }
 
     fn consume_ingredients(&mut self, recipe: &Recipe) {
-        for (c, n) in recipe.ingredients {
-            self.player.inventory.consume_component(*c, *n);
+        for (c, n) in recipe.components() {
+            self.player.inventory.consume_component(c, n);
         }
         if let Some(tool) = recipe.consumes_tool {
             let kind = ItemKind::Melee(tool);

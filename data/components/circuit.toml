@@ -1,0 +1,4 @@
+name = "Circuit Board"
+glyph = "💾"
+description = "Salvaged electronics."
+weight = 0.2

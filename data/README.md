@@ -52,12 +52,30 @@ max_depth = 6                # optional; never spawns deeper than this
 weight = 8                   # relative commonness (rat 10 … cryptids 2); 0 = never spawns
 ```
 
-**Drop items:** `herbs`, `glowcap`, `cactus_pulp`, `grain`, `dirty_water`, `sugar`,
-`canned_beans`, `raw_meat`, `bone`, `mutagen`, `cryptid_hair`, `scrap_metal`, `pipe`,
-`wire`, `duct_tape`, `nails`, `battery`, `circuit`, `rags`.
+**Drop items** are component ids: any file in `components/`, including your own.
 
 **How spawn weight plays out.** On each level, every eligible monster gets
 `weight × 3`. That drops to a third once the level is more than 4 depths past
 its `min_depth` (common critters thin out). Cryptids get `+ depth / 3` on top.
 Monsters spawned deeper than their `min_depth` also get +1/6 of their HP per
 extra depth.
+
+## Components — `components/*.toml`
+
+Crafting materials: harvested from nodes, dropped by monsters, found on the floor.
+
+```toml
+name = "Duct Tape"
+glyph = "🩹"
+description = "Holds the world together."
+weight = 0.3                 # pounds
+loot_weight = 1              # optional; relative chance among floor components.
+                             # 0 or absent = never found lying around
+```
+
+Some components are named by the game's own tables: crafting recipes, harvest
+nodes (🌿 🚗 🧰 …) and starting kits. You can override those files to change
+names, glyphs, weights and loot chances. You can't remove them; the game
+checks at startup that they all exist. A new component can be dropped by a
+monster (`drops`) or found on the floor (`loot_weight`). Recipes can't use it
+yet, because recipes are still defined in code.

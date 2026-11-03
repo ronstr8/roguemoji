@@ -57,8 +57,9 @@ fn random_consumable(dice: &mut Dice) -> Consumable {
 }
 
 fn random_component(dice: &mut Dice) -> Component {
-    use Component::*;
-    *dice.pick(&[Sugar, CannedBeans, DuctTape, Nails, Rags, Wire, ScrapMetal, Battery, DirtyWater])
+    let table: Vec<(Component, u32)> = Component::all().map(|c| (c, c.def().loot_weight)).collect();
+    // If no component is marked as floor loot, any will do.
+    dice.weighted(&table).unwrap_or_else(|| *dice.pick(&Component::all().collect::<Vec<_>>()))
 }
 
 fn random_armor(dice: &mut Dice, depth: u32) -> Armor {

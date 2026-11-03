@@ -35,9 +35,9 @@ pub fn draw(canvas: &mut Canvas, game: &Game, selected: usize) {
     canvas.text(dx, y, "Requires:", theme::DIM, bg);
     y += 1;
     let inv = &game.player.inventory;
-    for (c, n) in r.ingredients {
-        let have = inv.count_component(*c);
-        let color = if have >= *n { theme::GOOD } else { theme::BAD };
+    for (c, n) in r.components() {
+        let have = inv.count_component(c);
+        let color = if have >= n { theme::GOOD } else { theme::BAD };
         canvas.text_max(dx, y, &format!("  {} {}  {}/{}", c.def().glyph, c.def().name, have, n), dw, color, bg);
         y += 1;
     }

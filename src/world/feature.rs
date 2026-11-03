@@ -1,7 +1,6 @@
 //! Map features: harvestable nodes, Autovend kiosks, Visitor lockboxes,
 //! stairs, and the Beacon.
 
-use crate::items::Component;
 use crate::stats::Skill;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -23,8 +22,8 @@ pub struct HarvestDef {
     pub glyph: &'static str,
     pub skill: Skill,
     pub difficulty: i32,
-    /// `(component, min, max)` — each entry rolls independently.
-    pub yields: &'static [(Component, u32, u32)],
+    /// `(component id, min, max)` — each entry rolls independently.
+    pub yields: &'static [(&'static str, u32, u32)],
     pub uses: u8,
     pub verb: &'static str,
 }
@@ -45,8 +44,20 @@ impl Harvestable {
         Harvestable::Remains,
     ];
 
+    pub const ALL: [Harvestable; 10] = [
+        Harvestable::WildHerbs,
+        Harvestable::GlowcapPatch,
+        Harvestable::Cactus,
+        Harvestable::WildGrain,
+        Harvestable::WaterPump,
+        Harvestable::CarWreck,
+        Harvestable::Toolbox,
+        Harvestable::DeadElectronics,
+        Harvestable::SupplyCrate,
+        Harvestable::Remains,
+    ];
+
     pub fn def(self) -> &'static HarvestDef {
-        use Component::*;
         use Skill::{Scavenging, Survival};
         macro_rules! h {
             ($n:expr, $g:expr, $sk:expr, $diff:expr, $uses:expr, $verb:expr, [$(($c:expr, $lo:expr, $hi:expr)),*]) => {
@@ -55,11 +66,11 @@ impl Harvestable {
             };
         }
         match self {
-            Harvestable::WildHerbs => h!("Wild Herbs", "🌿", Survival, 9, 2, "forage", [(Herbs, 1, 2)]),
-            Harvestable::GlowcapPatch => h!("Glowcap Patch", "🍄", Survival, 11, 2, "pick", [(Glowcap, 1, 2)]),
-            Harvestable::Cactus => h!("Barrel Cactus", "🌵", Survival, 10, 2, "carve", [(CactusPulp, 1, 2)]),
-            Harvestable::WildGrain => h!("Wild Grain", "🌾", Survival, 9, 2, "thresh", [(Grain, 1, 3)]),
-            Harvestable::WaterPump => h!("Hand Pump", "🚰", Survival, 8, 3, "pump", [(DirtyWater, 1, 2)]),
+            Harvestable::WildHerbs => h!("Wild Herbs", "🌿", Survival, 9, 2, "forage", [("herbs", 1, 2)]),
+            Harvestable::GlowcapPatch => h!("Glowcap Patch", "🍄", Survival, 11, 2, "pick", [("glowcap", 1, 2)]),
+            Harvestable::Cactus => h!("Barrel Cactus", "🌵", Survival, 10, 2, "carve", [("cactus_pulp", 1, 2)]),
+            Harvestable::WildGrain => h!("Wild Grain", "🌾", Survival, 9, 2, "thresh", [("grain", 1, 3)]),
+            Harvestable::WaterPump => h!("Hand Pump", "🚰", Survival, 8, 3, "pump", [("dirty_water", 1, 2)]),
             Harvestable::CarWreck => h!(
                 "Car Wreck",
                 "🚗",
@@ -67,7 +78,7 @@ impl Harvestable {
                 11,
                 3,
                 "strip",
-                [(ScrapMetal, 1, 2), (Wire, 0, 1), (Battery, 0, 1), (Pipe, 0, 1)]
+                [("scrap_metal", 1, 2), ("wire", 0, 1), ("battery", 0, 1), ("pipe", 0, 1)]
             ),
             Harvestable::Toolbox => h!(
                 "Toolbox",
@@ -76,10 +87,18 @@ impl Harvestable {
                 9,
                 1,
                 "rummage through",
-                [(Nails, 1, 3), (DuctTape, 0, 2), (Wire, 0, 1)]
+                [("nails", 1, 3), ("duct_tape", 0, 2), ("wire", 0, 1)]
             ),
             Harvestable::DeadElectronics => {
-                h!("Dead Electronics", "📺", Scavenging, 12, 2, "gut", [(Circuit, 0, 1), (Wire, 1, 2), (Battery, 0, 1)])
+                h!(
+                    "Dead Electronics",
+                    "📺",
+                    Scavenging,
+                    12,
+                    2,
+                    "gut",
+                    [("circuit", 0, 1), ("wire", 1, 2), ("battery", 0, 1)]
+                )
             }
             Harvestable::SupplyCrate => h!(
                 "Supply Crate",
@@ -88,9 +107,11 @@ impl Harvestable {
                 10,
                 1,
                 "pry open",
-                [(CannedBeans, 0, 2), (Sugar, 0, 2), (Rags, 0, 2), (DuctTape, 0, 1)]
+                [("canned_beans", 0, 2), ("sugar", 0, 2), ("rags", 0, 2), ("duct_tape", 0, 1)]
             ),
-            Harvestable::Remains => h!("Old Remains", "💀", Scavenging, 8, 1, "search", [(Bone, 1, 2), (Rags, 0, 2)]),
+            Harvestable::Remains => {
+                h!("Old Remains", "💀", Scavenging, 8, 1, "search", [("bone", 1, 2), ("rags", 0, 2)])
+            }
         }
     }
 }

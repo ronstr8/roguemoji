@@ -4,7 +4,7 @@ use std::sync::OnceLock;
 
 use serde::Deserialize;
 
-use crate::content;
+use crate::content::{self, Problems};
 use crate::effects::{EffectKind, EffectSpec};
 use crate::items::Component;
 
@@ -104,7 +104,7 @@ enum RawOnHit {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct RawDrop {
-    item: Component,
+    item: String,
     chance: f64,
 }
 
@@ -119,23 +119,23 @@ struct RawSpawn {
 
 impl RawSpecies {
     fn into_def(self, id: String) -> Result<SpeciesDef, Vec<String>> {
-        let mut errs = Vec::new();
-        let mut check = |ok: bool, msg: &str| {
-            if !ok {
-                errs.push(msg.to_string());
-            }
-        };
-        check(!self.name.trim().is_empty(), "name is empty");
-        check(!self.glyph.trim().is_empty(), "glyph is empty");
-        check(self.hp > 0, "hp must be positive");
-        check(self.speed > 0, "speed must be positive");
-        check(self.damage.0 >= 0 && self.damage.0 <= self.damage.1, "damage must be [min, max] with 0 <= min <= max");
-        check(self.crystals.0 <= self.crystals.1, "crystals must be [min, max] with min <= max");
-        check(self.armor >= 0, "armor cannot be negative");
-        check(self.spawn.min_depth >= 1, "spawn.min_depth must be at least 1");
-        check(self.spawn.max_depth.is_none_or(|m| m >= self.spawn.min_depth), "spawn.max_depth is below min_depth");
+        let mut p = Problems::default();
+        p.check(!self.name.trim().is_empty(), "name is empty");
+        p.check(!self.glyph.trim().is_empty(), "glyph is empty");
+        p.check(self.hp > 0, "hp must be positive");
+        p.check(self.speed > 0, "speed must be positive");
+        p.check(self.damage.0 >= 0 && self.damage.0 <= self.damage.1, "damage must be [min, max] with 0 <= min <= max");
+        p.check(self.crystals.0 <= self.crystals.1, "crystals must be [min, max] with min <= max");
+        p.check(self.armor >= 0, "armor cannot be negative");
+        p.check(self.spawn.min_depth >= 1, "spawn.min_depth must be at least 1");
+        p.check(self.spawn.max_depth.is_none_or(|m| m >= self.spawn.min_depth), "spawn.max_depth is below min_depth");
+        let mut drops = Vec::new();
         for d in &self.drops {
-            check((0.0..=1.0).contains(&d.chance), "drop chance must be between 0 and 1");
+            p.check((0.0..=1.0).contains(&d.chance), "drop chance must be between 0 and 1");
+            match Component::lookup(&d.item) {
+                Some(c) => drops.push((c, d.chance)),
+                None => p.0.push(format!("drop item `{}` is not a component in data/components/", d.item)),
+            }
         }
         let on_hit = match self.on_hit {
             None => OnHit::None,
@@ -148,8 +148,8 @@ impl RawSpecies {
             Some(RawOnHit::Stun { turns }) => OnHit::Inflict(EffectSpec::new(EffectKind::Stun, 1, turns)),
             Some(RawOnHit::Dread) => OnHit::Dread,
         };
-        if !errs.is_empty() {
-            return Err(errs);
+        if !p.0.is_empty() {
+            return Err(p.0);
         }
         Ok(SpeciesDef {
             id,
@@ -167,7 +167,7 @@ impl RawSpecies {
             max_depth: self.spawn.max_depth,
             weight: self.spawn.weight,
             on_hit,
-            drops: self.drops.into_iter().map(|d| (d.item, d.chance)).collect(),
+            drops,
             desc: self.description,
         })
     }
@@ -178,21 +178,7 @@ impl RawSpecies {
 static BESTIARY: OnceLock<Vec<SpeciesDef>> = OnceLock::new();
 
 fn load() -> Result<Vec<SpeciesDef>, String> {
-    let mut defs = Vec::new();
-    let mut errors = Vec::new();
-    for (src, raw) in content::load::<RawSpecies>("monsters")? {
-        match raw.into_def(src.id) {
-            Ok(def) => defs.push(def),
-            Err(errs) => errors.extend(errs.into_iter().map(|e| format!("{}: {e}", src.origin))),
-        }
-    }
-    if defs.is_empty() && errors.is_empty() {
-        errors.push("no monsters defined (data/monsters/*.toml)".into());
-    }
-    if defs.len() > u16::MAX as usize {
-        errors.push("too many monster definitions".into());
-    }
-    if errors.is_empty() { Ok(defs) } else { Err(errors.join("\n")) }
+    content::load_defs("monsters", |id, raw: RawSpecies| raw.into_def(id))
 }
 
 /// Load the bestiary now, reporting bad content files as an error.
@@ -261,7 +247,7 @@ mod tests {
         assert_eq!(d.speed, 100);
         assert_eq!(d.armor, 0);
         assert_eq!(d.on_hit, OnHit::Inflict(EffectSpec::new(EffectKind::Poison, 2, 4)));
-        assert_eq!(d.drops, vec![(Component::RawMeat, 0.5)]);
+        assert_eq!(d.drops, vec![(Component::named("raw_meat"), 0.5)]);
     }
 
     #[test]

@@ -81,7 +81,6 @@ impl Background {
                 p.melee = Some(MeleeWeapon::Crowbar);
                 p.gun = Some(Gun::loaded_with(GunModel::TargetPistol22, Ammo::Lr22, 10));
                 give(&mut p, Item::ammo(Ammo::Lr22, 20));
-                give(&mut p, Item::component(Component::DuctTape, 1));
                 give(&mut p, Item::food(Consumable::CannedPeaches, 1));
             }
             Background::ExDeputy => {
@@ -95,21 +94,29 @@ impl Background {
                 p.gun = Some(Gun::loaded_with(GunModel::SnubRevolver38, Ammo::Spl38, 5));
                 give(&mut p, Item::ammo(Ammo::Spl38, 10));
                 give(&mut p, Item::one(ItemKind::Melee(MeleeWeapon::BaseballBat)));
-                give(&mut p, Item::component(Component::Nails, 2));
-                give(&mut p, Item::component(Component::ScrapMetal, 2));
-                give(&mut p, Item::component(Component::DuctTape, 1));
             }
             Background::Homesteader => {
                 p.melee = Some(MeleeWeapon::KitchenKnife);
                 p.gun = Some(Gun::loaded_with(GunModel::SingleShot20, Ammo::Ga20Buck, 1));
                 p.armor = Some(Armor::LeatherJacket);
                 give(&mut p, Item::ammo(Ammo::Ga20Buck, 8));
-                give(&mut p, Item::component(Component::Herbs, 2));
-                give(&mut p, Item::component(Component::DirtyWater, 2));
                 give(&mut p, Item::food(Consumable::Hardtack, 1));
             }
         }
+        for (id, n) in self.starting_components() {
+            give(&mut p, Item::component(Component::named(id), *n));
+        }
         p.crystals = 5;
         p
+    }
+
+    /// Crafting components in the starting kit, by id.
+    pub fn starting_components(self) -> &'static [(&'static str, u32)] {
+        match self {
+            Background::Scavenger => &[("duct_tape", 1)],
+            Background::ExDeputy => &[],
+            Background::Mechanic => &[("nails", 2), ("scrap_metal", 2), ("duct_tape", 1)],
+            Background::Homesteader => &[("herbs", 2), ("dirty_water", 2)],
+        }
     }
 }

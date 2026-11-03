@@ -104,7 +104,7 @@ fn open_step(g: &Game) -> Dir {
 /// Load the pack with scrap until it weighs at least `lb` hundredths of a pound.
 fn load_to(g: &mut Game, target: u32) {
     while g.player.carried_weight() < target {
-        g.player.inventory.add(Item::component(Component::ScrapMetal, 1)).unwrap();
+        g.player.inventory.add(Item::component(Component::named("scrap_metal"), 1)).unwrap();
     }
 }
 

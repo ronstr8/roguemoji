@@ -97,18 +97,7 @@ pub fn armor(a: Armor) -> u32 {
 }
 
 pub fn component(c: Component) -> u32 {
-    use Component::*;
-    match c {
-        Herbs | Glowcap | CryptidHair => 10,
-        CactusPulp | Bone | Wire | Battery => 50,
-        Grain | Mutagen | DuctTape => 30,
-        DirtyWater => 200,
-        Sugar => 5,
-        CannedBeans | RawMeat => 100,
-        ScrapMetal => 300,
-        Pipe => 400,
-        Nails | Circuit | Rags => 20,
-    }
+    c.def().weight
 }
 
 pub fn consumable(c: Consumable) -> u32 {

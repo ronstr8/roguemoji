@@ -1,0 +1,5 @@
+name = "Nails"
+glyph = "📌"
+description = "A handful of framing nails."
+weight = 0.2
+loot_weight = 1

@@ -83,7 +83,7 @@ impl Item {
             ItemKind::Melee(m) => m.def().name.into(),
             ItemKind::Ammo(a) => a.name().into(),
             ItemKind::Armor(a) => a.def().name.into(),
-            ItemKind::Component(c) => c.def().name.into(),
+            ItemKind::Component(c) => c.def().name.clone(),
             ItemKind::Consumable(c) => c.def().name.into(),
             ItemKind::Pack(p) => p.def().name.into(),
         }
@@ -105,7 +105,7 @@ impl Item {
             ItemKind::Melee(m) => m.def().glyph,
             ItemKind::Ammo(_) => AMMO_GLYPH,
             ItemKind::Armor(a) => a.def().glyph,
-            ItemKind::Component(c) => c.def().glyph,
+            ItemKind::Component(c) => c.def().glyph.as_str(),
             ItemKind::Consumable(c) => c.def().glyph,
             ItemKind::Pack(p) => p.def().glyph,
         }
@@ -214,7 +214,7 @@ impl Item {
                 out.push(d.desc.into());
                 out.push(format!("Armor {} · Dodge penalty {}", d.armor, d.dodge_penalty));
             }
-            ItemKind::Component(c) => out.push(c.def().desc.into()),
+            ItemKind::Component(c) => out.push(c.def().desc.clone()),
             ItemKind::Consumable(c) => {
                 let d = c.def();
                 out.push(d.desc.into());

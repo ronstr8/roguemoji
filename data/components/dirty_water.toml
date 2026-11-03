@@ -1,0 +1,5 @@
+name = "Dirty Water"
+glyph = "💧"
+description = "Boil it first. Probably."
+weight = 2
+loot_weight = 1

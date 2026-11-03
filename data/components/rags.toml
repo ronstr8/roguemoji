@@ -1,0 +1,5 @@
+name = "Rags"
+glyph = "🧣"
+description = "Cloth scraps for wrapping and padding."
+weight = 0.2
+loot_weight = 1

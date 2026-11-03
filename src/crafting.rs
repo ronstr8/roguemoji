@@ -33,7 +33,8 @@ impl Output {
 
 pub struct Recipe {
     pub output: Output,
-    pub ingredients: &'static [(Component, u32)],
+    /// `(component id, count)`; ids must exist in `data/components/`.
+    pub ingredients: &'static [(&'static str, u32)],
     /// Extra non-component tool consumed (e.g. a bat to nail).
     pub consumes_tool: Option<MeleeWeapon>,
     pub difficulty: i32,
@@ -47,34 +48,53 @@ impl Recipe {
     pub fn glyph(&self) -> &'static str {
         self.output.item().glyph()
     }
+
+    pub fn components(&self) -> impl Iterator<Item = (Component, u32)> + '_ {
+        self.ingredients.iter().map(|(id, n)| (Component::named(id), *n))
+    }
 }
 
 macro_rules! recipe {
-    ($out:expr, [$(($c:ident, $n:expr)),*], $tool:expr, $diff:expr) => {
-        Recipe { output: $out, ingredients: &[$((Component::$c, $n)),*], consumes_tool: $tool, difficulty: $diff }
+    ($out:expr, [$(($c:literal, $n:expr)),*], $tool:expr, $diff:expr) => {
+        Recipe { output: $out, ingredients: &[$(($c, $n)),*], consumes_tool: $tool, difficulty: $diff }
     };
 }
 
 pub static RECIPES: &[Recipe] = &[
     // Food & drink
-    recipe!(Output::Food(Consumable::HerbalTea), [(Herbs, 1), (DirtyWater, 1)], None, 8),
-    recipe!(Output::Food(Consumable::Hardtack), [(Grain, 1), (DirtyWater, 1)], None, 8),
-    recipe!(Output::Food(Consumable::CactusJuice), [(CactusPulp, 1), (Sugar, 1)], None, 9),
-    recipe!(Output::Food(Consumable::GrilledMeat), [(RawMeat, 1), (Herbs, 1)], None, 9),
-    recipe!(Output::Food(Consumable::BeanChili), [(CannedBeans, 1), (Herbs, 1)], None, 9),
-    recipe!(Output::Food(Consumable::GlowcapBrew), [(Glowcap, 1), (DirtyWater, 1)], None, 11),
-    recipe!(Output::Food(Consumable::BoneBroth), [(Bone, 1), (DirtyWater, 1), (Herbs, 1)], None, 11),
-    recipe!(Output::Food(Consumable::Moonshine), [(Grain, 2), (Sugar, 1), (DirtyWater, 1)], None, 12),
-    recipe!(Output::Food(Consumable::StimSoda), [(Sugar, 1), (Mutagen, 1), (DirtyWater, 1)], None, 13),
-    recipe!(Output::Food(Consumable::MutantStew), [(RawMeat, 1), (Mutagen, 1), (DirtyWater, 1)], None, 13),
-    recipe!(Output::Food(Consumable::CryptidTonic), [(CryptidHair, 1), (Glowcap, 1), (DirtyWater, 1)], None, 15),
+    recipe!(Output::Food(Consumable::HerbalTea), [("herbs", 1), ("dirty_water", 1)], None, 8),
+    recipe!(Output::Food(Consumable::Hardtack), [("grain", 1), ("dirty_water", 1)], None, 8),
+    recipe!(Output::Food(Consumable::CactusJuice), [("cactus_pulp", 1), ("sugar", 1)], None, 9),
+    recipe!(Output::Food(Consumable::GrilledMeat), [("raw_meat", 1), ("herbs", 1)], None, 9),
+    recipe!(Output::Food(Consumable::BeanChili), [("canned_beans", 1), ("herbs", 1)], None, 9),
+    recipe!(Output::Food(Consumable::GlowcapBrew), [("glowcap", 1), ("dirty_water", 1)], None, 11),
+    recipe!(Output::Food(Consumable::BoneBroth), [("bone", 1), ("dirty_water", 1), ("herbs", 1)], None, 11),
+    recipe!(Output::Food(Consumable::Moonshine), [("grain", 2), ("sugar", 1), ("dirty_water", 1)], None, 12),
+    recipe!(Output::Food(Consumable::StimSoda), [("sugar", 1), ("mutagen", 1), ("dirty_water", 1)], None, 13),
+    recipe!(Output::Food(Consumable::MutantStew), [("raw_meat", 1), ("mutagen", 1), ("dirty_water", 1)], None, 13),
+    recipe!(
+        Output::Food(Consumable::CryptidTonic),
+        [("cryptid_hair", 1), ("glowcap", 1), ("dirty_water", 1)],
+        None,
+        15
+    ),
     // Scrapcraft weapons & armor
-    recipe!(Output::Melee(MeleeWeapon::NailBat), [(Nails, 2)], Some(MeleeWeapon::BaseballBat), 9),
-    recipe!(Output::Melee(MeleeWeapon::PipeSpear), [(Pipe, 1), (DuctTape, 1)], Some(MeleeWeapon::KitchenKnife), 11),
-    recipe!(Output::Melee(MeleeWeapon::ScrapCleaver), [(ScrapMetal, 2), (DuctTape, 1)], None, 12),
-    recipe!(Output::Melee(MeleeWeapon::SpikedKnuckles), [(ScrapMetal, 1), (Nails, 1)], None, 11),
-    recipe!(Output::Melee(MeleeWeapon::ShockBaton), [(Pipe, 1), (Battery, 1), (Wire, 1), (Circuit, 1)], None, 14),
-    recipe!(Output::Armor(Armor::ScrapVest), [(ScrapMetal, 3), (Rags, 2), (DuctTape, 1)], None, 13),
+    recipe!(Output::Melee(MeleeWeapon::NailBat), [("nails", 2)], Some(MeleeWeapon::BaseballBat), 9),
+    recipe!(
+        Output::Melee(MeleeWeapon::PipeSpear),
+        [("pipe", 1), ("duct_tape", 1)],
+        Some(MeleeWeapon::KitchenKnife),
+        11
+    ),
+    recipe!(Output::Melee(MeleeWeapon::ScrapCleaver), [("scrap_metal", 2), ("duct_tape", 1)], None, 12),
+    recipe!(Output::Melee(MeleeWeapon::SpikedKnuckles), [("scrap_metal", 1), ("nails", 1)], None, 11),
+    recipe!(
+        Output::Melee(MeleeWeapon::ShockBaton),
+        [("pipe", 1), ("battery", 1), ("wire", 1), ("circuit", 1)],
+        None,
+        14
+    ),
+    recipe!(Output::Armor(Armor::ScrapVest), [("scrap_metal", 3), ("rags", 2), ("duct_tape", 1)], None, 13),
     // Carrying gear
-    recipe!(Output::Pack(Pack::RagSatchel), [(Rags, 3), (DuctTape, 1)], None, 9),
+    recipe!(Output::Pack(Pack::RagSatchel), [("rags", 3), ("duct_tape", 1)], None, 9),
 ];

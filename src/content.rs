@@ -70,3 +70,42 @@ pub fn load<T: DeserializeOwned>(category: &str) -> Result<Vec<(Source, T)>, Str
     }
     if errors.is_empty() { Ok(out) } else { Err(errors.join("\n")) }
 }
+
+/// Parse a category and convert each entry with `build(id, raw)`, which
+/// returns its validation problems. All errors are reported together.
+pub fn load_defs<R: DeserializeOwned, D>(
+    category: &str,
+    build: impl Fn(String, R) -> Result<D, Vec<String>>,
+) -> Result<Vec<D>, String> {
+    let mut defs = Vec::new();
+    let mut errors = Vec::new();
+    for (src, raw) in load::<R>(category)? {
+        match build(src.id, raw) {
+            Ok(def) => defs.push(def),
+            Err(errs) => errors.extend(errs.into_iter().map(|e| format!("{}: {e}", src.origin))),
+        }
+    }
+    if defs.is_empty() && errors.is_empty() {
+        errors.push(format!("no {category} defined (data/{category}/*.toml)"));
+    }
+    if defs.len() > u16::MAX as usize {
+        errors.push(format!("too many {category} definitions"));
+    }
+    if errors.is_empty() { Ok(defs) } else { Err(errors.join("\n")) }
+}
+
+/// Collects validation failures for one content file.
+#[derive(Default)]
+pub struct Problems(pub Vec<String>);
+
+impl Problems {
+    pub fn check(&mut self, ok: bool, msg: impl Into<String>) {
+        if !ok {
+            self.0.push(msg.into());
+        }
+    }
+
+    pub fn finish<D>(self, def: impl FnOnce() -> D) -> Result<D, Vec<String>> {
+        if self.0.is_empty() { Ok(def()) } else { Err(self.0) }
+    }
+}

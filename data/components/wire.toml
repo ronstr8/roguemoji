@@ -1,0 +1,5 @@
+name = "Copper Wire"
+glyph = "➰"
+description = "Stripped from walls and wrecks."
+weight = 0.5
+loot_weight = 1
