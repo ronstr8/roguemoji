@@ -206,8 +206,13 @@ pub fn sell_qty(item: &Item) -> u32 {
 /// What an Autovend on `depth` pays for one sale of `item` (see
 /// [`sell_qty`]), or `None` if it won't buy it.
 pub fn sell_price(item: &Item, depth: u32) -> Option<u32> {
-    let sold = Item { kind: item.kind.clone(), qty: sell_qty(item) };
-    shop_price(&sold, depth).map(|p| ((p as f64 * SELL_RATE) as u32).max(1))
+    sale_value(&Item { kind: item.kind.clone(), qty: sell_qty(item) }, depth)
+}
+
+/// What an Autovend on `depth` would pay for all of `item`, or `None` if it
+/// won't buy it.
+pub fn sale_value(item: &Item, depth: u32) -> Option<u32> {
+    shop_price(item, depth).map(|p| ((p as f64 * SELL_RATE) as u32).max(1))
 }
 
 /// A box of ammo to sell: a priced load for a gun found at `depth`.

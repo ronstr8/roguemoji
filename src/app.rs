@@ -36,12 +36,20 @@ pub struct App {
     screen: Screen,
     seed: Option<u64>,
     last_target: Option<u32>,
+    inv_sort: screens::inventory::Sort,
     running: bool,
 }
 
 impl App {
     pub fn new(seed: Option<u64>) -> Self {
-        Self { game: None, screen: Screen::Title { selected: 0 }, seed, last_target: None, running: true }
+        Self {
+            game: None,
+            screen: Screen::Title { selected: 0 },
+            seed,
+            last_target: None,
+            inv_sort: Default::default(),
+            running: true,
+        }
     }
 
     pub fn run(mut self, term: &mut Terminal) -> io::Result<()> {
@@ -85,7 +93,7 @@ impl App {
         ui::draw_play(canvas, game, target, status.as_deref());
 
         match &self.screen {
-            Screen::Inventory { selected } => screens::inventory::draw(canvas, game, *selected),
+            Screen::Inventory { selected } => screens::inventory::draw(canvas, game, self.inv_sort, *selected),
             Screen::Character => screens::character::draw(canvas, game),
             Screen::Crafting { selected } => screens::crafting::draw(canvas, game, *selected),
             Screen::Shop { kiosk, selling, selected } => screens::shop::draw(canvas, game, *kiosk, *selling, *selected),
@@ -243,20 +251,30 @@ impl App {
     }
 
     fn on_inventory(&mut self, key: KeyEvent, selected: usize) -> Screen {
+        let sort = self.inv_sort;
         let Some(game) = self.game.as_mut() else { return Screen::Play };
         let len = game.player.inventory.len();
         let clamp = |s: usize, len: usize| s.min(len.saturating_sub(1));
+        // `selected` is a row on screen; the pack itself stays in pickup order.
+        let item = sort.order(game.player.inventory.items(), game.depth).get(selected).copied();
         match key.code {
             KeyCode::Esc | KeyCode::Char('i') | KeyCode::Char('q') => return Screen::Play,
             KeyCode::Enter | KeyCode::Char('e') => {
-                if selected < len {
-                    game.use_item(selected);
+                if let Some(idx) = item {
+                    game.use_item(idx);
                 }
             }
             KeyCode::Char('d') => {
-                if selected < len {
-                    game.drop_item(selected);
+                if let Some(idx) = item {
+                    game.drop_item(idx);
                 }
+            }
+            KeyCode::Char('s') => {
+                // Keep the same item highlighted in its new place.
+                self.inv_sort = sort.next();
+                let order = self.inv_sort.order(game.player.inventory.items(), game.depth);
+                let selected = item.and_then(|i| order.iter().position(|&o| o == i)).unwrap_or(0);
+                return Screen::Inventory { selected };
             }
             KeyCode::Char('w') => game.unequip_melee(),
             KeyCode::Up | KeyCode::Down | KeyCode::PageUp | KeyCode::PageDown => {

@@ -16,9 +16,10 @@ pub fn draw(canvas: &mut Canvas, game: &Game, kiosk: usize, selling: bool, selec
 
     // Tabs, then crystals on hand.
     let (buy_c, sell_c) = if selling { (theme::DIM, theme::TITLE) } else { (theme::TITLE, theme::DIM) };
-    let x = canvas.text(inner.x, inner.y, if selling { " Buy " } else { "[Buy]" }, buy_c, bg);
-    let x = canvas.text(x + 1, inner.y, if selling { "[Sell]" } else { " Sell " }, sell_c, bg);
-    canvas.text(x + 3, inner.y, &format!("You carry {} 💎", game.player.crystals), theme::LOOT, bg);
+    let mut x = inner.x;
+    x += canvas.text(x, inner.y, if selling { " Buy " } else { "[Buy]" }, buy_c, bg) + 1;
+    x += canvas.text(x, inner.y, if selling { "[Sell]" } else { " Sell " }, sell_c, bg) + 3;
+    canvas.text(x, inner.y, &format!("You carry {} 💎", game.player.crystals), theme::LOOT, bg);
 
     // Rows: (item, price shown, whether it can be bought/sold right now).
     let rows: Vec<(&Item, Option<u32>, bool)> = if selling {
@@ -75,4 +76,24 @@ pub fn draw(canvas: &mut Canvas, game: &Game, kiosk: usize, selling: bool, selec
         "↑↓ select · Enter buy · Tab sell · Esc leave   (crystals spent here can't heal you)"
     };
     footer(canvas, inner, help);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::creatures::Background;
+    use crate::game::Kiosk;
+
+    #[test]
+    fn renders_tabs_and_sale_prices() {
+        let mut g = Game::new(Background::ALL[0].create("Tester".into()), Some(1));
+        g.kiosks = vec![Kiosk { stock: Vec::new() }];
+        let mut canvas = Canvas::new(120, 30);
+        draw(&mut canvas, &g, 0, true, 0);
+        let rows: Vec<String> = (0..canvas.height())
+            .map(|y| canvas.row(y).iter().filter(|c| !c.cont).map(|c| c.ch).collect::<String>())
+            .collect();
+        println!("{}", rows.join("\n"));
+        assert!(rows.iter().any(|r| r.contains(" Buy  [Sell]   You carry")));
+    }
 }

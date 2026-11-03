@@ -76,7 +76,8 @@ Damage is derived from physics rather than tuned by hand:
    range.
 
 The inventory screen shows each gun's fps, joules, damage and penetration for every load
-it accepts.
+it accepts. Each item in your pack lists what an Autovend would pay for it and its
+weight. Press `s` there to sort by name, weight or value, ascending then descending.
 
 **Melee weapons** come in three kinds:
 - scavenged tools: knife, hammer, crowbar, wrench, bat, machete, shovel, fire axe
