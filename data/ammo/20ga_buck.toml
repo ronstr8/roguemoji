@@ -2,6 +2,7 @@ label = "20ga #3 Buck"
 cartridge = "20ga"
 load = "buckshot"
 box_size = 5
+price = 5
 
 grains = 400.0
 projectiles = 20

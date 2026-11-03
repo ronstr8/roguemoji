@@ -10,3 +10,4 @@ accuracy = 2
 penetration = 1
 special = "drain"
 loot = { weight = 1 }
+price = { base = 60, per_depth = 5 }

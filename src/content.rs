@@ -148,6 +148,50 @@ impl Loot {
     }
 }
 
+/// What something costs at an Autovend, in crystals: `base + per_depth × depth`.
+/// Written as a plain number (`price = 25`) or as
+/// `price = { base = 25, per_depth = 3 }`. Zero means it's never sold.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Deserialize)]
+#[serde(from = "RawPrice")]
+pub struct Price {
+    pub base: u32,
+    pub per_depth: u32,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(untagged, expecting = "a price: a number, or { base = n, per_depth = n }")]
+enum RawPrice {
+    Flat(u32),
+    Scaled {
+        base: u32,
+        #[serde(default)]
+        per_depth: u32,
+    },
+}
+
+impl From<RawPrice> for Price {
+    fn from(raw: RawPrice) -> Price {
+        match raw {
+            RawPrice::Flat(base) => Price { base, per_depth: 0 },
+            RawPrice::Scaled { base, per_depth } => Price { base, per_depth },
+        }
+    }
+}
+
+impl Price {
+    pub const fn flat(base: u32) -> Price {
+        Price { base, per_depth: 0 }
+    }
+
+    pub fn at(&self, depth: u32) -> u32 {
+        self.base + self.per_depth * depth
+    }
+
+    pub fn for_sale(&self) -> bool {
+        self.base > 0 || self.per_depth > 0
+    }
+}
+
 /// Defines a content registry in the calling module: a `static` table loaded
 /// once by `$load`, an `init()` that reports errors, and on the handle type
 /// (a `u16` newtype) `all`, `lookup`, `named` and `def`. `$def` must have an
@@ -190,3 +234,28 @@ macro_rules! registry {
     };
 }
 pub(crate) use registry;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[derive(serde::Deserialize)]
+    struct T {
+        price: Price,
+    }
+
+    fn price(text: &str) -> Result<Price, String> {
+        toml::from_str::<T>(text).map(|t| t.price).map_err(|e| e.to_string())
+    }
+
+    #[test]
+    fn prices_parse_flat_or_scaled() {
+        assert_eq!(price("price = 7").unwrap(), Price::flat(7));
+        let p = price("price = { base = 25, per_depth = 3 }").unwrap();
+        assert_eq!((p.at(0), p.at(4)), (25, 37));
+        assert_eq!(price("price = { base = 9 }").unwrap(), Price::flat(9));
+        assert!(price("price = -1").is_err());
+        assert!(price("price = { cost = 5 }").unwrap_err().contains("a price"));
+        assert!(!Price::default().for_sale());
+    }
+}

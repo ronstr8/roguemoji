@@ -16,7 +16,7 @@
 
 use serde::Deserialize;
 
-use crate::content::{self, Problems};
+use crate::content::{self, Price, Problems};
 
 // ── Cartridges ──
 
@@ -168,6 +168,8 @@ pub struct AmmoDef {
     pub fps_per_inch: f64,
     /// Rounds per box when found.
     pub box_size: u32,
+    /// Autovend price of a full box; never sold if zero.
+    pub price: Price,
 }
 
 #[derive(Deserialize)]
@@ -183,6 +185,8 @@ struct RawAmmo {
     ref_fps: f64,
     ref_barrel_in: f64,
     fps_per_inch: f64,
+    #[serde(default)]
+    price: Price,
 }
 
 fn one() -> u32 {
@@ -212,6 +216,7 @@ fn build_ammo(id: String, raw: RawAmmo) -> Result<AmmoDef, Vec<String>> {
             ref_barrel_in: raw.ref_barrel_in,
             fps_per_inch: raw.fps_per_inch,
             box_size: raw.box_size,
+            price: raw.price,
         }),
         None => Err(p.0),
     }

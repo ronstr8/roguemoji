@@ -4,3 +4,4 @@ description = "Knotted rags and tape. It holds, mostly."
 weight = 0.5
 
 capacity = 8
+price = { base = 18, per_depth = 3 }

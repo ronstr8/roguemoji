@@ -5,3 +5,4 @@ weight = 4
 
 armor = 1
 loot = { weight = 10 }
+price = { base = 25, per_depth = 3 }

@@ -8,7 +8,7 @@ use std::sync::LazyLock;
 
 use serde::Deserialize;
 
-use crate::content::{self, Loot, Problems};
+use crate::content::{self, Loot, Price, Problems};
 use crate::stats::Skill;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
@@ -78,6 +78,8 @@ pub struct MeleeDef {
     /// Hundredths of a pound.
     pub weight: u32,
     pub loot: Loot,
+    /// Autovend price; never sold if zero.
+    pub price: Price,
 }
 
 /// Bare hands, used when nothing is equipped.
@@ -94,6 +96,7 @@ pub static FISTS: LazyLock<MeleeDef> = LazyLock::new(|| MeleeDef {
     desc: "Your own two hands.".into(),
     weight: 0,
     loot: Loot::default(),
+    price: Price::flat(0),
 });
 
 #[derive(Deserialize)]
@@ -115,6 +118,8 @@ struct RawMelee {
     special: Special,
     #[serde(default)]
     loot: Loot,
+    #[serde(default)]
+    price: Price,
 }
 
 fn build(id: String, raw: RawMelee) -> Result<MeleeDef, Vec<String>> {
@@ -138,6 +143,7 @@ fn build(id: String, raw: RawMelee) -> Result<MeleeDef, Vec<String>> {
         desc: raw.description,
         weight: (raw.weight * 100.0).round() as u32,
         loot: raw.loot,
+        price: raw.price,
     })
 }
 

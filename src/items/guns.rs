@@ -6,7 +6,7 @@
 use serde::Deserialize;
 
 use super::ballistics::{self, Ammo, BallisticProfile, Cartridge, LoadType};
-use crate::content::{self, Loot, Problems};
+use crate::content::{self, Loot, Price, Problems};
 use crate::stats::Skill;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
@@ -66,6 +66,8 @@ pub struct GunDef {
     /// Hundredths of a pound, unloaded.
     pub weight: u32,
     pub loot: Loot,
+    /// Autovend price; never sold if zero.
+    pub price: Price,
 }
 
 #[derive(Deserialize)]
@@ -86,6 +88,8 @@ struct RawGun {
     rifled: bool,
     #[serde(default)]
     loot: Loot,
+    #[serde(default)]
+    price: Price,
 }
 
 fn build(id: String, raw: RawGun) -> Result<GunDef, Vec<String>> {
@@ -119,6 +123,7 @@ fn build(id: String, raw: RawGun) -> Result<GunDef, Vec<String>> {
             desc: raw.description,
             weight: (raw.weight * 100.0).round() as u32,
             loot: raw.loot,
+            price: raw.price,
         }),
         None => Err(p.0),
     }

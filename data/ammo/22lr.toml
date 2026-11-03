@@ -2,6 +2,7 @@ label = ".22 LR 40gr"
 cartridge = "22lr"
 load = "lead_round_nose"
 box_size = 20
+price = 10
 
 grains = 40.0
 ref_fps = 1235.0

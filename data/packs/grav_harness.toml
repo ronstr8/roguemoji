@@ -5,3 +5,4 @@ weight = 0
 
 capacity = 50
 loot = { weight = 1, min_depth = 6 }
+price = { base = 18, per_depth = 3 }

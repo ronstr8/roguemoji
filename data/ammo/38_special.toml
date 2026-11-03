@@ -2,6 +2,7 @@ label = ".38 Spl 158gr"
 cartridge = "38_special"
 load = "lead_round_nose"
 box_size = 12
+price = 8
 
 grains = 158.0
 ref_fps = 800.0

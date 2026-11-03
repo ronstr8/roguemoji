@@ -2,6 +2,7 @@ label = "12ga 1oz Slug"
 cartridge = "12ga"
 load = "slug"
 box_size = 5
+price = 5
 
 grains = 437.5
 ref_fps = 1560.0

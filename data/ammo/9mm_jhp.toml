@@ -2,6 +2,7 @@ label = "9mm 124gr JHP"
 cartridge = "9mm"
 load = "hollow_point"
 box_size = 10
+price = 7
 
 grains = 124.0
 ref_fps = 1150.0

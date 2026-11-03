@@ -2,6 +2,7 @@ label = ".357 Mag 158gr JHP"
 cartridge = "357_magnum"
 load = "hollow_point"
 box_size = 12
+price = 8
 
 grains = 158.0
 ref_fps = 1240.0

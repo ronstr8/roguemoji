@@ -5,7 +5,7 @@
 
 use serde::Deserialize;
 
-use crate::content::{self, Loot, Problems};
+use crate::content::{self, Loot, Price, Problems};
 
 /// A handle to a loaded pack: an index into the pack table.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -23,6 +23,8 @@ pub struct PackDef {
     /// Hundredths of a pound.
     pub weight: u32,
     pub loot: Loot,
+    /// Autovend price; never sold if zero.
+    pub price: Price,
 }
 
 #[derive(Deserialize)]
@@ -37,6 +39,8 @@ struct RawPack {
     capacity: f64,
     #[serde(default)]
     loot: Loot,
+    #[serde(default)]
+    price: Price,
 }
 
 fn build(id: String, raw: RawPack) -> Result<PackDef, Vec<String>> {
@@ -53,6 +57,7 @@ fn build(id: String, raw: RawPack) -> Result<PackDef, Vec<String>> {
         desc: raw.description,
         weight: (raw.weight * 100.0).round() as u32,
         loot: raw.loot,
+        price: raw.price,
     })
 }
 

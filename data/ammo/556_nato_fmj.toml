@@ -2,6 +2,7 @@ label = "5.56 55gr FMJ"
 cartridge = "556_nato"
 load = "fmj"
 box_size = 20
+price = 10
 
 grains = 55.0
 ref_fps = 3240.0

@@ -71,6 +71,7 @@ description = "Holds the world together."
 weight = 0.3                 # pounds
 loot_weight = 1              # optional; relative chance among floor components.
                              # 0 or absent = never found lying around
+price = 2                    # optional, default 2; Autovend price of one, in 💎. 0 = never sold
 ```
 
 Some components are named by the game's own tables: harvest nodes (🌿 🚗 🧰 …)
@@ -94,7 +95,7 @@ heal = 0                     # optional, default 0; HP restored at once
 cures = false                # optional, default false; true removes poison and bleeding
 loot_weight = 0              # optional; relative chance among food found on the floor
                              # and sold at Autovends. 0 or absent = crafted only
-price = 5                    # optional, default 5; Autovend price in 💎
+price = 5                    # optional, default 5; Autovend price in 💎. 0 = never sold
 
 # Optional timed effects. Each is one of:
 #   { kind = "boost", attribute = "brawn", potency = 2, turns = 120 }
@@ -156,7 +157,29 @@ Weights are relative to the other items of the same kind. The stock values:
 | Riot Gear | | 1 | 4 | 0 / 5 / 8 |
 | Visitor Weave | 1 | | 5 | 0 / 1 / 1 |
 
-Autovends roll their armor and packs as if one level deeper.
+## Autovend prices
+
+Anything can carry a `price` in 💎, written as a plain number or scaled by depth:
+
+```toml
+price = 30                              # same everywhere
+price = { base = 25, per_depth = 3 }    # 25 + 3 × depth (28 on depth 1, 40 on depth 5)
+```
+
+An item with no price (or 0) is never sold, even if it turns up as loot. The
+defaults are 5 for consumables and 2 for components; guns, ammo, melee weapons,
+armor and packs have no default, so a new one is only sold if you give it a price.
+
+Each Autovend stocks three boxes of ammo, two foods, a pair of components and a
+gun. It may also have armor (50%), a pack (35%) and, from depth 4, a Visitor
+artifact (30%). Each slot is picked from the priced items of its kind by `loot`
+(by `loot_weight` for food and components). Guns, ammo, armor and packs are
+rolled as if one level deeper. A slot with nothing priced to sell is left empty.
+Ammo `price` is for a full box; a partial box costs its share, rounded up.
+
+Stock prices: guns 20 + barrel inches, +3 per depth; armor 25, +3 per depth;
+packs 18, +3 per depth; Visitor artifacts 60, +5 per depth. Tools and crafted
+weapons have no price.
 
 ## Melee weapons — `melee/*.toml`
 
@@ -173,6 +196,7 @@ accuracy = -2                # optional, default 0; added to the to-hit roll
 penetration = 2              # optional, default 0; ignores this much armor
 special = "bleed"            # optional: bleed | stun | knockback | ignore_armor | drain
 loot = { weight = 1 }        # see "Loot chances for gear"
+price = { base = 60, per_depth = 5 }   # optional; see "Autovend prices"
 ```
 
 **Specials** trigger on solid hits. `bleed` makes the target bleed. `stun` can
@@ -198,6 +222,7 @@ weight = 8                   # pounds
 armor = 2                    # subtracted from incoming damage (less the attack's penetration)
 dodge_penalty = 0            # optional, default 0; subtracted from your Defense
 loot = { weight = 2, per_depth = 1 }
+price = { base = 25, per_depth = 3 }   # optional; see "Autovend prices"
 ```
 
 Starting kits name `kevlar_vest` and `leather_jacket`.
@@ -212,6 +237,7 @@ weight = 3                   # pounds
 
 capacity = 25                # extra pounds you can carry before you're Burdened
 loot = { weight = 3, per_depth = 1 }
+price = { base = 18, per_depth = 3 }   # optional; see "Autovend prices"
 ```
 
 ## Guns and ammunition
@@ -241,6 +267,7 @@ label = "9mm 124gr JHP"      # shown in the inventory and HUD
 cartridge = "9mm"
 load = "hollow_point"        # see the table below
 box_size = 10                # rounds in a box when found (you find half to all of it)
+price = 7                    # optional; Autovend price of a full box (see "Autovend prices")
 
 grains = 124.0               # projectile mass; for shot, all pellets together
 projectiles = 1              # optional, default 1; pellets per shell for buckshot
@@ -274,6 +301,7 @@ accuracy = 1                 # optional, default 0; to-hit modifier
 effective_range = 6          # tiles before range penalties start
 rifled = true                # false for shotguns
 loot = { weight = 8, per_depth = 1 }   # see "Loot chances for gear"
+price = { base = 24, per_depth = 3 }   # optional; see "Autovend prices"
 ```
 
 **Reload time** comes from `action`: `semi_auto` and `break_open` take 1 turn,

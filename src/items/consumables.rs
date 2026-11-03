@@ -3,7 +3,7 @@
 
 use serde::Deserialize;
 
-use crate::content::{self, Problems};
+use crate::content::{self, Price, Problems};
 use crate::effects::{EffectSpec, RawEffect};
 
 /// A handle to a loaded consumable: an index into the consumable table.
@@ -28,8 +28,8 @@ pub struct ConsumableDef {
     pub effects: Vec<EffectSpec>,
     /// Relative chance among food found on the floor or sold at Autovends; 0 = never.
     pub loot_weight: u32,
-    /// Autovend price in crystals.
-    pub price: u32,
+    /// Autovend price; never sold if zero.
+    pub price: Price,
 }
 
 #[derive(Deserialize)]
@@ -50,11 +50,11 @@ struct RawConsumable {
     #[serde(default)]
     loot_weight: u32,
     #[serde(default = "default_price")]
-    price: u32,
+    price: Price,
 }
 
-fn default_price() -> u32 {
-    5
+fn default_price() -> Price {
+    Price::flat(5)
 }
 
 fn build(id: String, raw: RawConsumable) -> Result<ConsumableDef, Vec<String>> {
@@ -120,7 +120,7 @@ mod tests {
     #[test]
     fn parses_and_defaults() {
         let d = parse(GOOD).unwrap();
-        assert_eq!((d.weight, d.heal, d.cures, d.price, d.loot_weight), (100, 0, false, 5, 0));
+        assert_eq!((d.weight, d.heal, d.cures, d.price.base, d.loot_weight), (100, 0, false, 5, 0));
         assert_eq!(d.effects, vec![EffectSpec::new(EffectKind::Boost(Attribute::Wit), 2, 50)]);
     }
 

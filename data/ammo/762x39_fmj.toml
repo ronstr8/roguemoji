@@ -2,6 +2,7 @@ label = "7.62x39 123gr FMJ"
 cartridge = "762x39"
 load = "fmj"
 box_size = 10
+price = 7
 
 grains = 123.0
 ref_fps = 2350.0

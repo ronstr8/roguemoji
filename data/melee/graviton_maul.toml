@@ -10,3 +10,4 @@ accuracy = 0
 penetration = 2
 special = "knockback"
 loot = { weight = 1 }
+price = { base = 60, per_depth = 5 }

@@ -3,7 +3,7 @@
 
 use serde::Deserialize;
 
-use crate::content::{self, Problems};
+use crate::content::{self, Price, Problems};
 
 /// A handle to a loaded component: an index into the component table.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -20,6 +20,8 @@ pub struct ComponentDef {
     pub weight: u32,
     /// Relative chance among components found lying on the floor; 0 = never.
     pub loot_weight: u32,
+    /// Autovend price of one; never sold if zero.
+    pub price: Price,
 }
 
 #[derive(Deserialize)]
@@ -32,6 +34,12 @@ struct RawComponent {
     weight: f64,
     #[serde(default)]
     loot_weight: u32,
+    #[serde(default = "default_price")]
+    price: Price,
+}
+
+fn default_price() -> Price {
+    Price::flat(2)
 }
 
 fn build(id: String, raw: RawComponent) -> Result<ComponentDef, Vec<String>> {
@@ -46,6 +54,7 @@ fn build(id: String, raw: RawComponent) -> Result<ComponentDef, Vec<String>> {
         desc: raw.description,
         weight: (raw.weight * 100.0).round() as u32,
         loot_weight: raw.loot_weight,
+        price: raw.price,
     })
 }
 

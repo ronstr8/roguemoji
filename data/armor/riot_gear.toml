@@ -6,3 +6,4 @@ weight = 22
 armor = 4
 dodge_penalty = 2
 loot = { per_depth = 1, min_depth = 4 }
+price = { base = 25, per_depth = 3 }

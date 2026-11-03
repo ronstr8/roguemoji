@@ -10,3 +10,4 @@ accuracy = 2
 penetration = 0
 special = "ignore_armor"
 loot = { weight = 1 }
+price = { base = 60, per_depth = 5 }
