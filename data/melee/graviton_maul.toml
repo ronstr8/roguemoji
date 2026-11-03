@@ -1,0 +1,12 @@
+name = "Graviton Maul"
+glyph = "💠"
+description = "Weightless in your hands, mountainous on impact."
+weight = 0
+
+origin = "alien"
+skill = "melee"
+damage = [6, 12]
+accuracy = 0
+penetration = 2
+special = "knockback"
+loot = { weight = 1 }

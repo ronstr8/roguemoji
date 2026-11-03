@@ -1,0 +1,7 @@
+name = "Hiking Pack"
+glyph = "🎒"
+description = "Hip belt, sternum strap, a dozen pockets."
+weight = 3
+
+capacity = 25
+loot = { weight = 3, per_depth = 1 }

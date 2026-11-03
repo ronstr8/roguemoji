@@ -1,0 +1,6 @@
+name = "Rag Satchel"
+glyph = "👝"
+description = "Knotted rags and tape. It holds, mostly."
+weight = 0.5
+
+capacity = 8

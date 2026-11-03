@@ -1,0 +1,11 @@
+name = "Brass Knuckles"
+glyph = "💍"
+description = "Makes a fist into a hammer."
+weight = 0.5
+
+origin = "tool"
+skill = "brawling"
+damage = [2, 4]
+accuracy = 1
+penetration = 0
+loot = { weight = 1 }

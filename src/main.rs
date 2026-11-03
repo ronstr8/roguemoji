@@ -22,6 +22,9 @@ fn main() -> io::Result<()> {
     // Validate content before taking over the terminal, so errors are readable.
     if let Err(e) = items::components::init()
         .and_then(|_| items::consumables::init())
+        .and_then(|_| items::melee::init())
+        .and_then(|_| items::armor::init())
+        .and_then(|_| items::packs::init())
         .and_then(|_| crafting::init())
         .and_then(|_| creatures::species::init())
     {

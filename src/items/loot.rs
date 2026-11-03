@@ -1,6 +1,8 @@
 //! Depth-scaled loot tables for floor items and Autovend stock.
 
+use super::melee::Origin;
 use super::{Ammo, Armor, Component, Consumable, Gun, GunModel, Item, ItemKind, MeleeWeapon, Pack};
+use crate::content::Loot;
 use crate::dice::Dice;
 
 /// Guns weighted by how common they'd be in an abandoned American town,
@@ -62,26 +64,25 @@ fn random_component(dice: &mut Dice) -> Component {
     dice.weighted(&table).unwrap_or_else(|| *dice.pick(&Component::all().collect::<Vec<_>>()))
 }
 
-fn random_armor(dice: &mut Dice, depth: u32) -> Armor {
-    use Armor::*;
-    dice.weighted(&[
-        (LeatherJacket, 10),
-        (KevlarVest, 2 + depth),
-        (RiotGear, if depth >= 4 { depth } else { 0 }),
-        (VisitorWeave, if depth >= 5 { 1 } else { 0 }),
-    ])
-    .unwrap_or(LeatherJacket)
+/// Pick by each item's depth-scaled loot weight, if anything qualifies.
+fn pick_loot<T: Copy>(dice: &mut Dice, items: impl Iterator<Item = (T, Loot)>, depth: u32) -> Option<T> {
+    let table: Vec<(T, u32)> = items.map(|(x, loot)| (x, loot.weight_at(depth))).collect();
+    dice.weighted(&table)
 }
 
-fn random_pack(dice: &mut Dice, depth: u32) -> Pack {
-    use Pack::*;
-    dice.weighted(&[
-        (SchoolBackpack, 10),
-        (HikingPack, 3 + depth),
-        (FramePack, if depth >= 3 { depth } else { 0 }),
-        (GravHarness, if depth >= 6 { 1 } else { 0 }),
-    ])
-    .unwrap_or(SchoolBackpack)
+fn random_armor(dice: &mut Dice, depth: u32) -> Option<Armor> {
+    pick_loot(dice, Armor::all().map(|a| (a, a.def().loot)), depth)
+}
+
+fn random_pack(dice: &mut Dice, depth: u32) -> Option<Pack> {
+    pick_loot(dice, Pack::all().map(|p| (p, p.def().loot)), depth)
+}
+
+/// A melee weapon found lying around: Visitor artifacts (`alien = true`) or
+/// everything else.
+fn random_melee(dice: &mut Dice, depth: u32, alien: bool) -> Option<MeleeWeapon> {
+    let pool = MeleeWeapon::all().filter(|m| (m.def().origin == Origin::Alien) == alien);
+    pick_loot(dice, pool.map(|m| (m, m.def().loot)), depth)
 }
 
 #[derive(Clone, Copy)]
@@ -111,16 +112,19 @@ pub fn random_floor_item(dice: &mut Dice, depth: u32) -> Item {
             (Category::Component, 14),
         ])
         .unwrap_or(Category::Component);
-    match cat {
-        Category::Gun => Item::gun(random_gun(dice, depth)),
-        Category::Ammo => random_ammo(dice, depth),
-        Category::Tool => Item::one(ItemKind::Melee(*dice.pick(&MeleeWeapon::TOOLS))),
-        Category::Alien => Item::one(ItemKind::Melee(*dice.pick(&MeleeWeapon::ALIEN))),
-        Category::Armor => Item::one(ItemKind::Armor(random_armor(dice, depth))),
-        Category::Pack => Item::one(ItemKind::Pack(random_pack(dice, depth))),
-        Category::Food => Item::food(random_consumable(dice), 1),
-        Category::Component => Item::component(random_component(dice), dice.range(1, 2) as u32),
-    }
+    let item = match cat {
+        Category::Gun => Some(Item::gun(random_gun(dice, depth))),
+        Category::Ammo => Some(random_ammo(dice, depth)),
+        Category::Tool => random_melee(dice, depth, false).map(|m| Item::one(ItemKind::Melee(m))),
+        Category::Alien => random_melee(dice, depth, true).map(|m| Item::one(ItemKind::Melee(m))),
+        Category::Armor => random_armor(dice, depth).map(|a| Item::one(ItemKind::Armor(a))),
+        Category::Pack => random_pack(dice, depth).map(|p| Item::one(ItemKind::Pack(p))),
+        Category::Food => Some(Item::food(random_consumable(dice), 1)),
+        Category::Component => None,
+    };
+    // Nothing of the chosen kind can turn up here (e.g. a mod zeroed every
+    // pack's loot weight): leave crafting scraps instead.
+    item.unwrap_or_else(|| Item::component(random_component(dice), dice.range(1, 2) as u32))
 }
 
 /// Stock for an Autovend kiosk: `(item, price in crystals)`.
@@ -139,14 +143,21 @@ pub fn kiosk_stock(dice: &mut Dice, depth: u32) -> Vec<(Item, u32)> {
     let gun = random_gun(dice, depth + 1);
     let gun_price = 20 + gun.def().barrel_in as u32 + depth * 3;
     stock.push((Item::gun(gun), gun_price));
-    if dice.chance(0.5) {
-        stock.push((Item::one(ItemKind::Armor(random_armor(dice, depth + 1))), 25 + depth * 3));
+    if dice.chance(0.5)
+        && let Some(a) = random_armor(dice, depth + 1)
+    {
+        stock.push((Item::one(ItemKind::Armor(a)), 25 + depth * 3));
     }
-    if dice.chance(0.35) {
-        stock.push((Item::one(ItemKind::Pack(random_pack(dice, depth + 1))), 18 + depth * 3));
+    if dice.chance(0.35)
+        && let Some(p) = random_pack(dice, depth + 1)
+    {
+        stock.push((Item::one(ItemKind::Pack(p)), 18 + depth * 3));
     }
-    if depth >= 4 && dice.chance(0.3) {
-        stock.push((Item::one(ItemKind::Melee(*dice.pick(&MeleeWeapon::ALIEN))), 60 + depth * 5));
+    if depth >= 4
+        && dice.chance(0.3)
+        && let Some(m) = random_melee(dice, depth, true)
+    {
+        stock.push((Item::one(ItemKind::Melee(m)), 60 + depth * 5));
     }
     stock
 }

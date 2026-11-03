@@ -1,0 +1,7 @@
+name = "Kevlar Vest"
+glyph = "🦺"
+description = "Soft body armor. Stops teeth almost as well as bullets."
+weight = 8
+
+armor = 2
+loot = { weight = 2, per_depth = 1 }

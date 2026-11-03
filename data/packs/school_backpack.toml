@@ -1,0 +1,7 @@
+name = "School Backpack"
+glyph = "🎒"
+description = "Glitter unicorn print. Solid zippers."
+weight = 1
+
+capacity = 15
+loot = { weight = 10 }

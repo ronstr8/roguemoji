@@ -1,0 +1,7 @@
+name = "Grav Harness"
+glyph = "💠"
+description = "Visitor straps that hum. Whatever you clip on weighs less."
+weight = 0
+
+capacity = 50
+loot = { weight = 1, min_depth = 6 }

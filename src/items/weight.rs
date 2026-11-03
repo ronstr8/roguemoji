@@ -61,39 +61,12 @@ pub fn ammo(a: Ammo) -> u32 {
     }
 }
 
-pub fn melee(m: MeleeWeapon) -> u32 {
-    use MeleeWeapon::*;
-    match m {
-        KitchenKnife => 50,
-        ClawHammer => 150,
-        Crowbar => 500,
-        PipeWrench => 600,
-        BaseballBat => 200,
-        Machete => 150,
-        Shovel => 550,
-        FireAxe => 600,
-        BrassKnuckles => 50,
-        NailBat => 250,
-        PipeSpear => 450,
-        ScrapCleaver => 400,
-        ShockBaton => 300,
-        SpikedKnuckles => 80,
-        PhaseEdge => 100,
-        // "Weightless in your hands, mountainous on impact."
-        GravitonMaul => 0,
-        HumFilament => 20,
-        SiphonGauntlet => 150,
-    }
+pub fn melee(x: MeleeWeapon) -> u32 {
+    x.def().weight
 }
 
-pub fn armor(a: Armor) -> u32 {
-    match a {
-        Armor::LeatherJacket => 400,
-        Armor::ScrapVest => 1400,
-        Armor::KevlarVest => 800,
-        Armor::RiotGear => 2200,
-        Armor::VisitorWeave => 150,
-    }
+pub fn armor(x: Armor) -> u32 {
+    x.def().weight
 }
 
 pub fn component(c: Component) -> u32 {
@@ -104,12 +77,6 @@ pub fn consumable(c: Consumable) -> u32 {
     c.def().weight
 }
 
-pub fn pack(p: Pack) -> u32 {
-    match p {
-        Pack::RagSatchel => 50,
-        Pack::SchoolBackpack => 100,
-        Pack::HikingPack => 300,
-        Pack::FramePack => 500,
-        Pack::GravHarness => 0,
-    }
+pub fn pack(x: Pack) -> u32 {
+    x.def().weight
 }

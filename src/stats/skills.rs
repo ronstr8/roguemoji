@@ -2,7 +2,8 @@
 
 use super::attributes::{Attribute, bonus};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Skill {
     Melee,
     Brawling,

@@ -1,0 +1,12 @@
+name = "Hum Filament"
+glyph = "💠"
+description = "A singing wire that stiffens into an edge when swung."
+weight = 0.2
+
+origin = "alien"
+skill = "melee"
+damage = [4, 8]
+accuracy = 3
+penetration = 1
+special = "bleed"
+loot = { weight = 1 }

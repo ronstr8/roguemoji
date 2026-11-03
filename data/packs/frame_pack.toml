@@ -1,0 +1,7 @@
+name = "Frame Pack"
+glyph = "🎒"
+description = "Aluminum external frame. Built for hauling elk."
+weight = 5
+
+capacity = 35
+loot = { per_depth = 1, min_depth = 3 }

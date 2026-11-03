@@ -1,0 +1,12 @@
+name = "Pipe Wrench"
+glyph = "🔧"
+description = "A plumber's heavy friend."
+weight = 6
+
+origin = "tool"
+skill = "melee"
+damage = [2, 6]
+accuracy = -1
+penetration = 1
+special = "stun"
+loot = { weight = 1 }

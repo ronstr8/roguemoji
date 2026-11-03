@@ -1,0 +1,12 @@
+name = "Fire Axe"
+glyph = "🪓"
+description = "Pick-head axe from a station wall."
+weight = 6
+
+origin = "tool"
+skill = "melee"
+damage = [3, 8]
+accuracy = -2
+penetration = 2
+special = "bleed"
+loot = { weight = 1 }

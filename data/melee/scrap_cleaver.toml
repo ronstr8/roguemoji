@@ -1,0 +1,11 @@
+name = "Scrap Cleaver"
+glyph = "🔪"
+description = "A car-hood blade with a taped handle."
+weight = 4
+
+origin = "crafted"
+skill = "melee"
+damage = [3, 8]
+accuracy = -1
+penetration = 1
+special = "bleed"

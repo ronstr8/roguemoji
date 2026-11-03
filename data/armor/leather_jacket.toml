@@ -1,0 +1,7 @@
+name = "Leather Jacket"
+glyph = "🧥"
+description = "Scuffed motorcycle leather."
+weight = 4
+
+armor = 1
+loot = { weight = 10 }

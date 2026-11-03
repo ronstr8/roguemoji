@@ -483,9 +483,9 @@ impl Game {
                 let name = g.def().name;
                 (p.gun.replace(g).map(Item::gun), name)
             }
-            ItemKind::Melee(m) => (p.melee.replace(m).map(|o| Item::one(ItemKind::Melee(o))), m.def().name),
-            ItemKind::Armor(a) => (p.armor.replace(a).map(|o| Item::one(ItemKind::Armor(o))), a.def().name),
-            ItemKind::Pack(k) => (p.pack.replace(k).map(|o| Item::one(ItemKind::Pack(o))), k.def().name),
+            ItemKind::Melee(m) => (p.melee.replace(m).map(|o| Item::one(ItemKind::Melee(o))), m.def().name.as_str()),
+            ItemKind::Armor(a) => (p.armor.replace(a).map(|o| Item::one(ItemKind::Armor(o))), a.def().name.as_str()),
+            ItemKind::Pack(k) => (p.pack.replace(k).map(|o| Item::one(ItemKind::Pack(o))), k.def().name.as_str()),
             other => {
                 let _ = p.inventory.add(Item { kind: other, qty: item.qty });
                 return;

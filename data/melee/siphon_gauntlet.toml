@@ -1,0 +1,12 @@
+name = "Siphon Gauntlet"
+glyph = "💠"
+description = "A glove of warm glass. Wounds you deal flow back into you."
+weight = 1.5
+
+origin = "alien"
+skill = "brawling"
+damage = [4, 8]
+accuracy = 2
+penetration = 1
+special = "drain"
+loot = { weight = 1 }

@@ -147,7 +147,7 @@ impl Player {
     }
 
     pub fn melee_def(&self) -> &'static MeleeDef {
-        self.melee.map(|m| m.def()).unwrap_or(&FISTS)
+        self.melee.map(|m| m.def()).unwrap_or(&*FISTS)
     }
 
     pub fn armor_value(&self) -> i32 {

@@ -1,0 +1,7 @@
+name = "Visitor Weave"
+glyph = "💠"
+description = "A shimmering mesh that hardens at the moment of impact."
+weight = 1.5
+
+armor = 3
+loot = { weight = 1, min_depth = 5 }

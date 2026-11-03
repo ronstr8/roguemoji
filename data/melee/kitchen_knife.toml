@@ -1,0 +1,12 @@
+name = "Kitchen Knife"
+glyph = "🔪"
+description = "An eight-inch chef's knife. Quick and nasty."
+weight = 0.5
+
+origin = "tool"
+skill = "melee"
+damage = [1, 4]
+accuracy = 2
+penetration = 0
+special = "bleed"
+loot = { weight = 1 }

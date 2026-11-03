@@ -85,32 +85,38 @@ struct RawRecipe {
     /// `{ component_id = count, … }`, in the order written.
     ingredients: toml::Table,
     #[serde(default)]
-    uses_up: Option<MeleeWeapon>,
+    uses_up: Option<String>,
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "snake_case", deny_unknown_fields)]
 enum RawOutput {
     Food(String),
-    Melee(MeleeWeapon),
-    Armor(Armor),
-    Pack(Pack),
+    Melee(String),
+    Armor(String),
+    Pack(String),
 }
 
 fn build(id: String, raw: RawRecipe) -> Result<Recipe, Vec<String>> {
     let mut p = Problems::default();
-    let output = match raw.makes {
-        RawOutput::Food(food) => match Consumable::lookup(&food) {
-            Some(c) => Some(Output::Food(c)),
-            None => {
-                p.check(false, format!("makes food `{food}`, which is not in data/consumables/"));
-                None
-            }
-        },
-        RawOutput::Melee(m) => Some(Output::Melee(m)),
-        RawOutput::Armor(a) => Some(Output::Armor(a)),
-        RawOutput::Pack(k) => Some(Output::Pack(k)),
+    let (kind, out_id, output) = match &raw.makes {
+        RawOutput::Food(id) => ("food", id, Consumable::lookup(id).map(Output::Food)),
+        RawOutput::Melee(id) => ("melee", id, MeleeWeapon::lookup(id).map(Output::Melee)),
+        RawOutput::Armor(id) => ("armor", id, Armor::lookup(id).map(Output::Armor)),
+        RawOutput::Pack(id) => ("pack", id, Pack::lookup(id).map(Output::Pack)),
     };
+    let dir = match kind {
+        "food" => "consumables",
+        "melee" => "melee",
+        "armor" => "armor",
+        _ => "packs",
+    };
+    p.check(output.is_some(), format!("makes {kind} `{out_id}`, which is not in data/{dir}/"));
+    let tool = raw.uses_up.as_deref().map(|t| (t, MeleeWeapon::lookup(t)));
+    if let Some((t, None)) = tool {
+        p.check(false, format!("uses_up `{t}` is not in data/melee/"));
+    }
+    let consumes_tool = tool.and_then(|(_, m)| m);
     p.check(!raw.ingredients.is_empty(), "ingredients is empty");
     let mut ingredients = Vec::new();
     for (name, count) in &raw.ingredients {
@@ -122,9 +128,7 @@ fn build(id: String, raw: RawRecipe) -> Result<Recipe, Vec<String>> {
         }
     }
     match output {
-        Some(output) => {
-            p.finish(|| Recipe { id, output, ingredients, consumes_tool: raw.uses_up, difficulty: raw.difficulty })
-        }
+        Some(output) => p.finish(|| Recipe { id, output, ingredients, consumes_tool, difficulty: raw.difficulty }),
         None => Err(p.0),
     }
 }
@@ -164,7 +168,7 @@ mod tests {
         let all = load().expect("stock recipe data is valid");
         assert!(all[0].output.is_food(), "food sorts first");
         let bat = all.iter().find(|r| r.id == "nail_bat").unwrap();
-        assert_eq!(bat.consumes_tool, Some(MeleeWeapon::BaseballBat));
+        assert_eq!(bat.consumes_tool, Some(MeleeWeapon::named("baseball_bat")));
     }
 
     #[test]

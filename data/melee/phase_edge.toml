@@ -1,0 +1,12 @@
+name = "Phase Edge"
+glyph = "💠"
+description = "A blade that is only mostly here. It slides through armor like fog."
+weight = 1
+
+origin = "alien"
+skill = "melee"
+damage = [5, 10]
+accuracy = 2
+penetration = 0
+special = "ignore_armor"
+loot = { weight = 1 }

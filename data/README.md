@@ -128,16 +128,88 @@ ingredients = { glowcap = 1, dirty_water = 1 }   # component id = count, in disp
 uses_up = "kitchen_knife"           # optional; a melee weapon consumed as well
 ```
 
-`food` names any consumable id, including your own. `melee`, `armor` and `pack`
-must name gear that's still built into the game:
-
-- **melee:** `kitchen_knife`, `claw_hammer`, `crowbar`, `pipe_wrench`, `baseball_bat`,
-  `machete`, `shovel`, `fire_axe`, `brass_knuckles`, `nail_bat`, `pipe_spear`,
-  `scrap_cleaver`, `shock_baton`, `spiked_knuckles`, `phase_edge`, `graviton_maul`,
-  `hum_filament`, `siphon_gauntlet`
-- **armor:** `leather_jacket`, `scrap_vest`, `kevlar_vest`, `riot_gear`, `visitor_weave`
-- **pack:** `rag_satchel`, `school_backpack`, `hiking_pack`, `frame_pack`, `grav_harness`
+Each output names an id from the matching folder, including your own files:
+`food` → `consumables/`, `melee` → `melee/`, `armor` → `armor/`, `pack` → `packs/`.
+`uses_up` names a file in `melee/`.
 
 The menu groups food, then weapons, armor and packs, each sorted by difficulty
 and then by name. A file id doesn't have to match what it makes, so you can add
 a second recipe for the same item (e.g. `grilled_meat_cactus.toml`).
+
+## Loot chances for gear
+
+Melee weapons, armor and packs share one optional `loot` field that says how
+often each turns up on the floor and in Autovends, by depth:
+
+```toml
+loot = { weight = 2, per_depth = 1, min_depth = 1 }
+# chance weight at depth d = weight + per_depth × d, once d >= min_depth.
+# All three are optional (defaults 0, 0, 1). No `loot` = never found; craft it instead.
+```
+
+Weights are relative to the other items of the same kind. The stock values:
+
+| | weight | per_depth | min_depth | at depth 1 / 5 / 8 |
+|---|---|---|---|---|
+| Leather Jacket | 10 | | | 10 / 10 / 10 |
+| Kevlar Vest | 2 | 1 | | 3 / 7 / 10 |
+| Riot Gear | | 1 | 4 | 0 / 5 / 8 |
+| Visitor Weave | 1 | | 5 | 0 / 1 / 1 |
+
+Autovends roll their armor and packs as if one level deeper.
+
+## Melee weapons — `melee/*.toml`
+
+```toml
+name = "Fire Axe"
+glyph = "🪓"
+description = "Pick-head axe from a station wall."
+weight = 6                   # pounds
+
+origin = "tool"              # tool | crafted | alien
+skill = "melee"              # melee | brawling
+damage = [3, 8]              # [min, max]; your Brawn bonus is added
+accuracy = -2                # optional, default 0; added to the to-hit roll
+penetration = 2              # optional, default 0; ignores this much armor
+special = "bleed"            # optional: bleed | stun | knockback | ignore_armor | drain
+loot = { weight = 1 }        # see "Loot chances for gear"
+```
+
+**Specials** trigger on solid hits. `bleed` makes the target bleed. `stun` can
+stun it. `knockback` shoves it a tile back and stuns it briefly. `ignore_armor`
+skips armor entirely. `drain` heals you for a share of the damage.
+
+**Where weapons drop.** A floor item is first picked by kind. "Tool" floor
+items choose among every non-alien weapon by `loot`. "Visitor artifact" items
+(from depth 3) and the rare Autovend artifact (from depth 4) choose among
+`origin = "alien"` weapons. Stock crafted weapons have no `loot`, so you only
+get them from recipes.
+
+Starting kits name `crowbar`, `pipe_wrench`, `baseball_bat` and `kitchen_knife`.
+
+## Armor — `armor/*.toml`
+
+```toml
+name = "Kevlar Vest"
+glyph = "🦺"
+description = "Soft body armor. Stops teeth almost as well as bullets."
+weight = 8                   # pounds
+
+armor = 2                    # subtracted from incoming damage (less the attack's penetration)
+dodge_penalty = 0            # optional, default 0; subtracted from your Defense
+loot = { weight = 2, per_depth = 1 }
+```
+
+Starting kits name `kevlar_vest` and `leather_jacket`.
+
+## Packs — `packs/*.toml`
+
+```toml
+name = "Hiking Pack"
+glyph = "🎒"
+description = "Hip belt, sternum strap, a dozen pockets."
+weight = 3                   # pounds
+
+capacity = 25                # extra pounds you can carry before you're Burdened
+loot = { weight = 3, per_depth = 1 }
+```

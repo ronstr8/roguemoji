@@ -1,8 +1,6 @@
 //! Crafting components gathered by harvesting and from creature remains,
 //! loaded from `data/components/*.toml` (see `data/README.md`).
 
-use std::sync::OnceLock;
-
 use serde::Deserialize;
 
 use crate::content::{self, Problems};
@@ -51,62 +49,16 @@ fn build(id: String, raw: RawComponent) -> Result<ComponentDef, Vec<String>> {
     })
 }
 
-static TABLE: OnceLock<Vec<ComponentDef>> = OnceLock::new();
+content::registry!(Component, ComponentDef, "component", load);
 
 fn load() -> Result<Vec<ComponentDef>, String> {
     let defs = content::load_defs("components", build)?;
     // Components the game's own tables name (harvest nodes, starting kits).
-    let missing: Vec<String> = required_ids()
-        .into_iter()
-        .filter(|id| !defs.iter().any(|d| d.id == *id))
-        .map(|id| format!("data/components/{id}.toml is missing, but the game uses `{id}`"))
-        .collect();
-    if missing.is_empty() { Ok(defs) } else { Err(missing.join("\n")) }
-}
-
-fn required_ids() -> Vec<&'static str> {
-    let mut ids: Vec<&'static str> = Vec::new();
-    for h in crate::world::Harvestable::ALL {
-        ids.extend(h.def().yields.iter().map(|(id, _, _)| *id));
-    }
-    for b in crate::creatures::Background::ALL {
-        ids.extend(b.starting_components().iter().map(|(id, _)| *id));
-    }
-    ids.sort_unstable();
-    ids.dedup();
-    ids
-}
-
-/// Load components now, reporting bad content files as an error.
-pub fn init() -> Result<(), String> {
-    if TABLE.get().is_none() {
-        let _ = TABLE.set(load()?);
-    }
-    Ok(())
-}
-
-fn table() -> &'static [ComponentDef] {
-    TABLE.get_or_init(|| load().unwrap_or_else(|e| panic!("invalid component data:\n{e}")))
-}
-
-impl Component {
-    pub fn all() -> impl Iterator<Item = Component> {
-        (0..table().len() as u16).map(Component)
-    }
-
-    pub fn lookup(id: &str) -> Option<Component> {
-        table().iter().position(|d| d.id == id).map(|i| Component(i as u16))
-    }
-
-    /// A component the game's code refers to by id. Startup validation
-    /// guarantees these exist (see `required_ids`).
-    pub fn named(id: &str) -> Component {
-        Component::lookup(id).unwrap_or_else(|| panic!("component `{id}` is not defined"))
-    }
-
-    pub fn def(self) -> &'static ComponentDef {
-        &table()[self.0 as usize]
-    }
+    let harvest = crate::world::Harvestable::ALL.into_iter().flat_map(|h| h.def().yields.iter().map(|(id, _, _)| *id));
+    let kits =
+        crate::creatures::Background::ALL.into_iter().flat_map(|b| b.starting_components().iter().map(|(id, _)| *id));
+    content::require("components", |id| defs.iter().any(|d| d.id == id), harvest.chain(kits))?;
+    Ok(defs)
 }
 
 #[cfg(test)]

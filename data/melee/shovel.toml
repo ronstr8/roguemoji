@@ -1,0 +1,12 @@
+name = "Shovel"
+glyph = "🧹"
+description = "Long reach and a flat steel face."
+weight = 5.5
+
+origin = "tool"
+skill = "melee"
+damage = [2, 6]
+accuracy = -1
+penetration = 0
+special = "knockback"
+loot = { weight = 1 }

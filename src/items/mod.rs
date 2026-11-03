@@ -80,12 +80,12 @@ impl Item {
         match &self.kind {
             ItemKind::Crystals => "Life Crystal".into(),
             ItemKind::Gun(g) => g.def().name.into(),
-            ItemKind::Melee(m) => m.def().name.into(),
+            ItemKind::Melee(m) => m.def().name.clone(),
             ItemKind::Ammo(a) => a.name().into(),
-            ItemKind::Armor(a) => a.def().name.into(),
+            ItemKind::Armor(a) => a.def().name.clone(),
             ItemKind::Component(c) => c.def().name.clone(),
             ItemKind::Consumable(c) => c.def().name.clone(),
-            ItemKind::Pack(p) => p.def().name.into(),
+            ItemKind::Pack(p) => p.def().name.clone(),
         }
     }
 
@@ -102,12 +102,12 @@ impl Item {
         match &self.kind {
             ItemKind::Crystals => CRYSTAL_GLYPH,
             ItemKind::Gun(_) => GUN_GLYPH,
-            ItemKind::Melee(m) => m.def().glyph,
+            ItemKind::Melee(m) => m.def().glyph.as_str(),
             ItemKind::Ammo(_) => AMMO_GLYPH,
-            ItemKind::Armor(a) => a.def().glyph,
+            ItemKind::Armor(a) => a.def().glyph.as_str(),
             ItemKind::Component(c) => c.def().glyph.as_str(),
             ItemKind::Consumable(c) => c.def().glyph.as_str(),
-            ItemKind::Pack(p) => p.def().glyph,
+            ItemKind::Pack(p) => p.def().glyph.as_str(),
         }
     }
 
@@ -154,7 +154,7 @@ impl Item {
             }
             ItemKind::Gun(g) => {
                 let d = g.def();
-                out.push(d.desc.into());
+                out.push(d.desc.to_string());
                 out.push(format!(
                     "{} {} · {}\" barrel · {} · cap {}",
                     d.cartridge.name(),
@@ -184,7 +184,7 @@ impl Item {
             }
             ItemKind::Melee(m) => {
                 let d = m.def();
-                out.push(d.desc.into());
+                out.push(d.desc.to_string());
                 out.push(format!(
                     "Skill: {} · Damage {}-{} (+Brawn) · Accuracy {:+} · Pen {}",
                     d.skill.name(),
@@ -211,13 +211,13 @@ impl Item {
             }
             ItemKind::Armor(a) => {
                 let d = a.def();
-                out.push(d.desc.into());
+                out.push(d.desc.to_string());
                 out.push(format!("Armor {} · Dodge penalty {}", d.armor, d.dodge_penalty));
             }
             ItemKind::Component(c) => out.push(c.def().desc.clone()),
             ItemKind::Consumable(c) => {
                 let d = c.def();
-                out.push(d.desc.clone());
+                out.push(d.desc.to_string());
                 let mut parts = vec![format!("satiety +{}", d.satiety)];
                 if d.heal > 0 {
                     parts.push(format!("heal {}", d.heal));
@@ -230,7 +230,7 @@ impl Item {
             }
             ItemKind::Pack(p) => {
                 let d = p.def();
-                out.push(d.desc.into());
+                out.push(d.desc.to_string());
                 out.push(format!("Carry capacity +{}", weight::fmt_lb(d.capacity)));
             }
         }

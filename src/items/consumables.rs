@@ -1,8 +1,6 @@
 //! Food and drink: crafted buffs and scavenged provisions, loaded from
 //! `data/consumables/*.toml` (see `data/README.md`).
 
-use std::sync::OnceLock;
-
 use serde::Deserialize;
 
 use crate::content::{self, Problems};
@@ -83,49 +81,14 @@ fn build(id: String, raw: RawConsumable) -> Result<ConsumableDef, Vec<String>> {
     })
 }
 
-static TABLE: OnceLock<Vec<ConsumableDef>> = OnceLock::new();
+content::registry!(Consumable, ConsumableDef, "consumable", load);
 
 fn load() -> Result<Vec<ConsumableDef>, String> {
     let defs = content::load_defs("consumables", build)?;
     // Consumables the game's code names (starting kits).
-    let missing: Vec<String> = crate::creatures::Background::ALL
-        .iter()
-        .flat_map(|b| b.starting_food().iter().map(|(id, _)| *id))
-        .filter(|id| !defs.iter().any(|d| d.id == *id))
-        .map(|id| format!("data/consumables/{id}.toml is missing, but the game uses `{id}`"))
-        .collect();
-    if missing.is_empty() { Ok(defs) } else { Err(missing.join("\n")) }
-}
-
-/// Load consumables now, reporting bad content files as an error.
-pub fn init() -> Result<(), String> {
-    if TABLE.get().is_none() {
-        let _ = TABLE.set(load()?);
-    }
-    Ok(())
-}
-
-fn table() -> &'static [ConsumableDef] {
-    TABLE.get_or_init(|| load().unwrap_or_else(|e| panic!("invalid consumable data:\n{e}")))
-}
-
-impl Consumable {
-    pub fn all() -> impl Iterator<Item = Consumable> {
-        (0..table().len() as u16).map(Consumable)
-    }
-
-    pub fn lookup(id: &str) -> Option<Consumable> {
-        table().iter().position(|d| d.id == id).map(|i| Consumable(i as u16))
-    }
-
-    /// A consumable the game's code refers to by id; validated at startup.
-    pub fn named(id: &str) -> Consumable {
-        Consumable::lookup(id).unwrap_or_else(|| panic!("consumable `{id}` is not defined"))
-    }
-
-    pub fn def(self) -> &'static ConsumableDef {
-        &table()[self.0 as usize]
-    }
+    let kits = crate::creatures::Background::ALL.into_iter().flat_map(|b| b.starting_food().iter().map(|(id, _)| *id));
+    content::require("consumables", |id| defs.iter().any(|d| d.id == id), kits)?;
+    Ok(defs)
 }
 
 #[cfg(test)]

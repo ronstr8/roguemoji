@@ -1,0 +1,11 @@
+name = "Crowbar"
+glyph = "🦯"
+description = "Opens doors, crates and skulls."
+weight = 5
+
+origin = "tool"
+skill = "melee"
+damage = [2, 5]
+accuracy = 0
+penetration = 1
+loot = { weight = 1 }

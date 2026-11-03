@@ -22,11 +22,11 @@ pub fn draw(canvas: &mut Canvas, game: &Game, selected: usize) {
     let gun = p.gun.as_ref().map_or("—".to_string(), |g| format!("{} [{}]", g.def().name, g.status()));
     canvas.text_max(x, y, &format!(" {GUN_GLYPH} {gun}"), list_w, theme::TEXT, theme::POPUP);
     y += 1;
-    let armor = p.armor.map_or(("  ", "—"), |a| (a.def().glyph, a.def().name));
+    let armor = p.armor.map_or(("  ", "—"), |a| (a.def().glyph.as_str(), a.def().name.as_str()));
     canvas.text_max(x, y, &format!(" {} {}", armor.0, armor.1), list_w, theme::TEXT, theme::POPUP);
     y += 1;
     let pack = p.pack.map_or(("  ", "— (no pack)".to_string()), |k| {
-        (k.def().glyph, format!("{} (+{})", k.def().name, fmt_lb(k.def().capacity)))
+        (k.def().glyph.as_str(), format!("{} (+{})", k.def().name, fmt_lb(k.def().capacity)))
     });
     canvas.text_max(x, y, &format!(" {} {}", pack.0, pack.1), list_w, theme::TEXT, theme::POPUP);
     y += 1;

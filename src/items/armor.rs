@@ -1,41 +1,81 @@
 //! Wearable protection. Armor subtracts from incoming damage, reduced by the
 //! attack's penetration; heavier pieces hamper dodging.
+//!
+//! Loaded from `data/armor/*.toml` (see `data/README.md`).
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Armor {
-    LeatherJacket,
-    ScrapVest,
-    KevlarVest,
-    RiotGear,
-    VisitorWeave,
-}
+use serde::Deserialize;
 
+use crate::content::{self, Loot, Problems};
+
+/// A handle to a loaded armor piece: an index into the armor table.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct Armor(u16);
+
+#[derive(Debug)]
 pub struct ArmorDef {
-    pub name: &'static str,
-    pub glyph: &'static str,
+    /// The file name without `.toml`, e.g. `kevlar_vest`.
+    pub id: String,
+    pub name: String,
+    pub glyph: String,
     pub armor: i32,
     pub dodge_penalty: i32,
-    pub desc: &'static str,
+    pub desc: String,
+    /// Hundredths of a pound.
+    pub weight: u32,
+    pub loot: Loot,
 }
 
-impl Armor {
-    pub fn def(self) -> &'static ArmorDef {
-        macro_rules! a {
-            ($n:expr, $g:expr, $ar:expr, $dp:expr, $d:expr) => {
-                &ArmorDef { name: $n, glyph: $g, armor: $ar, dodge_penalty: $dp, desc: $d }
-            };
-        }
-        match self {
-            Armor::LeatherJacket => a!("Leather Jacket", "🧥", 1, 0, "Scuffed motorcycle leather."),
-            Armor::ScrapVest => a!("Scrap Plate Vest", "🦺", 2, 1, "Car-door panels strapped over padding."),
-            Armor::KevlarVest => {
-                a!("Kevlar Vest", "🦺", 2, 0, "Soft body armor. Stops teeth almost as well as bullets.")
-            }
-            Armor::RiotGear => a!("Riot Gear", "🪖", 4, 2, "Full police riot kit. Heavy and hot."),
-            Armor::VisitorWeave => {
-                a!("Visitor Weave", "💠", 3, 0, "A shimmering mesh that hardens at the moment of impact.")
-            }
-        }
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RawArmor {
+    name: String,
+    glyph: String,
+    description: String,
+    /// Pounds.
+    weight: f64,
+    armor: i32,
+    #[serde(default)]
+    dodge_penalty: i32,
+    #[serde(default)]
+    loot: Loot,
+}
+
+fn build(id: String, raw: RawArmor) -> Result<ArmorDef, Vec<String>> {
+    let mut p = Problems::default();
+    p.check(!raw.name.trim().is_empty(), "name is empty");
+    p.check(!raw.glyph.trim().is_empty(), "glyph is empty");
+    p.check(raw.weight >= 0.0 && raw.weight.is_finite(), "weight must be zero or more pounds");
+    p.check(raw.armor >= 0, "armor cannot be negative");
+    p.check(raw.dodge_penalty >= 0, "dodge_penalty cannot be negative");
+    p.finish(|| ArmorDef {
+        id,
+        name: raw.name,
+        glyph: raw.glyph,
+        armor: raw.armor,
+        dodge_penalty: raw.dodge_penalty,
+        desc: raw.description,
+        weight: (raw.weight * 100.0).round() as u32,
+        loot: raw.loot,
+    })
+}
+
+content::registry!(Armor, ArmorDef, "armor", load);
+
+fn load() -> Result<Vec<ArmorDef>, String> {
+    let defs = content::load_defs("armor", build)?;
+    let kits = crate::creatures::Background::ALL.into_iter().filter_map(|b| b.starting_gear().armor);
+    content::require("armor", |id| defs.iter().any(|d| d.id == id), kits)?;
+    Ok(defs)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn stock_armor_loads() {
+        load().expect("stock armor data is valid");
+        let riot = Armor::named("riot_gear").def();
+        assert_eq!((riot.armor, riot.loot.weight_at(3), riot.loot.weight_at(5)), (4, 0, 5));
     }
 }

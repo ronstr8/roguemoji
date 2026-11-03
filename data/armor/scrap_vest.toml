@@ -1,0 +1,7 @@
+name = "Scrap Plate Vest"
+glyph = "🦺"
+description = "Car-door panels strapped over padding."
+weight = 14
+
+armor = 2
+dodge_penalty = 1

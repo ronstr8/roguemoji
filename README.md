@@ -113,6 +113,7 @@ data/
   components/      one TOML file per crafting component
   consumables/     food, drink and medicine
   recipes/         crafting recipes
+  melee/ armor/ packs/   wieldable and wearable gear
 build.rs           embeds data/ into the binary
 src/
   main.rs          entry point, content validation, terminal setup
@@ -132,7 +133,7 @@ src/
   ui/              canvas (wide-char aware), terminal (diffed output), HUD, map view, pop-up screens
 ```
 
-Monsters, crafting components, consumables and recipes are data-driven: each
-is a TOML file under `data/`, and you can add or override them without
-recompiling (see [data/README.md](data/README.md)). Guns, ammo, melee weapons,
-armor and packs are still enum variants with a `def()` table. Game rules never touch the terminal, and views never mutate the game.
+Monsters, components, consumables, recipes, melee weapons, armor and packs are
+data-driven: each is a TOML file under `data/`, and you can add or override them
+without recompiling (see [data/README.md](data/README.md)). Guns and ammo are
+still enum variants with a `def()` table. Game rules never touch the terminal, and views never mutate the game.

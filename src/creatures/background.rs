@@ -78,27 +78,27 @@ impl Background {
         };
         match self {
             Background::Scavenger => {
-                p.melee = Some(MeleeWeapon::Crowbar);
                 p.gun = Some(Gun::loaded_with(GunModel::TargetPistol22, Ammo::Lr22, 10));
                 give(&mut p, Item::ammo(Ammo::Lr22, 20));
             }
             Background::ExDeputy => {
                 p.gun = Some(Gun::loaded_with(GunModel::ServicePistol9, Ammo::Luger9Jhp, 15));
-                p.armor = Some(Armor::KevlarVest);
                 give(&mut p, Item::ammo(Ammo::Luger9Fmj, 15));
             }
             Background::Mechanic => {
-                p.melee = Some(MeleeWeapon::PipeWrench);
                 p.gun = Some(Gun::loaded_with(GunModel::SnubRevolver38, Ammo::Spl38, 5));
                 give(&mut p, Item::ammo(Ammo::Spl38, 10));
-                give(&mut p, Item::one(ItemKind::Melee(MeleeWeapon::BaseballBat)));
             }
             Background::Homesteader => {
-                p.melee = Some(MeleeWeapon::KitchenKnife);
                 p.gun = Some(Gun::loaded_with(GunModel::SingleShot20, Ammo::Ga20Buck, 1));
-                p.armor = Some(Armor::LeatherJacket);
                 give(&mut p, Item::ammo(Ammo::Ga20Buck, 8));
             }
+        }
+        let gear = self.starting_gear();
+        p.melee = gear.wield.map(MeleeWeapon::named);
+        p.armor = gear.armor.map(Armor::named);
+        for id in gear.spare {
+            give(&mut p, Item::one(ItemKind::Melee(MeleeWeapon::named(id))));
         }
         for (id, n) in self.starting_components() {
             give(&mut p, Item::component(Component::named(id), *n));
@@ -108,6 +108,18 @@ impl Background {
         }
         p.crystals = 5;
         p
+    }
+
+    /// Melee weapons and armor in the starting kit, by id.
+    pub fn starting_gear(self) -> StartingGear {
+        match self {
+            Background::Scavenger => StartingGear { wield: Some("crowbar"), spare: &[], armor: None },
+            Background::ExDeputy => StartingGear { wield: None, spare: &[], armor: Some("kevlar_vest") },
+            Background::Mechanic => StartingGear { wield: Some("pipe_wrench"), spare: &["baseball_bat"], armor: None },
+            Background::Homesteader => {
+                StartingGear { wield: Some("kitchen_knife"), spare: &[], armor: Some("leather_jacket") }
+            }
+        }
     }
 
     /// Food and drink in the starting kit, by id.
@@ -128,5 +140,21 @@ impl Background {
             Background::Mechanic => &[("nails", 2), ("scrap_metal", 2), ("duct_tape", 1)],
             Background::Homesteader => &[("herbs", 2), ("dirty_water", 2)],
         }
+    }
+}
+
+/// Gear a background starts with, by content id.
+#[derive(Clone, Copy)]
+pub struct StartingGear {
+    /// The melee weapon in hand.
+    pub wield: Option<&'static str>,
+    /// Extra melee weapons in the pack.
+    pub spare: &'static [&'static str],
+    pub armor: Option<&'static str>,
+}
+
+impl StartingGear {
+    pub fn melee_ids(self) -> impl Iterator<Item = &'static str> {
+        self.wield.into_iter().chain(self.spare.iter().copied())
     }
 }

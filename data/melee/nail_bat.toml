@@ -1,0 +1,11 @@
+name = "Nail Bat"
+glyph = "🏏"
+description = "A bat studded with a box of framing nails."
+weight = 2.5
+
+origin = "crafted"
+skill = "melee"
+damage = [3, 6]
+accuracy = 0
+penetration = 0
+special = "bleed"

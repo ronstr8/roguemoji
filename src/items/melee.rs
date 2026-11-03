@@ -1,9 +1,18 @@
 //! Melee weapons: scavenged tools, scrap-crafted improvisations, and rare
 //! artifacts left behind by the visitors.
 
+//!
+//! Loaded from `data/melee/*.toml` (see `data/README.md`).
+
+use std::sync::LazyLock;
+
+use serde::Deserialize;
+
+use crate::content::{self, Loot, Problems};
 use crate::stats::Skill;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Origin {
     Tool,
     Crafted,
@@ -21,8 +30,10 @@ impl Origin {
 }
 
 /// Extra effect on a solid hit (Hit or Crit tier).
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Special {
+    #[default]
     None,
     Bleed,
     Stun,
@@ -47,224 +58,120 @@ impl Special {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum MeleeWeapon {
-    KitchenKnife,
-    ClawHammer,
-    Crowbar,
-    PipeWrench,
-    BaseballBat,
-    Machete,
-    Shovel,
-    FireAxe,
-    BrassKnuckles,
-    NailBat,
-    PipeSpear,
-    ScrapCleaver,
-    ShockBaton,
-    SpikedKnuckles,
-    PhaseEdge,
-    GravitonMaul,
-    HumFilament,
-    SiphonGauntlet,
-}
+/// A handle to a loaded melee weapon: an index into the weapon table.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct MeleeWeapon(u16);
 
+#[derive(Debug)]
 pub struct MeleeDef {
-    pub name: &'static str,
-    pub glyph: &'static str,
+    /// The file name without `.toml`, e.g. `fire_axe`.
+    pub id: String,
+    pub name: String,
+    pub glyph: String,
     pub origin: Origin,
     pub skill: Skill,
     pub damage: (i32, i32),
     pub accuracy: i32,
     pub pen: i32,
     pub special: Special,
-    pub desc: &'static str,
+    pub desc: String,
+    /// Hundredths of a pound.
+    pub weight: u32,
+    pub loot: Loot,
 }
 
 /// Bare hands, used when nothing is equipped.
-pub const FISTS: MeleeDef = MeleeDef {
-    name: "Fists",
-    glyph: "👊",
+pub static FISTS: LazyLock<MeleeDef> = LazyLock::new(|| MeleeDef {
+    id: "fists".into(),
+    name: "Fists".into(),
+    glyph: "👊".into(),
     origin: Origin::Tool,
     skill: Skill::Brawling,
     damage: (1, 3),
     accuracy: 1,
     pen: 0,
     special: Special::None,
-    desc: "Your own two hands.",
-};
+    desc: "Your own two hands.".into(),
+    weight: 0,
+    loot: Loot::default(),
+});
 
-impl MeleeWeapon {
-    pub const TOOLS: [MeleeWeapon; 9] = [
-        MeleeWeapon::KitchenKnife,
-        MeleeWeapon::ClawHammer,
-        MeleeWeapon::Crowbar,
-        MeleeWeapon::PipeWrench,
-        MeleeWeapon::BaseballBat,
-        MeleeWeapon::Machete,
-        MeleeWeapon::Shovel,
-        MeleeWeapon::FireAxe,
-        MeleeWeapon::BrassKnuckles,
-    ];
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RawMelee {
+    name: String,
+    glyph: String,
+    description: String,
+    /// Pounds.
+    weight: f64,
+    origin: Origin,
+    skill: Skill,
+    damage: (i32, i32),
+    #[serde(default)]
+    accuracy: i32,
+    #[serde(default)]
+    penetration: i32,
+    #[serde(default)]
+    special: Special,
+    #[serde(default)]
+    loot: Loot,
+}
 
-    pub const ALIEN: [MeleeWeapon; 4] =
-        [MeleeWeapon::PhaseEdge, MeleeWeapon::GravitonMaul, MeleeWeapon::HumFilament, MeleeWeapon::SiphonGauntlet];
+fn build(id: String, raw: RawMelee) -> Result<MeleeDef, Vec<String>> {
+    let mut p = Problems::default();
+    p.check(!raw.name.trim().is_empty(), "name is empty");
+    p.check(!raw.glyph.trim().is_empty(), "glyph is empty");
+    p.check(raw.weight >= 0.0 && raw.weight.is_finite(), "weight must be zero or more pounds");
+    p.check(matches!(raw.skill, Skill::Melee | Skill::Brawling), "skill must be melee or brawling");
+    p.check(raw.damage.0 >= 0 && raw.damage.0 <= raw.damage.1, "damage must be [min, max] with 0 <= min <= max");
+    p.check(raw.penetration >= 0, "penetration cannot be negative");
+    p.finish(|| MeleeDef {
+        id,
+        name: raw.name,
+        glyph: raw.glyph,
+        origin: raw.origin,
+        skill: raw.skill,
+        damage: raw.damage,
+        accuracy: raw.accuracy,
+        pen: raw.penetration,
+        special: raw.special,
+        desc: raw.description,
+        weight: (raw.weight * 100.0).round() as u32,
+        loot: raw.loot,
+    })
+}
 
-    pub fn def(self) -> &'static MeleeDef {
-        use Origin::*;
-        use Skill::{Brawling, Melee};
-        use Special as S;
-        macro_rules! w {
-            ($name:expr, $g:expr, $o:expr, $sk:expr, $d:expr, $acc:expr, $pen:expr, $sp:expr, $desc:expr) => {
-                &MeleeDef {
-                    name: $name,
-                    glyph: $g,
-                    origin: $o,
-                    skill: $sk,
-                    damage: $d,
-                    accuracy: $acc,
-                    pen: $pen,
-                    special: $sp,
-                    desc: $desc,
-                }
-            };
-        }
-        match self {
-            MeleeWeapon::KitchenKnife => w!(
-                "Kitchen Knife",
-                "🔪",
-                Tool,
-                Melee,
-                (1, 4),
-                2,
-                0,
-                S::Bleed,
-                "An eight-inch chef's knife. Quick and nasty."
-            ),
-            MeleeWeapon::ClawHammer => {
-                w!("Claw Hammer", "🔨", Tool, Melee, (2, 4), 1, 1, S::None, "Sixteen ounces of drop-forged steel.")
-            }
-            MeleeWeapon::Crowbar => {
-                w!("Crowbar", "🦯", Tool, Melee, (2, 5), 0, 1, S::None, "Opens doors, crates and skulls.")
-            }
-            MeleeWeapon::PipeWrench => {
-                w!("Pipe Wrench", "🔧", Tool, Melee, (2, 6), -1, 1, S::Stun, "A plumber's heavy friend.")
-            }
-            MeleeWeapon::BaseballBat => {
-                w!("Baseball Bat", "🏏", Tool, Melee, (2, 5), 1, 0, S::Stun, "Ash wood, taped grip.")
-            }
-            MeleeWeapon::Machete => {
-                w!("Machete", "🔪", Tool, Melee, (2, 6), 1, 0, S::Bleed, "Brush-clearing blade, eighteen inches.")
-            }
-            MeleeWeapon::Shovel => {
-                w!("Shovel", "🧹", Tool, Melee, (2, 6), -1, 0, S::Knockback, "Long reach and a flat steel face.")
-            }
-            MeleeWeapon::FireAxe => {
-                w!("Fire Axe", "🪓", Tool, Melee, (3, 8), -2, 2, S::Bleed, "Pick-head axe from a station wall.")
-            }
-            MeleeWeapon::BrassKnuckles => {
-                w!("Brass Knuckles", "💍", Tool, Brawling, (2, 4), 1, 0, S::None, "Makes a fist into a hammer.")
-            }
-            MeleeWeapon::NailBat => w!(
-                "Nail Bat",
-                "🏏",
-                Crafted,
-                Melee,
-                (3, 6),
-                0,
-                0,
-                S::Bleed,
-                "A bat studded with a box of framing nails."
-            ),
-            MeleeWeapon::PipeSpear => w!(
-                "Pipe Spear",
-                "🔱",
-                Crafted,
-                Melee,
-                (3, 7),
-                2,
-                1,
-                S::None,
-                "A kitchen knife lashed to a length of pipe. Reach and point."
-            ),
-            MeleeWeapon::ScrapCleaver => w!(
-                "Scrap Cleaver",
-                "🔪",
-                Crafted,
-                Melee,
-                (3, 8),
-                -1,
-                1,
-                S::Bleed,
-                "A car-hood blade with a taped handle."
-            ),
-            MeleeWeapon::ShockBaton => w!(
-                "Shock Baton",
-                "⚡",
-                Crafted,
-                Melee,
-                (2, 5),
-                1,
-                0,
-                S::Stun,
-                "Pipe, battery, exposed wire. Bad idea, good results."
-            ),
-            MeleeWeapon::SpikedKnuckles => w!(
-                "Spiked Knuckles",
-                "💍",
-                Crafted,
-                Brawling,
-                (3, 5),
-                1,
-                1,
-                S::Bleed,
-                "Scrap knuckles with nails ground to points."
-            ),
-            MeleeWeapon::PhaseEdge => w!(
-                "Phase Edge",
-                "💠",
-                Alien,
-                Melee,
-                (5, 10),
-                2,
-                0,
-                S::IgnoreArmor,
-                "A blade that is only mostly here. It slides through armor like fog."
-            ),
-            MeleeWeapon::GravitonMaul => w!(
-                "Graviton Maul",
-                "💠",
-                Alien,
-                Melee,
-                (6, 12),
-                0,
-                2,
-                S::Knockback,
-                "Weightless in your hands, mountainous on impact."
-            ),
-            MeleeWeapon::HumFilament => w!(
-                "Hum Filament",
-                "💠",
-                Alien,
-                Melee,
-                (4, 8),
-                3,
-                1,
-                S::Bleed,
-                "A singing wire that stiffens into an edge when swung."
-            ),
-            MeleeWeapon::SiphonGauntlet => w!(
-                "Siphon Gauntlet",
-                "💠",
-                Alien,
-                Brawling,
-                (4, 8),
-                2,
-                1,
-                S::Drain,
-                "A glove of warm glass. Wounds you deal flow back into you."
-            ),
-        }
+content::registry!(MeleeWeapon, MeleeDef, "melee weapon", load);
+
+fn load() -> Result<Vec<MeleeDef>, String> {
+    let defs = content::load_defs("melee", build)?;
+    let kits = crate::creatures::Background::ALL.into_iter().flat_map(|b| b.starting_gear().melee_ids());
+    content::require("melee", |id| defs.iter().any(|d| d.id == id), kits)?;
+    Ok(defs)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn stock_melee_loads() {
+        load().expect("stock melee data is valid");
+        let axe = MeleeWeapon::named("phase_edge").def();
+        assert_eq!((axe.origin, axe.special), (Origin::Alien, Special::IgnoreArmor));
+    }
+
+    #[test]
+    fn rejects_bad_content() {
+        let parse = |text: &str| -> Result<MeleeDef, String> {
+            let raw: RawMelee = toml::from_str(text).map_err(|e| e.to_string())?;
+            build("t".into(), raw).map_err(|e| e.join("; "))
+        };
+        let ok = "name = \"Stick\"\nglyph = \"🪵\"\ndescription = \"x\"\nweight = 1\norigin = \"tool\"\nskill = \"melee\"\ndamage = [1, 2]\n";
+        let d = parse(ok).unwrap();
+        assert_eq!((d.special, d.loot.weight_at(5)), (Special::None, 0));
+        assert!(parse(&ok.replace("\"melee\"", "\"survival\"")).unwrap_err().contains("skill"));
+        assert!(parse(&ok.replace("\"tool\"", "\"magic\"")).is_err());
+        assert!(parse(&format!("{ok}special = \"explode\"\n")).is_err());
     }
 }

@@ -1,7 +1,5 @@
 //! The bestiary, loaded from `data/monsters/*.toml` (see `data/README.md`).
 
-use std::sync::OnceLock;
-
 use serde::Deserialize;
 
 use crate::content::{self, Problems};
@@ -175,37 +173,10 @@ impl RawSpecies {
 
 // ── Registry ──
 
-static BESTIARY: OnceLock<Vec<SpeciesDef>> = OnceLock::new();
+content::registry!(Species, SpeciesDef, "monster", load);
 
 fn load() -> Result<Vec<SpeciesDef>, String> {
     content::load_defs("monsters", |id, raw: RawSpecies| raw.into_def(id))
-}
-
-/// Load the bestiary now, reporting bad content files as an error.
-pub fn init() -> Result<(), String> {
-    if BESTIARY.get().is_none() {
-        let _ = BESTIARY.set(load()?);
-    }
-    Ok(())
-}
-
-fn bestiary() -> &'static [SpeciesDef] {
-    BESTIARY.get_or_init(|| load().unwrap_or_else(|e| panic!("invalid monster data:\n{e}")))
-}
-
-impl Species {
-    pub fn all() -> impl Iterator<Item = Species> {
-        (0..bestiary().len() as u16).map(Species)
-    }
-
-    #[allow(dead_code)]
-    pub fn by_id(id: &str) -> Option<Species> {
-        bestiary().iter().position(|d| d.id == id).map(|i| Species(i as u16))
-    }
-
-    pub fn def(self) -> &'static SpeciesDef {
-        &bestiary()[self.0 as usize]
-    }
 }
 
 #[cfg(test)]
@@ -237,7 +208,7 @@ mod tests {
     #[test]
     fn stock_bestiary_loads() {
         load().expect("stock monster data is valid");
-        let rat = Species::by_id("rat").expect("rat exists");
+        let rat = Species::lookup("rat").expect("rat exists");
         assert_eq!(rat.def().name, "Rat");
     }
 

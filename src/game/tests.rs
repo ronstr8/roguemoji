@@ -122,8 +122,11 @@ fn brawn_and_packs_raise_capacity() {
     let before = g.player.carry_capacity();
     g.player.effects.add(EffectSpec::new(EffectKind::Boost(Attribute::Brawn), 2, 50), "test");
     assert_eq!(g.player.carry_capacity(), before + 2 * CAPACITY_PER_BRAWN as u32);
-    g.player.pack = Some(Pack::HikingPack);
-    assert_eq!(g.player.carry_capacity(), before + 2 * CAPACITY_PER_BRAWN as u32 + Pack::HikingPack.def().capacity);
+    g.player.pack = Some(Pack::named("hiking_pack"));
+    assert_eq!(
+        g.player.carry_capacity(),
+        before + 2 * CAPACITY_PER_BRAWN as u32 + Pack::named("hiking_pack").def().capacity
+    );
 }
 
 #[test]
@@ -173,24 +176,24 @@ fn burdened_steps_alternate_one_and_two_turns() {
 #[test]
 fn stash_carries_over_between_depths() {
     let mut g = new_game(5);
-    g.player.inventory.add(Item::one(ItemKind::Pack(Pack::FramePack))).unwrap();
+    g.player.inventory.add(Item::one(ItemKind::Pack(Pack::named("frame_pack")))).unwrap();
     let idx = g.player.inventory.len() - 1;
     g.stash_transfer(StashSide::Pack, idx);
     assert_eq!(g.stash.len(), 1);
     g.enter_level(2);
     g.stash_transfer(StashSide::Lockbox, 0);
     assert!(g.stash.is_empty());
-    assert!(g.player.inventory.items().iter().any(|i| i.kind == ItemKind::Pack(Pack::FramePack)));
+    assert!(g.player.inventory.items().iter().any(|i| i.kind == ItemKind::Pack(Pack::named("frame_pack"))));
 }
 
 #[test]
 fn equipping_a_pack_swaps_the_old_one_back() {
     let mut g = new_game(6);
-    g.player.inventory.add(Item::one(ItemKind::Pack(Pack::RagSatchel))).unwrap();
+    g.player.inventory.add(Item::one(ItemKind::Pack(Pack::named("rag_satchel")))).unwrap();
     g.use_item(g.player.inventory.len() - 1);
-    assert_eq!(g.player.pack, Some(Pack::RagSatchel));
-    g.player.inventory.add(Item::one(ItemKind::Pack(Pack::HikingPack))).unwrap();
+    assert_eq!(g.player.pack, Some(Pack::named("rag_satchel")));
+    g.player.inventory.add(Item::one(ItemKind::Pack(Pack::named("hiking_pack")))).unwrap();
     g.use_item(g.player.inventory.len() - 1);
-    assert_eq!(g.player.pack, Some(Pack::HikingPack));
-    assert!(g.player.inventory.items().iter().any(|i| i.kind == ItemKind::Pack(Pack::RagSatchel)));
+    assert_eq!(g.player.pack, Some(Pack::named("hiking_pack")));
+    assert!(g.player.inventory.items().iter().any(|i| i.kind == ItemKind::Pack(Pack::named("rag_satchel"))));
 }

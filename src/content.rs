@@ -109,3 +109,84 @@ impl Problems {
         if self.0.is_empty() { Ok(def()) } else { Err(self.0) }
     }
 }
+
+/// Fail if any id the game's code names is missing from `defs`.
+pub fn require<'a>(
+    category: &str,
+    have: impl Fn(&str) -> bool,
+    ids: impl IntoIterator<Item = &'a str>,
+) -> Result<(), String> {
+    let mut missing: Vec<&str> = ids.into_iter().filter(|id| !have(id)).collect();
+    missing.sort_unstable();
+    missing.dedup();
+    let msgs: Vec<String> =
+        missing.iter().map(|id| format!("data/{category}/{id}.toml is missing, but the game uses `{id}`")).collect();
+    if msgs.is_empty() { Ok(()) } else { Err(msgs.join("\n")) }
+}
+
+/// How often a piece of gear turns up as loot, by depth:
+/// `weight + per_depth × depth` from `min_depth` on, otherwise never.
+/// Absent in a file means the item is never found as loot.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Loot {
+    #[serde(default)]
+    pub weight: u32,
+    #[serde(default)]
+    pub per_depth: u32,
+    #[serde(default = "one")]
+    pub min_depth: u32,
+}
+
+fn one() -> u32 {
+    1
+}
+
+impl Loot {
+    pub fn weight_at(&self, depth: u32) -> u32 {
+        if depth >= self.min_depth { self.weight + self.per_depth * depth } else { 0 }
+    }
+}
+
+/// Defines a content registry in the calling module: a `static` table loaded
+/// once by `$load`, an `init()` that reports errors, and on the handle type
+/// (a `u16` newtype) `all`, `lookup`, `named` and `def`. `$def` must have an
+/// `id: String` field.
+macro_rules! registry {
+    ($handle:ident, $def:ty, $what:literal, $load:path) => {
+        static TABLE: std::sync::OnceLock<Vec<$def>> = std::sync::OnceLock::new();
+
+        /// Load this content now, reporting bad files as an error.
+        pub fn init() -> Result<(), String> {
+            if TABLE.get().is_none() {
+                let _ = TABLE.set($load()?);
+            }
+            Ok(())
+        }
+
+        fn table() -> &'static [$def] {
+            TABLE.get_or_init(|| $load().unwrap_or_else(|e| panic!(concat!("invalid ", $what, " data:\n{}"), e)))
+        }
+
+        #[allow(dead_code)]
+        impl $handle {
+            pub fn all() -> impl Iterator<Item = $handle> {
+                (0..table().len() as u16).map($handle)
+            }
+
+            pub fn lookup(id: &str) -> Option<$handle> {
+                table().iter().position(|d| d.id == id).map(|i| $handle(i as u16))
+            }
+
+            /// Something the game's code refers to by id; validated at startup.
+            pub fn named(id: &str) -> $handle {
+                $handle::lookup(id).unwrap_or_else(|| panic!(concat!($what, " `{}` is not defined"), id))
+            }
+
+            pub fn def(self) -> &'static $def {
+                &table()[self.0 as usize]
+            }
+        }
+    };
+}
+pub(crate) use registry;

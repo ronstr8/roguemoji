@@ -1,0 +1,11 @@
+name = "Claw Hammer"
+glyph = "🔨"
+description = "Sixteen ounces of drop-forged steel."
+weight = 1.5
+
+origin = "tool"
+skill = "melee"
+damage = [2, 4]
+accuracy = 1
+penetration = 1
+loot = { weight = 1 }

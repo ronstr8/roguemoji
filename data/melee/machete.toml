@@ -1,0 +1,12 @@
+name = "Machete"
+glyph = "🔪"
+description = "Brush-clearing blade, eighteen inches."
+weight = 1.5
+
+origin = "tool"
+skill = "melee"
+damage = [2, 6]
+accuracy = 1
+penetration = 0
+special = "bleed"
+loot = { weight = 1 }
