@@ -1,0 +1,12 @@
+name = "Proton Axe"
+glyph = "🪓"
+description = "Thin strong gleaming blade sharpened to the width of a subatomic particle."
+weight = 3
+
+origin = "alien"
+skill = "melee"
+damage = [8, 13]
+accuracy = 1
+penetration = 2
+loot = { weight = 1, min_depth = 6 }
+special = "bleed"
