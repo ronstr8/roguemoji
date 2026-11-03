@@ -96,7 +96,9 @@ impl App {
             Screen::Inventory { selected } => screens::inventory::draw(canvas, game, self.inv_sort, *selected),
             Screen::Character => screens::character::draw(canvas, game),
             Screen::Crafting { selected } => screens::crafting::draw(canvas, game, *selected),
-            Screen::Shop { kiosk, selling, selected } => screens::shop::draw(canvas, game, *kiosk, *selling, *selected),
+            Screen::Shop { kiosk, selling, selected } => {
+                screens::shop::draw(canvas, game, *kiosk, *selling, self.inv_sort, *selected)
+            }
             Screen::Stash { side, selected } => screens::stash::draw(canvas, game, *side, *selected),
             Screen::Help => screens::help::draw(canvas),
             Screen::Ended => screens::ended::draw(canvas, game),
@@ -270,10 +272,7 @@ impl App {
                 }
             }
             KeyCode::Char('s') => {
-                // Keep the same item highlighted in its new place.
-                self.inv_sort = sort.next();
-                let order = self.inv_sort.order(game.player.inventory.items(), game.depth);
-                let selected = item.and_then(|i| order.iter().position(|&o| o == i)).unwrap_or(0);
+                let selected = self.inv_sort.advance(game.player.inventory.items(), game.depth, selected);
                 return Screen::Inventory { selected };
             }
             KeyCode::Char('w') => game.unequip_melee(),
@@ -307,6 +306,7 @@ impl App {
     }
 
     fn on_shop(&mut self, key: KeyEvent, kiosk: usize, selling: bool, selected: usize) -> Screen {
+        let sort = self.inv_sort;
         let Some(game) = self.game.as_mut() else { return Screen::Play };
         if input::is_cancel(key) {
             return Screen::Play;
@@ -321,11 +321,18 @@ impl App {
             }
             KeyCode::Enter => {
                 if selling {
-                    game.sell(selected);
+                    // Rows follow the inventory sort; the pack keeps pickup order.
+                    if let Some(idx) = sort.order(game.player.inventory.items(), game.depth).get(selected) {
+                        game.sell(*idx);
+                    }
                 } else {
                     game.buy(kiosk, selected);
                 }
                 let selected = selected.min(len_of(game, selling).saturating_sub(1));
+                Screen::Shop { kiosk, selling, selected }
+            }
+            KeyCode::Char('s') if selling => {
+                let selected = self.inv_sort.advance(game.player.inventory.items(), game.depth, selected);
                 Screen::Shop { kiosk, selling, selected }
             }
             _ => Screen::Shop { kiosk, selling, selected: input::list_nav(key, selected, len_of(game, selling)) },

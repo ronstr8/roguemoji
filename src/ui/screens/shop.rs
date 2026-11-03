@@ -1,5 +1,6 @@
 //! Autovend kiosk pop-up: buy from its stock, or sell from your pack.
 
+use super::inventory::Sort;
 use super::{footer, paragraph, popup, scroll_offset};
 use crate::game::Game;
 use crate::items::Item;
@@ -7,7 +8,7 @@ use crate::items::loot::{sell_price, sell_qty};
 use crate::ui::canvas::Canvas;
 use crate::ui::theme;
 
-pub fn draw(canvas: &mut Canvas, game: &Game, kiosk: usize, selling: bool, selected: usize) {
+pub fn draw(canvas: &mut Canvas, game: &Game, kiosk: usize, selling: bool, sort: Sort, selected: usize) {
     let inner = popup(canvas, 96, 24, "🏧 Autovend");
     let bg = theme::POPUP;
     let Some(k) = game.kiosks.get(kiosk) else { return };
@@ -19,17 +20,19 @@ pub fn draw(canvas: &mut Canvas, game: &Game, kiosk: usize, selling: bool, selec
     let mut x = inner.x;
     x += canvas.text(x, inner.y, if selling { " Buy " } else { "[Buy]" }, buy_c, bg) + 1;
     x += canvas.text(x, inner.y, if selling { "[Sell]" } else { " Sell " }, sell_c, bg) + 3;
-    canvas.text(x, inner.y, &format!("You carry {} 💎", game.player.crystals), theme::LOOT, bg);
+    x += canvas.text(x, inner.y, &format!("You carry {} 💎", game.player.crystals), theme::LOOT, bg);
+    if selling {
+        canvas.text(x + 3, inner.y, &format!("sort: {}", sort.label()), theme::DIM, bg);
+    }
 
     // Rows: (item, price shown, whether it can be bought/sold right now).
     let rows: Vec<(&Item, Option<u32>, bool)> = if selling {
-        game.player
-            .inventory
-            .items()
-            .iter()
-            .map(|it| {
-                let price = sell_price(it, game.depth);
-                (it, price, price.is_some())
+        let items = game.player.inventory.items();
+        sort.order(items, game.depth)
+            .into_iter()
+            .map(|i| {
+                let price = sell_price(&items[i], game.depth);
+                (&items[i], price, price.is_some())
             })
             .collect()
     } else {
@@ -71,7 +74,7 @@ pub fn draw(canvas: &mut Canvas, game: &Game, kiosk: usize, selling: bool, selec
         }
     }
     let help = if selling {
-        "↑↓ select · Enter sell · Tab buy · Esc leave"
+        "↑↓ select · Enter sell · s sort · Tab buy · Esc leave"
     } else {
         "↑↓ select · Enter buy · Tab sell · Esc leave   (crystals spent here can't heal you)"
     };
@@ -89,11 +92,22 @@ mod tests {
         let mut g = Game::new(Background::ALL[0].create("Tester".into()), Some(1));
         g.kiosks = vec![Kiosk { stock: Vec::new() }];
         let mut canvas = Canvas::new(120, 30);
-        draw(&mut canvas, &g, 0, true, 0);
+        // Value, descending: two steps past name.
+        let mut sort = Sort::default();
+        for _ in 0..6 {
+            sort = sort.next();
+        }
+        draw(&mut canvas, &g, 0, true, sort, 0);
         let rows: Vec<String> = (0..canvas.height())
             .map(|y| canvas.row(y).iter().filter(|c| !c.cont).map(|c| c.ch).collect::<String>())
             .collect();
         println!("{}", rows.join("\n"));
-        assert!(rows.iter().any(|r| r.contains(" Buy  [Sell]   You carry")));
+        assert!(rows.iter().any(|r| r.contains(" Buy  [Sell]   You carry") && r.contains("sort: value ↓")));
+        // Sale prices run high to low down the list.
+        let prices: Vec<u32> = rows
+            .iter()
+            .filter_map(|r| r.split('│').nth(1)?.trim_start().split_once('💎')?.0.trim().parse().ok())
+            .collect();
+        assert!(prices.len() >= 2 && prices.windows(2).all(|w| w[0] >= w[1]), "{prices:?}");
     }
 }

@@ -38,7 +38,7 @@ impl Sort {
         }
     }
 
-    fn label(self) -> String {
+    pub fn label(self) -> String {
         let name = match self.key {
             SortKey::Pickup => return "pickup order".into(),
             SortKey::Name => "name",
@@ -46,6 +46,15 @@ impl Sort {
             SortKey::Value => "value",
         };
         format!("{name} {}", if self.descending { "↓" } else { "↑" })
+    }
+
+    /// Step to the next order. Returns the row the item on row `selected`
+    /// moved to, so it stays highlighted.
+    pub fn advance(&mut self, items: &[Item], depth: u32, selected: usize) -> usize {
+        let item = self.order(items, depth).get(selected).copied();
+        *self = self.next();
+        let order = self.order(items, depth);
+        item.and_then(|i| order.iter().position(|&o| o == i)).unwrap_or(0)
     }
 
     /// Pack indices in display order. Ties keep pickup order.
