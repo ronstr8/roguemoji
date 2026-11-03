@@ -21,10 +21,10 @@ You need a terminal of at least 80×24 with a font that renders emoji as double-
 | Key | Action |
 |---|---|
 | arrows · `hjkl yubn` · numpad | move; bump to attack, harvest 🌿🚗📦, or use an Autovend 🏧 |
-| `.` / `5` | wait |
+| Space / `.` | wait |
 | `f` | fire: Tab/←→ cycle targets (shows exact hit %), `f`/Enter shoot |
 | `r` | reload |
-| `g` / `,` | pick up |
+| `g` / `,` / `5` | pick up |
 | `a` / `A` | absorb one crystal / absorb until healed |
 | `s` | cycle stance |
 | `>` | descend on 🔽 |

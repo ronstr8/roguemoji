@@ -6,10 +6,10 @@ use crate::ui::theme;
 
 const LINES: &[(&str, &str)] = &[
     ("MOVE", "arrows · hjkl yubn · numpad.  Bump to attack, harvest 🌿🚗, or use 🏧 🛅"),
-    (". / 5", "wait a turn"),
+    ("Space .", "wait a turn"),
     ("f", "fire gun: Tab/←→ cycle targets, f/Enter shoot, Esc cancel"),
     ("r", "reload (revolvers and tube magazines take longer)"),
-    ("g ,", "pick up items and crystals"),
+    ("g , 5", "pick up items and crystals"),
     ("a / A", "absorb one crystal / absorb until healed"),
     ("s", "cycle stance: Aggressive ⇄ Balanced ⇄ Guarded"),
     (">", "descend when standing on 🔽"),
