@@ -1,0 +1,17 @@
+name = "Dover Demon"
+glyph = "👺"
+family = "cryptid"
+description = "Spindly limbs, huge glowing eyes."
+
+hp = 20
+attack = 6
+defense = 15
+damage = [3, 6]
+speed = 120
+crystals = [9, 13]
+on_hit = { effect = "dread" }
+drops = [{ item = "cryptid_hair", chance = 0.5 }]
+
+[spawn]
+min_depth = 4
+weight = 2

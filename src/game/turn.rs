@@ -96,7 +96,7 @@ impl Game {
             let def = m.def();
             let crystals = self.dice.range(def.crystals.0 as i32, def.crystals.1 as i32) as u32;
             let mut drops: Vec<Component> = Vec::new();
-            for (component, chance) in def.drops {
+            for (component, chance) in &def.drops {
                 if self.dice.chance(*chance) {
                     drops.push(*component);
                 }

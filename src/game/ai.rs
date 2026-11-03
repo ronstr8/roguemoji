@@ -72,7 +72,7 @@ impl Game {
 
     fn monster_attack(&mut self, i: usize) {
         let def = self.monsters[i].def();
-        let name = def.name;
+        let name = &def.name;
         let attack = Attack {
             to_hit: def.attack,
             raw_damage: self.dice.range(def.damage.0, def.damage.1),

@@ -1,0 +1,16 @@
+name = "Coyote"
+glyph = "🐺"
+family = "animal"
+description = "Lean and patient. Hunts in pairs."
+
+hp = 12
+attack = 4
+defense = 11
+damage = [2, 5]
+speed = 130
+crystals = [3, 5]
+drops = [{ item = "raw_meat", chance = 0.6 }, { item = "bone", chance = 0.4 }]
+
+[spawn]
+min_depth = 2
+weight = 7

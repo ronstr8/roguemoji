@@ -1,0 +1,17 @@
+name = "Bloodfly Swarm"
+glyph = "🦟"
+family = "mutant"
+description = "A whining cloud of thumb-sized mosquitoes."
+
+hp = 5
+attack = 4
+defense = 13
+damage = [1, 3]
+speed = 140
+crystals = [2, 3]
+on_hit = { effect = "bleed", potency = 1, turns = 4 }
+drops = [{ item = "mutagen", chance = 0.2 }]
+
+[spawn]
+min_depth = 2
+weight = 6

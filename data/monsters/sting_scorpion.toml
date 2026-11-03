@@ -1,0 +1,17 @@
+name = "Sting Scorpion"
+glyph = "🦂"
+family = "mutant"
+description = "Chitin plates like a car hood."
+
+hp = 20
+attack = 6
+defense = 10
+damage = [3, 6]
+armor = 3
+crystals = [6, 9]
+on_hit = { effect = "poison", potency = 2, turns = 10 }
+drops = [{ item = "mutagen", chance = 0.6 }]
+
+[spawn]
+min_depth = 4
+weight = 5

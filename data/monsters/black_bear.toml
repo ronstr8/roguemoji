@@ -1,0 +1,16 @@
+name = "Black Bear"
+glyph = "🐻"
+family = "animal"
+description = "Three hundred pounds of bad mood."
+
+hp = 30
+attack = 5
+defense = 9
+damage = [4, 9]
+armor = 1
+crystals = [8, 12]
+drops = [{ item = "raw_meat", chance = 1.0 }, { item = "bone", chance = 0.7 }]
+
+[spawn]
+min_depth = 4
+weight = 4

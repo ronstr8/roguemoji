@@ -1,0 +1,18 @@
+name = "Chupacabra"
+glyph = "🐐"
+family = "cryptid"
+description = "Spined, hairless, and drinks blood."
+
+hp = 18
+attack = 6
+defense = 12
+damage = [3, 6]
+armor = 1
+speed = 130
+crystals = [8, 12]
+on_hit = { effect = "bleed", potency = 2, turns = 5 }
+drops = [{ item = "cryptid_hair", chance = 0.6 }, { item = "bone", chance = 0.5 }]
+
+[spawn]
+min_depth = 3
+weight = 2

@@ -33,7 +33,7 @@ impl Monster {
     }
 
     pub fn name(&self) -> &'static str {
-        self.def().name
+        &self.def().name
     }
 
     pub fn is_dead(&self) -> bool {

@@ -1,0 +1,16 @@
+name = "Feral Dog"
+glyph = "🐕"
+family = "animal"
+description = "Somebody's pet, three winters ago."
+
+hp = 9
+attack = 3
+defense = 10
+damage = [2, 4]
+speed = 130
+crystals = [2, 4]
+drops = [{ item = "raw_meat", chance = 0.6 }, { item = "bone", chance = 0.3 }]
+
+[spawn]
+min_depth = 1
+weight = 8

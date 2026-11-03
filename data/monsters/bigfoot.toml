@@ -1,0 +1,16 @@
+name = "Bigfoot"
+glyph = "🦍"
+family = "cryptid"
+description = "Eight feet of matted fur and muscle."
+
+hp = 55
+attack = 7
+defense = 10
+damage = [6, 12]
+armor = 2
+crystals = [18, 24]
+drops = [{ item = "cryptid_hair", chance = 1.0 }, { item = "raw_meat", chance = 0.7 }]
+
+[spawn]
+min_depth = 6
+weight = 2

@@ -1,6 +1,7 @@
 //! Crafting components gathered by harvesting and from creature remains.
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Component {
     Herbs,
     Glowcap,

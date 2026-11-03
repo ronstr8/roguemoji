@@ -108,8 +108,12 @@ spare guns and armor in one, then take them out of a lockbox on a deeper level.
 ## Project layout
 
 ```
+data/
+  monsters/        one TOML file per monster (see data/README.md)
+build.rs           embeds data/ into the binary
 src/
-  main.rs          entry point, terminal setup
+  main.rs          entry point, content validation, terminal setup
+  content.rs       finds and parses data files (built-in + drop-ins)
   app.rs           screen state machine and input dispatch
   input.rs         key → command mapping
   dice.rs          RNG with dice helpers
@@ -119,11 +123,12 @@ src/
   crafting.rs      recipes
   stats/           attributes, skills, the 2d10 check
   items/           ballistics, guns, melee, armor, components, consumables, inventory, loot tables
-  creatures/       bestiary (species), monster, player, backgrounds
+  creatures/       bestiary loader (species), monster, player, backgrounds
   world/           tiles, map, features/harvestables, FOV, level generation
   game/            Game state; level, turn, ai, actions each add an `impl Game`
   ui/              canvas (wide-char aware), terminal (diffed output), HUD, map view, pop-up screens
 ```
 
-Data is static and typed: every item, monster and recipe is an enum variant with a
-`def()` table. Game rules never touch the terminal, and views never mutate the game.
+Monsters are data-driven: each is a TOML file under `data/monsters/`, and you can
+add or override them without recompiling (see [data/README.md](data/README.md)).
+Items and recipes are still enum variants with a `def()` table. Game rules never touch the terminal, and views never mutate the game.

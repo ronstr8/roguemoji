@@ -1,0 +1,17 @@
+name = "Hound Roach"
+glyph = "🪳"
+family = "mutant"
+description = "A cockroach the size of a beagle."
+
+hp = 8
+attack = 3
+defense = 10
+damage = [2, 4]
+armor = 2
+speed = 110
+crystals = [2, 4]
+drops = [{ item = "mutagen", chance = 0.25 }]
+
+[spawn]
+min_depth = 1
+weight = 8

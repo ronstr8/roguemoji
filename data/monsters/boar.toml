@@ -1,0 +1,17 @@
+name = "Wild Boar"
+glyph = "🐗"
+family = "animal"
+description = "Tusks like box-cutters."
+
+hp = 16
+attack = 4
+defense = 9
+damage = [3, 6]
+armor = 1
+crystals = [4, 6]
+on_hit = { effect = "bleed", potency = 1, turns = 3 }
+drops = [{ item = "raw_meat", chance = 0.9 }, { item = "bone", chance = 0.5 }]
+
+[spawn]
+min_depth = 2
+weight = 6

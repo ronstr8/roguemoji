@@ -1,0 +1,15 @@
+name = "Rat"
+glyph = "🐀"
+family = "animal"
+description = "A fat, bold city rat."
+
+hp = 4
+attack = 1
+defense = 9
+damage = [1, 2]
+crystals = [1, 2]
+drops = [{ item = "raw_meat", chance = 0.2 }]
+
+[spawn]
+min_depth = 1
+weight = 10

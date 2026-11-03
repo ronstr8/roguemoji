@@ -1,0 +1,17 @@
+name = "Mothman"
+glyph = "🦋"
+family = "cryptid"
+description = "Red eyes in the dark. An omen."
+
+hp = 26
+attack = 6
+defense = 14
+damage = [3, 7]
+speed = 130
+crystals = [12, 16]
+on_hit = { effect = "dread" }
+drops = [{ item = "cryptid_hair", chance = 0.8 }]
+
+[spawn]
+min_depth = 5
+weight = 2

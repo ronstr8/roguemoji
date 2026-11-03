@@ -1,0 +1,15 @@
+name = "Raccoon"
+glyph = "🦝"
+family = "animal"
+description = "Masked, clever, and very hungry."
+
+hp = 6
+attack = 2
+defense = 11
+damage = [1, 3]
+crystals = [1, 3]
+drops = [{ item = "raw_meat", chance = 0.4 }]
+
+[spawn]
+min_depth = 1
+weight = 8

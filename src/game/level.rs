@@ -121,23 +121,24 @@ impl Game {
     }
 
     fn pick_species(&mut self, depth: u32) -> Species {
-        let table: Vec<(Species, u32)> = Species::ALL
-            .iter()
-            .filter(|s| s.def().min_depth <= depth)
+        let table: Vec<(Species, u32)> = Species::all()
+            .filter(|s| s.def().min_depth <= depth && s.def().max_depth.is_none_or(|m| depth <= m))
+            .filter(|s| s.def().weight > 0)
             .map(|s| {
                 let def = s.def();
                 let age = depth - def.min_depth;
-                let mut w = def.rarity * 3;
+                let mut w = def.weight * 3;
                 if age > 4 {
                     w /= 3; // trash mobs thin out in the deep
                 }
                 if def.family == Family::Cryptid {
                     w += depth / 3;
                 }
-                (*s, w.max(1))
+                (s, w.max(1))
             })
             .collect();
-        self.dice.weighted(&table).unwrap_or(Species::Rat)
+        // Fall back to anything at all if no species suits this depth.
+        self.dice.weighted(&table).or_else(|| Species::all().next()).expect("bestiary is never empty")
     }
 }
 

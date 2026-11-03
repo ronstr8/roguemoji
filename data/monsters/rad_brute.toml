@@ -1,0 +1,16 @@
+name = "Rad Brute"
+glyph = "👹"
+family = "mutant"
+description = "A hulking mutant in welded scrap."
+
+hp = 40
+attack = 6
+defense = 9
+damage = [5, 10]
+armor = 2
+crystals = [12, 16]
+drops = [{ item = "mutagen", chance = 0.8 }, { item = "scrap_metal", chance = 0.5 }]
+
+[spawn]
+min_depth = 6
+weight = 4

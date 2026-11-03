@@ -1,9 +1,15 @@
-//! The bestiary: common animals, mutated creatures, and cryptids.
+//! The bestiary, loaded from `data/monsters/*.toml` (see `data/README.md`).
 
+use std::sync::OnceLock;
+
+use serde::Deserialize;
+
+use crate::content;
 use crate::effects::{EffectKind, EffectSpec};
 use crate::items::Component;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Family {
     Animal,
     Mutant,
@@ -29,34 +35,16 @@ pub enum OnHit {
     Dread,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Species {
-    Rat,
-    Raccoon,
-    Rattlesnake,
-    FeralDog,
-    Coyote,
-    Boar,
-    BlackBear,
-    GiantRoach,
-    Bloodflies,
-    TwinToad,
-    GlowGhoul,
-    RadMonitor,
-    StingScorpion,
-    BlightMass,
-    RadBrute,
-    Chupacabra,
-    DoverDemon,
-    Mothman,
-    JerseyDevil,
-    Bigfoot,
-    Wendigo,
-}
+/// A handle to a loaded species: an index into the bestiary.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct Species(u16);
 
+#[derive(Debug)]
 pub struct SpeciesDef {
-    pub name: &'static str,
-    pub glyph: &'static str,
+    /// The file name without `.toml`, e.g. `feral_dog`.
+    pub id: String,
+    pub name: String,
+    pub glyph: String,
     pub family: Family,
     pub hp: i32,
     pub attack: i32,
@@ -67,147 +55,220 @@ pub struct SpeciesDef {
     pub speed: i32,
     pub crystals: (u32, u32),
     pub min_depth: u32,
-    pub rarity: u32,
+    pub max_depth: Option<u32>,
+    /// Relative spawn weight before depth adjustments.
+    pub weight: u32,
     pub on_hit: OnHit,
-    pub drops: &'static [(Component, f64)],
-    pub desc: &'static str,
+    pub drops: Vec<(Component, f64)>,
+    pub desc: String,
 }
 
-const fn poison(p: i32, t: u32) -> OnHit {
-    OnHit::Inflict(EffectSpec::new(EffectKind::Poison, p, t))
+// ── File format ──
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RawSpecies {
+    name: String,
+    glyph: String,
+    family: Family,
+    description: String,
+    hp: i32,
+    attack: i32,
+    defense: i32,
+    damage: (i32, i32),
+    #[serde(default)]
+    armor: i32,
+    #[serde(default = "default_speed")]
+    speed: i32,
+    crystals: (u32, u32),
+    #[serde(default)]
+    on_hit: Option<RawOnHit>,
+    #[serde(default)]
+    drops: Vec<RawDrop>,
+    spawn: RawSpawn,
 }
 
-const fn bleed(p: i32, t: u32) -> OnHit {
-    OnHit::Inflict(EffectSpec::new(EffectKind::Bleed, p, t))
+fn default_speed() -> i32 {
+    100
+}
+
+#[derive(Deserialize)]
+#[serde(tag = "effect", rename_all = "snake_case", deny_unknown_fields)]
+enum RawOnHit {
+    Poison { potency: i32, turns: u32 },
+    Bleed { potency: i32, turns: u32 },
+    Stun { turns: u32 },
+    Dread,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RawDrop {
+    item: Component,
+    chance: f64,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RawSpawn {
+    min_depth: u32,
+    #[serde(default)]
+    max_depth: Option<u32>,
+    weight: u32,
+}
+
+impl RawSpecies {
+    fn into_def(self, id: String) -> Result<SpeciesDef, Vec<String>> {
+        let mut errs = Vec::new();
+        let mut check = |ok: bool, msg: &str| {
+            if !ok {
+                errs.push(msg.to_string());
+            }
+        };
+        check(!self.name.trim().is_empty(), "name is empty");
+        check(!self.glyph.trim().is_empty(), "glyph is empty");
+        check(self.hp > 0, "hp must be positive");
+        check(self.speed > 0, "speed must be positive");
+        check(self.damage.0 >= 0 && self.damage.0 <= self.damage.1, "damage must be [min, max] with 0 <= min <= max");
+        check(self.crystals.0 <= self.crystals.1, "crystals must be [min, max] with min <= max");
+        check(self.armor >= 0, "armor cannot be negative");
+        check(self.spawn.min_depth >= 1, "spawn.min_depth must be at least 1");
+        check(self.spawn.max_depth.is_none_or(|m| m >= self.spawn.min_depth), "spawn.max_depth is below min_depth");
+        for d in &self.drops {
+            check((0.0..=1.0).contains(&d.chance), "drop chance must be between 0 and 1");
+        }
+        let on_hit = match self.on_hit {
+            None => OnHit::None,
+            Some(RawOnHit::Poison { potency, turns }) => {
+                OnHit::Inflict(EffectSpec::new(EffectKind::Poison, potency, turns))
+            }
+            Some(RawOnHit::Bleed { potency, turns }) => {
+                OnHit::Inflict(EffectSpec::new(EffectKind::Bleed, potency, turns))
+            }
+            Some(RawOnHit::Stun { turns }) => OnHit::Inflict(EffectSpec::new(EffectKind::Stun, 1, turns)),
+            Some(RawOnHit::Dread) => OnHit::Dread,
+        };
+        if !errs.is_empty() {
+            return Err(errs);
+        }
+        Ok(SpeciesDef {
+            id,
+            name: self.name,
+            glyph: self.glyph,
+            family: self.family,
+            hp: self.hp,
+            attack: self.attack,
+            defense: self.defense,
+            damage: self.damage,
+            armor: self.armor,
+            speed: self.speed,
+            crystals: self.crystals,
+            min_depth: self.spawn.min_depth,
+            max_depth: self.spawn.max_depth,
+            weight: self.spawn.weight,
+            on_hit,
+            drops: self.drops.into_iter().map(|d| (d.item, d.chance)).collect(),
+            desc: self.description,
+        })
+    }
+}
+
+// ── Registry ──
+
+static BESTIARY: OnceLock<Vec<SpeciesDef>> = OnceLock::new();
+
+fn load() -> Result<Vec<SpeciesDef>, String> {
+    let mut defs = Vec::new();
+    let mut errors = Vec::new();
+    for (src, raw) in content::load::<RawSpecies>("monsters")? {
+        match raw.into_def(src.id) {
+            Ok(def) => defs.push(def),
+            Err(errs) => errors.extend(errs.into_iter().map(|e| format!("{}: {e}", src.origin))),
+        }
+    }
+    if defs.is_empty() && errors.is_empty() {
+        errors.push("no monsters defined (data/monsters/*.toml)".into());
+    }
+    if defs.len() > u16::MAX as usize {
+        errors.push("too many monster definitions".into());
+    }
+    if errors.is_empty() { Ok(defs) } else { Err(errors.join("\n")) }
+}
+
+/// Load the bestiary now, reporting bad content files as an error.
+pub fn init() -> Result<(), String> {
+    if BESTIARY.get().is_none() {
+        let _ = BESTIARY.set(load()?);
+    }
+    Ok(())
+}
+
+fn bestiary() -> &'static [SpeciesDef] {
+    BESTIARY.get_or_init(|| load().unwrap_or_else(|e| panic!("invalid monster data:\n{e}")))
 }
 
 impl Species {
-    pub const ALL: [Species; 21] = [
-        Species::Rat,
-        Species::Raccoon,
-        Species::Rattlesnake,
-        Species::FeralDog,
-        Species::Coyote,
-        Species::Boar,
-        Species::BlackBear,
-        Species::GiantRoach,
-        Species::Bloodflies,
-        Species::TwinToad,
-        Species::GlowGhoul,
-        Species::RadMonitor,
-        Species::StingScorpion,
-        Species::BlightMass,
-        Species::RadBrute,
-        Species::Chupacabra,
-        Species::DoverDemon,
-        Species::Mothman,
-        Species::JerseyDevil,
-        Species::Bigfoot,
-        Species::Wendigo,
-    ];
+    pub fn all() -> impl Iterator<Item = Species> {
+        (0..bestiary().len() as u16).map(Species)
+    }
+
+    #[allow(dead_code)]
+    pub fn by_id(id: &str) -> Option<Species> {
+        bestiary().iter().position(|d| d.id == id).map(|i| Species(i as u16))
+    }
 
     pub fn def(self) -> &'static SpeciesDef {
-        use Component::*;
-        use Family::*;
-        macro_rules! s {
-            ($n:expr, $g:expr, $f:expr, hp $hp:expr, atk $atk:expr, def $def:expr, dmg $dmg:expr, arm $arm:expr,
-             spd $spd:expr, xtal $x:expr, depth $d:expr, rare $r:expr, $on:expr, [$($drop:expr),*], $desc:expr) => {
-{
-                    const DEF: SpeciesDef = SpeciesDef {
-                        name: $n, glyph: $g, family: $f, hp: $hp, attack: $atk, defense: $def, damage: $dmg,
-                        armor: $arm, speed: $spd, crystals: $x, min_depth: $d, rarity: $r, on_hit: $on,
-                        drops: &[$($drop),*], desc: $desc,
-                    };
-                    &DEF
-                }
-            };
-        }
-        match self {
-            // ── Animals ──
-            Species::Rat => s!("Rat", "🐀", Animal, hp 4, atk 1, def 9, dmg (1, 2), arm 0, spd 100, xtal (1, 2),
-                depth 1, rare 10, OnHit::None, [(RawMeat, 0.2)], "A fat, bold city rat."),
-            Species::Raccoon => {
-                s!("Raccoon", "🦝", Animal, hp 6, atk 2, def 11, dmg (1, 3), arm 0, spd 100, xtal (1, 3),
-                depth 1, rare 8, OnHit::None, [(RawMeat, 0.4)], "Masked, clever, and very hungry.")
-            }
-            Species::Rattlesnake => {
-                s!("Rattlesnake", "🐍", Animal, hp 5, atk 3, def 11, dmg (1, 3), arm 0, spd 100, xtal (2, 3),
-                depth 1, rare 6, poison(1, 8), [(RawMeat, 0.3)], "Coiled in the warm rubble.")
-            }
-            Species::FeralDog => {
-                s!("Feral Dog", "🐕", Animal, hp 9, atk 3, def 10, dmg (2, 4), arm 0, spd 130, xtal (2, 4),
-                depth 1, rare 8, OnHit::None, [(RawMeat, 0.6), (Bone, 0.3)], "Somebody's pet, three winters ago.")
-            }
-            Species::Coyote => {
-                s!("Coyote", "🐺", Animal, hp 12, atk 4, def 11, dmg (2, 5), arm 0, spd 130, xtal (3, 5),
-                depth 2, rare 7, OnHit::None, [(RawMeat, 0.6), (Bone, 0.4)], "Lean and patient. Hunts in pairs.")
-            }
-            Species::Boar => {
-                s!("Wild Boar", "🐗", Animal, hp 16, atk 4, def 9, dmg (3, 6), arm 1, spd 100, xtal (4, 6),
-                depth 2, rare 6, bleed(1, 3), [(RawMeat, 0.9), (Bone, 0.5)], "Tusks like box-cutters.")
-            }
-            Species::BlackBear => {
-                s!("Black Bear", "🐻", Animal, hp 30, atk 5, def 9, dmg (4, 9), arm 1, spd 100, xtal (8, 12),
-                depth 4, rare 4, OnHit::None, [(RawMeat, 1.0), (Bone, 0.7)], "Three hundred pounds of bad mood.")
-            }
-            // ── Mutants ──
-            Species::GiantRoach => {
-                s!("Hound Roach", "🪳", Mutant, hp 8, atk 3, def 10, dmg (2, 4), arm 2, spd 110, xtal (2, 4),
-                depth 1, rare 8, OnHit::None, [(Mutagen, 0.25)], "A cockroach the size of a beagle.")
-            }
-            Species::Bloodflies => {
-                s!("Bloodfly Swarm", "🦟", Mutant, hp 5, atk 4, def 13, dmg (1, 3), arm 0, spd 140, xtal (2, 3),
-                depth 2, rare 6, bleed(1, 4), [(Mutagen, 0.2)], "A whining cloud of thumb-sized mosquitoes.")
-            }
-            Species::TwinToad => {
-                s!("Twin-Headed Toad", "🐸", Mutant, hp 10, atk 3, def 9, dmg (2, 4), arm 0, spd 90, xtal (3, 5),
-                depth 2, rare 6, poison(2, 6), [(Mutagen, 0.5)], "Both heads want to eat you.")
-            }
-            Species::GlowGhoul => {
-                s!("Glow Ghoul", "🧟", Mutant, hp 18, atk 5, def 9, dmg (3, 6), arm 0, spd 80, xtal (5, 8),
-                depth 3, rare 6, poison(2, 8), [(Mutagen, 0.5), (Rags, 0.5)], "Was a person, once. Now it glows.")
-            }
-            Species::RadMonitor => {
-                s!("Rad Monitor", "🦎", Mutant, hp 22, atk 5, def 11, dmg (3, 7), arm 2, spd 100, xtal (6, 9),
-                depth 4, rare 5, poison(1, 10), [(RawMeat, 0.7), (Mutagen, 0.5)], "A lizard grown to crocodile size.")
-            }
-            Species::StingScorpion => {
-                s!("Sting Scorpion", "🦂", Mutant, hp 20, atk 6, def 10, dmg (3, 6), arm 3, spd 100, xtal (6, 9),
-                depth 4, rare 5, poison(2, 10), [(Mutagen, 0.6)], "Chitin plates like a car hood.")
-            }
-            Species::BlightMass => {
-                s!("Blight Mass", "🦠", Mutant, hp 28, atk 4, def 7, dmg (2, 5), arm 1, spd 60, xtal (7, 10),
-                depth 5, rare 4, poison(3, 10), [(Mutagen, 1.0)], "A crawling heap of infection.")
-            }
-            Species::RadBrute => {
-                s!("Rad Brute", "👹", Mutant, hp 40, atk 6, def 9, dmg (5, 10), arm 2, spd 100, xtal (12, 16),
-                depth 6, rare 4, OnHit::None, [(Mutagen, 0.8), (ScrapMetal, 0.5)], "A hulking mutant in welded scrap.")
-            }
-            // ── Cryptids ──
-            Species::Chupacabra => {
-                s!("Chupacabra", "🐐", Cryptid, hp 18, atk 6, def 12, dmg (3, 6), arm 1, spd 130, xtal (8, 12),
-                depth 3, rare 2, bleed(2, 5), [(CryptidHair, 0.6), (Bone, 0.5)], "Spined, hairless, and drinks blood.")
-            }
-            Species::DoverDemon => {
-                s!("Dover Demon", "👺", Cryptid, hp 20, atk 6, def 15, dmg (3, 6), arm 0, spd 120, xtal (9, 13),
-                depth 4, rare 2, OnHit::Dread, [(CryptidHair, 0.5)], "Spindly limbs, huge glowing eyes.")
-            }
-            Species::Mothman => {
-                s!("Mothman", "🦋", Cryptid, hp 26, atk 6, def 14, dmg (3, 7), arm 0, spd 130, xtal (12, 16),
-                depth 5, rare 2, OnHit::Dread, [(CryptidHair, 0.8)], "Red eyes in the dark. An omen.")
-            }
-            Species::JerseyDevil => {
-                s!("Jersey Devil", "😈", Cryptid, hp 35, atk 7, def 13, dmg (4, 9), arm 1, spd 120, xtal (14, 18),
-                depth 6, rare 2, bleed(2, 5), [(CryptidHair, 0.8), (Bone, 0.5)], "Hooves, wings, and a horse's skull.")
-            }
-            Species::Bigfoot => {
-                s!("Bigfoot", "🦍", Cryptid, hp 55, atk 7, def 10, dmg (6, 12), arm 2, spd 100, xtal (18, 24),
-                depth 6, rare 2, OnHit::None, [(CryptidHair, 1.0), (RawMeat, 0.7)], "Eight feet of matted fur and muscle.")
-            }
-            Species::Wendigo => {
-                s!("Wendigo", "🦌", Cryptid, hp 45, atk 8, def 12, dmg (5, 10), arm 1, spd 120, xtal (20, 26),
-                depth 7, rare 2, OnHit::Dread, [(CryptidHair, 1.0), (Bone, 1.0)], "Antlered, emaciated, ravenous.")
-            }
-        }
+        &bestiary()[self.0 as usize]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn parse(text: &str) -> Result<SpeciesDef, String> {
+        let raw: RawSpecies = toml::from_str(text).map_err(|e| e.to_string())?;
+        raw.into_def("test".into()).map_err(|e| e.join("; "))
+    }
+
+    const GOOD: &str = r#"
+        name = "Test Beast"
+        glyph = "🐀"
+        family = "mutant"
+        description = "For tests."
+        hp = 5
+        attack = 1
+        defense = 9
+        damage = [1, 2]
+        crystals = [1, 2]
+        on_hit = { effect = "poison", potency = 2, turns = 4 }
+        drops = [{ item = "raw_meat", chance = 0.5 }]
+        [spawn]
+        min_depth = 2
+        weight = 3
+    "#;
+
+    #[test]
+    fn stock_bestiary_loads() {
+        load().expect("stock monster data is valid");
+        let rat = Species::by_id("rat").expect("rat exists");
+        assert_eq!(rat.def().name, "Rat");
+    }
+
+    #[test]
+    fn parses_and_defaults() {
+        let d = parse(GOOD).unwrap();
+        assert_eq!(d.speed, 100);
+        assert_eq!(d.armor, 0);
+        assert_eq!(d.on_hit, OnHit::Inflict(EffectSpec::new(EffectKind::Poison, 2, 4)));
+        assert_eq!(d.drops, vec![(Component::RawMeat, 0.5)]);
+    }
+
+    #[test]
+    fn rejects_bad_content() {
+        assert!(parse(&GOOD.replace("hp = 5", "hp = 0")).unwrap_err().contains("hp"));
+        assert!(parse(&GOOD.replace("raw_meat", "unobtainium")).is_err());
+        assert!(parse(&GOOD.replace("attack = 1", "atack = 1")).is_err());
+        assert!(parse(&GOOD.replace("damage = [1, 2]", "damage = [3, 2]")).unwrap_err().contains("damage"));
     }
 }

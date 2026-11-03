@@ -23,7 +23,7 @@ pub fn draw(canvas: &mut Canvas, area: Area, game: &Game, target: Option<Pos>) {
     let cam_y = camera(me.y, view_h, map.height());
 
     let monsters: HashMap<Pos, &str> =
-        game.monsters.iter().filter(|m| !m.is_dead()).map(|m| (m.pos, m.def().glyph)).collect();
+        game.monsters.iter().filter(|m| !m.is_dead()).map(|m| (m.pos, m.def().glyph.as_str())).collect();
     let items: HashMap<Pos, &str> = game.items.iter().map(|fi| (fi.pos, fi.item.glyph())).collect();
     let path: HashSet<Pos> = target.map(|t| line(me, t).into_iter().skip(1).collect()).unwrap_or_default();
 
