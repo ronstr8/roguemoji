@@ -1,4 +1,5 @@
-//! Map features: harvestable nodes, Autovend kiosks, stairs, and the Beacon.
+//! Map features: harvestable nodes, Autovend kiosks, Visitor lockboxes,
+//! stairs, and the Beacon.
 
 use crate::items::Component;
 use crate::stats::Skill;
@@ -102,6 +103,8 @@ pub enum Feature {
     },
     /// Index into the level's kiosk list.
     Kiosk(usize),
+    /// A Visitor lockbox. Every lockbox opens onto the same shared stash.
+    Lockbox,
     Stairs,
     Beacon,
 }
@@ -115,13 +118,14 @@ impl Feature {
         match self {
             Feature::Harvest { kind, .. } => kind.def().glyph,
             Feature::Kiosk(_) => "🏧",
+            Feature::Lockbox => "🛅",
             Feature::Stairs => "🔽",
             Feature::Beacon => "📡",
         }
     }
 
-    /// Harvest nodes and kiosks are bumped, not walked over.
+    /// Harvest nodes, kiosks and lockboxes are bumped, not walked over.
     pub fn blocks(&self) -> bool {
-        matches!(self, Feature::Harvest { .. } | Feature::Kiosk(_))
+        matches!(self, Feature::Harvest { .. } | Feature::Kiosk(_) | Feature::Lockbox)
     }
 }

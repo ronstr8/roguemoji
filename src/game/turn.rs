@@ -22,6 +22,7 @@ impl Game {
             chained += 1;
         }
         self.refresh_fov();
+        self.note_burden();
     }
 
     fn one_turn(&mut self) {

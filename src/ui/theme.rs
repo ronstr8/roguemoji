@@ -2,6 +2,7 @@
 
 use crossterm::style::Color;
 
+use crate::creatures::player::Burden;
 use crate::game::Tone;
 
 const fn rgb(r: u8, g: u8, b: u8) -> Color {
@@ -24,6 +25,14 @@ pub const LOOT: Color = rgb(120, 200, 240);
 pub const SPECIAL: Color = rgb(200, 150, 255);
 pub const TARGET_BG: Color = rgb(90, 30, 30);
 pub const PATH_BG: Color = rgb(50, 30, 30);
+
+pub fn burden(b: Burden) -> Color {
+    match b {
+        Burden::Light => TEXT,
+        Burden::Burdened => WARN,
+        Burden::Strained | Burden::Overloaded => BAD,
+    }
+}
 
 pub fn tone(t: Tone) -> Color {
     match t {

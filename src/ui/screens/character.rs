@@ -1,7 +1,9 @@
 //! Character sheet pop-up: attributes, skills and derived values.
 
 use super::{footer, paragraph, popup};
+use crate::creatures::player::CAPACITY_PER_BRAWN;
 use crate::game::Game;
+use crate::items::weight::fmt_lb;
 use crate::stats::attributes::bonus;
 use crate::stats::skills::MAX_RANK;
 use crate::stats::{Attribute, Skill};
@@ -72,6 +74,14 @@ pub fn draw(canvas: &mut Canvas, game: &Game) {
             p.crystals,
             p.satiety.max(0),
             p.hunger_label()
+        ),
+        format!(
+            "Carry {} (Brawn {:+} lb{})  ·  Load {}  ·  {}",
+            fmt_lb(p.carry_capacity()),
+            bonus(p.attr(Attribute::Brawn)) * CAPACITY_PER_BRAWN / 100,
+            p.pack.map_or(String::new(), |k| format!(", pack +{}", fmt_lb(k.def().capacity))),
+            fmt_lb(p.carried_weight()),
+            p.burden().name()
         ),
         format!("Kills {}  ·  Depth {}  ·  Turn {}", p.kills, game.depth, game.turn),
     ];

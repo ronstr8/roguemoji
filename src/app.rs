@@ -7,7 +7,7 @@ use crossterm::event::{self, Event as TermEvent, KeyCode, KeyEvent, KeyEventKind
 use crate::crafting::RECIPES;
 use crate::creatures::Background;
 use crate::dice::Dice;
-use crate::game::{Event, Game};
+use crate::game::{Event, Game, StashSide};
 use crate::input::{self, Command};
 use crate::stats::check::success_chance;
 use crate::ui::canvas::Canvas;
@@ -24,6 +24,7 @@ enum Screen {
     Character,
     Crafting { selected: usize },
     Shop { kiosk: usize, selected: usize },
+    Stash { side: StashSide, selected: usize },
     Targeting { targets: Vec<u32>, index: usize },
     Help,
     ConfirmQuit,
@@ -88,6 +89,7 @@ impl App {
             Screen::Character => screens::character::draw(canvas, game),
             Screen::Crafting { selected } => screens::crafting::draw(canvas, game, *selected),
             Screen::Shop { kiosk, selected } => screens::shop::draw(canvas, game, *kiosk, *selected),
+            Screen::Stash { side, selected } => screens::stash::draw(canvas, game, *side, *selected),
             Screen::Help => screens::help::draw(canvas),
             Screen::Ended => screens::ended::draw(canvas, game),
             _ => {}
@@ -131,6 +133,7 @@ impl App {
             }
             Screen::Crafting { selected } => self.on_crafting(key, selected),
             Screen::Shop { kiosk, selected } => self.on_shop(key, kiosk, selected),
+            Screen::Stash { side, selected } => self.on_stash(key, side, selected),
             Screen::Targeting { targets, index } => self.on_targeting(key, targets, index),
             Screen::ConfirmQuit => match key.code {
                 KeyCode::Char('y') | KeyCode::Char('Y') => {
@@ -181,11 +184,11 @@ impl App {
         let Some(cmd) = input::play_command(key) else { return Screen::Play };
         let Some(game) = self.game.as_mut() else { return Screen::Play };
         match cmd {
-            Command::Move(dir) => {
-                if let Event::OpenShop(kiosk) = game.move_player(dir) {
-                    return Screen::Shop { kiosk, selected: 0 };
-                }
-            }
+            Command::Move(dir) => match game.move_player(dir) {
+                Event::OpenShop(kiosk) => return Screen::Shop { kiosk, selected: 0 },
+                Event::OpenStash => return Screen::Stash { side: StashSide::Pack, selected: 0 },
+                Event::None => {}
+            },
             Command::Wait => game.wait(),
             Command::Fire => return self.begin_targeting(),
             Command::Reload => game.reload(),
@@ -297,6 +300,37 @@ impl App {
             return Screen::Shop { kiosk, selected: selected.min(len.saturating_sub(1)) };
         }
         Screen::Shop { kiosk, selected: input::list_nav(key, selected, len) }
+    }
+
+    fn on_stash(&mut self, key: KeyEvent, side: StashSide, selected: usize) -> Screen {
+        let Some(game) = self.game.as_mut() else { return Screen::Play };
+        if input::is_cancel(key) {
+            return Screen::Play;
+        }
+        let len_of = |game: &Game, side: StashSide| match side {
+            StashSide::Pack => game.player.inventory.len(),
+            StashSide::Lockbox => game.stash.len(),
+        };
+        match key.code {
+            KeyCode::Tab | KeyCode::BackTab | KeyCode::Left | KeyCode::Right => {
+                let other = match side {
+                    StashSide::Pack => StashSide::Lockbox,
+                    StashSide::Lockbox => StashSide::Pack,
+                };
+                let selected = selected.min(len_of(game, other).saturating_sub(1));
+                Screen::Stash { side: other, selected }
+            }
+            KeyCode::Enter | KeyCode::Char(' ') => {
+                if selected < len_of(game, side) {
+                    game.stash_transfer(side, selected);
+                }
+                if game.is_over() {
+                    return Screen::Ended;
+                }
+                Screen::Stash { side, selected: selected.min(len_of(game, side).saturating_sub(1)) }
+            }
+            _ => Screen::Stash { side, selected: input::list_nav(key, selected, len_of(game, side)) },
+        }
     }
 }
 

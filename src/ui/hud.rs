@@ -6,6 +6,7 @@ use super::canvas::Canvas;
 use super::{Area, theme};
 use crate::creatures::player::HUNGRY_AT;
 use crate::game::Game;
+use crate::items::weight::fmt_lb;
 use crate::items::{CRYSTAL_GLYPH, GUN_GLYPH};
 
 /// A text bar like `████████░░░░`.
@@ -44,6 +45,9 @@ pub fn draw_sidebar(canvas: &mut Canvas, area: Area, game: &Game) {
     let hunger_color = if p.satiety <= HUNGRY_AT { theme::BAD } else { theme::TEXT };
     line(canvas, &mut y, &format!("{} {} crystals  ·  {}", CRYSTAL_GLYPH, p.crystals, p.hunger_label()), hunger_color);
     line(canvas, &mut y, &format!("DEF {}  ARMOR {}  Turn {}", p.defense(), p.armor_value(), game.turn), theme::TEXT);
+    let burden = p.burden();
+    let load = format!("Load {}/{} {}", fmt_lb(p.carried_weight()), fmt_lb(p.carry_capacity()), burden.name());
+    line(canvas, &mut y, &load, theme::burden(burden));
     let momentum = "▲".repeat(p.momentum.stacks() as usize);
     line(canvas, &mut y, &format!("Stance {}  {}", p.stance.name(), momentum), theme::WARN);
     y += 1;
@@ -65,6 +69,9 @@ pub fn draw_sidebar(canvas: &mut Canvas, area: Area, game: &Game) {
     match p.armor {
         Some(a) => line(canvas, &mut y, &format!("{} {}", a.def().glyph, a.def().name), theme::TEXT),
         None => line(canvas, &mut y, "   no armor", theme::DIM),
+    }
+    if let Some(k) = p.pack {
+        line(canvas, &mut y, &format!("{} {}", k.def().glyph, k.def().name), theme::TEXT);
     }
 
     let effects: Vec<_> = p.effects.iter().collect();

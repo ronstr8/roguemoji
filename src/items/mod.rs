@@ -8,6 +8,8 @@ pub mod guns;
 pub mod inventory;
 pub mod loot;
 pub mod melee;
+pub mod packs;
+pub mod weight;
 
 pub use armor::Armor;
 pub use ballistics::Ammo;
@@ -16,6 +18,7 @@ pub use consumables::Consumable;
 pub use guns::{Gun, GunModel};
 pub use inventory::Inventory;
 pub use melee::MeleeWeapon;
+pub use packs::Pack;
 
 pub const CRYSTAL_GLYPH: &str = "💎";
 pub const AMMO_GLYPH: &str = "🔸";
@@ -31,6 +34,7 @@ pub enum ItemKind {
     Armor(Armor),
     Component(Component),
     Consumable(Consumable),
+    Pack(Pack),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -69,7 +73,7 @@ impl Item {
     }
 
     pub fn stackable(&self) -> bool {
-        !matches!(self.kind, ItemKind::Gun(_) | ItemKind::Melee(_) | ItemKind::Armor(_))
+        !matches!(self.kind, ItemKind::Gun(_) | ItemKind::Melee(_) | ItemKind::Armor(_) | ItemKind::Pack(_))
     }
 
     pub fn base_name(&self) -> String {
@@ -81,6 +85,7 @@ impl Item {
             ItemKind::Armor(a) => a.def().name.into(),
             ItemKind::Component(c) => c.def().name.into(),
             ItemKind::Consumable(c) => c.def().name.into(),
+            ItemKind::Pack(p) => p.def().name.into(),
         }
     }
 
@@ -102,6 +107,7 @@ impl Item {
             ItemKind::Armor(a) => a.def().glyph,
             ItemKind::Component(c) => c.def().glyph,
             ItemKind::Consumable(c) => c.def().glyph,
+            ItemKind::Pack(p) => p.def().glyph,
         }
     }
 
@@ -117,6 +123,25 @@ impl Item {
             ItemKind::Armor(_) => "Armor",
             ItemKind::Component(_) => "Component",
             ItemKind::Consumable(_) => "Food & drink",
+            ItemKind::Pack(_) => "Pack",
+        }
+    }
+
+    /// Weight of one unit (a loaded gun includes its rounds).
+    pub fn unit_weight(&self) -> u32 {
+        weight::unit_weight(&self.kind)
+    }
+
+    /// Weight of the whole stack.
+    pub fn weight(&self) -> u32 {
+        self.unit_weight() * self.qty
+    }
+
+    fn weight_line(&self) -> String {
+        if self.qty > 1 {
+            format!("Weight {} ({} each)", weight::fmt_lb(self.weight()), weight::fmt_lb(self.unit_weight()))
+        } else {
+            format!("Weight {}", weight::fmt_lb(self.weight()))
         }
     }
 
@@ -203,7 +228,13 @@ impl Item {
                 parts.extend(d.effects.iter().map(|e| e.describe()));
                 out.push(parts.join("; "));
             }
+            ItemKind::Pack(p) => {
+                let d = p.def();
+                out.push(d.desc.into());
+                out.push(format!("Carry capacity +{}", weight::fmt_lb(d.capacity)));
+            }
         }
+        out.push(self.weight_line());
         out
     }
 }

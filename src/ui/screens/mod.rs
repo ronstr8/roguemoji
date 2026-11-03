@@ -6,6 +6,7 @@ pub mod ended;
 pub mod help;
 pub mod inventory;
 pub mod shop;
+pub mod stash;
 pub mod title;
 
 use super::canvas::Canvas;

@@ -3,7 +3,11 @@
 use super::*;
 use crate::crafting::RECIPES;
 use crate::creatures::Background;
+use crate::creatures::player::{BASE_CAPACITY, Burden, CAPACITY_PER_BRAWN};
+use crate::effects::{EffectKind, EffectSpec};
 use crate::geometry::Dir;
+use crate::items::{Component, ItemKind, Pack};
+use crate::stats::Attribute;
 use crate::world::Feature;
 
 fn new_game(seed: u64) -> Game {
@@ -59,7 +63,14 @@ fn random_play_never_panics() {
                         g.use_item(d.index(n));
                     }
                 }
-                15 => g.craft(d.index(RECIPES.len())),
+                15 => {
+                    if d.chance(0.5) {
+                        g.craft(d.index(RECIPES.len()))
+                    } else {
+                        let from = if d.chance(0.5) { StashSide::Pack } else { StashSide::Lockbox };
+                        g.stash_transfer(from, 0);
+                    }
+                }
                 16 => g.absorb(true),
                 17 => g.cycle_stance(),
                 _ => {
@@ -77,4 +88,109 @@ fn random_play_never_panics() {
         }
         assert!(g.depth >= 2, "seed {seed}: never left depth 1");
     }
+}
+
+/// Find a cell next to the player that is open floor, for movement tests.
+fn open_step(g: &Game) -> Dir {
+    *Dir::ALL
+        .iter()
+        .find(|d| {
+            let t = g.player.pos.step(**d);
+            g.is_free(t) && g.map.feature(t).is_none()
+        })
+        .expect("an open neighbor")
+}
+
+/// Load the pack with scrap until it weighs at least `lb` hundredths of a pound.
+fn load_to(g: &mut Game, target: u32) {
+    while g.player.carried_weight() < target {
+        g.player.inventory.add(Item::component(Component::ScrapMetal, 1)).unwrap();
+    }
+}
+
+#[test]
+fn every_background_starts_light() {
+    for bg in Background::ALL {
+        let p = bg.create("Tester".into());
+        assert_eq!(p.burden(), Burden::Light, "{} starts burdened", p.background);
+    }
+}
+
+#[test]
+fn brawn_and_packs_raise_capacity() {
+    let mut g = new_game(1);
+    let before = g.player.carry_capacity();
+    g.player.effects.add(EffectSpec::new(EffectKind::Boost(Attribute::Brawn), 2, 50), "test");
+    assert_eq!(g.player.carry_capacity(), before + 2 * CAPACITY_PER_BRAWN as u32);
+    g.player.pack = Some(Pack::HikingPack);
+    assert_eq!(g.player.carry_capacity(), before + 2 * CAPACITY_PER_BRAWN as u32 + Pack::HikingPack.def().capacity);
+}
+
+#[test]
+fn burden_tiers() {
+    let cap = BASE_CAPACITY;
+    assert_eq!(Burden::of(cap, cap), Burden::Light);
+    assert_eq!(Burden::of(cap + 1, cap), Burden::Burdened);
+    assert_eq!(Burden::of(cap * 3 / 2, cap), Burden::Burdened);
+    assert_eq!(Burden::of(cap * 2, cap), Burden::Strained);
+    assert_eq!(Burden::of(cap * 2 + 1, cap), Burden::Overloaded);
+}
+
+#[test]
+fn heavy_loads_slow_and_then_stop_movement() {
+    let mut g = new_game(3);
+    g.monsters.clear();
+    let cap = g.player.carry_capacity();
+
+    load_to(&mut g, cap * 2 - 300);
+    assert_eq!(g.player.burden(), Burden::Strained);
+    let t = g.turn;
+    let _ = g.move_player(open_step(&g));
+    assert_eq!(g.turn - t, 2, "strained steps cost two turns");
+
+    load_to(&mut g, cap * 2 + 1);
+    assert_eq!(g.player.burden(), Burden::Overloaded);
+    let (t, pos) = (g.turn, g.player.pos);
+    let _ = g.move_player(open_step(&g));
+    assert_eq!((g.turn, g.player.pos), (t, pos), "overloaded players can't move");
+}
+
+#[test]
+fn burdened_steps_alternate_one_and_two_turns() {
+    let mut g = new_game(4);
+    g.monsters.clear();
+    let cap = g.player.carry_capacity();
+    load_to(&mut g, cap + 1);
+    assert_eq!(g.player.burden(), Burden::Burdened);
+    let t = g.turn;
+    for _ in 0..2 {
+        let d = open_step(&g);
+        let _ = g.move_player(d);
+    }
+    assert_eq!(g.turn - t, 3, "two burdened steps cost three turns");
+}
+
+#[test]
+fn stash_carries_over_between_depths() {
+    let mut g = new_game(5);
+    g.player.inventory.add(Item::one(ItemKind::Pack(Pack::FramePack))).unwrap();
+    let idx = g.player.inventory.len() - 1;
+    g.stash_transfer(StashSide::Pack, idx);
+    assert_eq!(g.stash.len(), 1);
+    g.enter_level(2);
+    g.stash_transfer(StashSide::Lockbox, 0);
+    assert!(g.stash.is_empty());
+    assert!(g.player.inventory.items().iter().any(|i| i.kind == ItemKind::Pack(Pack::FramePack)));
+}
+
+#[test]
+fn equipping_a_pack_swaps_the_old_one_back() {
+    let mut g = new_game(6);
+    g.player.inventory.add(Item::one(ItemKind::Pack(Pack::RagSatchel))).unwrap();
+    g.use_item(g.player.inventory.len() - 1);
+    assert_eq!(g.player.pack, Some(Pack::RagSatchel));
+    g.player.inventory.add(Item::one(ItemKind::Pack(Pack::HikingPack))).unwrap();
+    g.use_item(g.player.inventory.len() - 1);
+    assert_eq!(g.player.pack, Some(Pack::HikingPack));
+    assert!(g.player.inventory.items().iter().any(|i| i.kind == ItemKind::Pack(Pack::RagSatchel)));
 }

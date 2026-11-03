@@ -1,15 +1,41 @@
-//! The player's pack: a bounded list of item stacks.
+//! A bounded list of item stacks: the player's pack, or a lockbox stash.
 
 use super::{Ammo, Component, Item, ItemKind};
 
 pub const MAX_SLOTS: usize = 26;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct Inventory {
     items: Vec<Item>,
+    slots: usize,
+}
+
+impl Default for Inventory {
+    fn default() -> Self {
+        Self::with_slots(MAX_SLOTS)
+    }
 }
 
 impl Inventory {
+    pub fn with_slots(slots: usize) -> Self {
+        Self { items: Vec::new(), slots: slots.min(MAX_SLOTS) }
+    }
+
+    /// Maximum number of distinct stacks.
+    pub fn slots(&self) -> usize {
+        self.slots
+    }
+
+    /// Would `item` fit, either by stacking or in a free slot?
+    pub fn has_room_for(&self, item: &Item) -> bool {
+        (item.stackable() && self.items.iter().any(|s| s.kind == item.kind)) || self.items.len() < self.slots
+    }
+
+    /// Combined weight of everything held, in hundredths of a pound.
+    pub fn weight(&self) -> u32 {
+        self.items.iter().map(Item::weight).sum()
+    }
+
     pub fn items(&self) -> &[Item] {
         &self.items
     }
@@ -35,7 +61,7 @@ impl Inventory {
             stack.qty += item.qty;
             return Ok(());
         }
-        if self.items.len() >= MAX_SLOTS {
+        if self.items.len() >= self.slots {
             return Err(item);
         }
         self.items.push(item);
@@ -110,5 +136,15 @@ mod tests {
         assert!(!inv.consume_component(Component::Nails, 2));
         assert!(inv.consume_component(Component::Nails, 1));
         assert!(inv.is_empty());
+    }
+
+    #[test]
+    fn slot_cap_and_weight() {
+        let mut inv = Inventory::with_slots(1);
+        inv.add(Item::component(Component::ScrapMetal, 2)).unwrap();
+        assert_eq!(inv.weight(), 600);
+        assert!(inv.add(Item::component(Component::Nails, 1)).is_err());
+        assert!(inv.add(Item::component(Component::ScrapMetal, 1)).is_ok());
+        assert_eq!(inv.weight(), 900);
     }
 }

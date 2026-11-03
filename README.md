@@ -10,6 +10,7 @@ levels down, their Beacon 📡 still hums. Go find it.
 cargo run --release            # play
 cargo run --release -- --seed 42   # reproducible world
 cargo test                     # unit + soak tests
+make static                    # self-contained Linux binary (musl), no shared-lib deps
 ```
 
 You need a terminal of at least 80×24 with a font that renders emoji as double-width
@@ -90,6 +91,19 @@ to gather components with Survival or Scavenging. Then craft food and drink with
 buffs, such as Glowcap Brew (+Brains/Wit), Grilled Meat (+Brawn), Mutant Stew
 (+Fortitude, armor) and Cryptid Tonic. You can also craft scrap weapons and armor. The
 crafting screen shows your exact success chance.
+
+**Encumbrance.** Everything has a weight, including your worn and wielded gear
+and the rounds in your gun. You can carry 45 lb, plus 6 lb for each point of
+Brawn over 5 (or minus 6 lb per point under), plus whatever a worn pack 🎒
+adds. Brawn buffs from food count. Above your capacity you're **Burdened**:
+steps take 1.5 turns and you get −1 Defense. Above 1.5× you're **Strained**:
+steps take 2 turns and you get −3 Defense. Above 2× you're **Overloaded** and
+can't move until you drop something. Packs range from a craftable Rag Satchel
+(+8 lb) to the Visitors' Grav Harness (+50 lb). The pack still has 26 slots;
+stackable items share one slot.
+
+**Visitor lockboxes** 🛅 all open onto one shared stash of 20 slots. Leave
+spare guns and armor in one, then take them out of a lockbox on a deeper level.
 
 ## Project layout
 

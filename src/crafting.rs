@@ -6,13 +6,14 @@
 //! * Partial / Success — the item is made.
 //! * Critical — a bonus portion (food) or a refund of one ingredient (gear).
 
-use crate::items::{Armor, Component, Consumable, Item, ItemKind, MeleeWeapon};
+use crate::items::{Armor, Component, Consumable, Item, ItemKind, MeleeWeapon, Pack};
 
 #[derive(Clone, Copy, Debug)]
 pub enum Output {
     Food(Consumable),
     Melee(MeleeWeapon),
     Armor(Armor),
+    Pack(Pack),
 }
 
 impl Output {
@@ -21,6 +22,7 @@ impl Output {
             Output::Food(c) => Item::food(c, 1),
             Output::Melee(m) => Item::one(ItemKind::Melee(m)),
             Output::Armor(a) => Item::one(ItemKind::Armor(a)),
+            Output::Pack(p) => Item::one(ItemKind::Pack(p)),
         }
     }
 
@@ -73,4 +75,6 @@ pub static RECIPES: &[Recipe] = &[
     recipe!(Output::Melee(MeleeWeapon::SpikedKnuckles), [(ScrapMetal, 1), (Nails, 1)], None, 11),
     recipe!(Output::Melee(MeleeWeapon::ShockBaton), [(Pipe, 1), (Battery, 1), (Wire, 1), (Circuit, 1)], None, 14),
     recipe!(Output::Armor(Armor::ScrapVest), [(ScrapMetal, 3), (Rags, 2), (DuctTape, 1)], None, 13),
+    // Carrying gear
+    recipe!(Output::Pack(Pack::RagSatchel), [(Rags, 3), (DuctTape, 1)], None, 9),
 ];

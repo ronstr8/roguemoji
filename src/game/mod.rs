@@ -15,18 +15,21 @@ pub mod log;
 mod tests;
 mod turn;
 
-pub use actions::Event;
+pub use actions::{Event, StashSide};
 pub use log::{Log, Tone};
 
+use crate::creatures::player::Burden;
 use crate::creatures::{Monster, Player};
 use crate::dice::Dice;
 use crate::geometry::Pos;
-use crate::items::Item;
+use crate::items::{Inventory, Item};
 use crate::world::{Biome, Map, Tile, fov};
 
 pub const MAP_WIDTH: i32 = 72;
 pub const MAP_HEIGHT: i32 = 40;
 pub const FINAL_DEPTH: u32 = 10;
+/// Stacks the shared lockbox stash can hold.
+pub const STASH_SLOTS: usize = 20;
 
 #[derive(Clone, Debug)]
 pub struct FloorItem {
@@ -56,6 +59,10 @@ pub struct Game {
     pub turn: u64,
     pub log: Log,
     pub outcome: Option<Outcome>,
+    /// Items left in the Visitor lockbox network, reachable from any lockbox.
+    pub stash: Inventory,
+    /// Burden as of the last check, to announce changes.
+    last_burden: Burden,
     dice: Dice,
     next_id: u32,
 }
@@ -74,6 +81,8 @@ impl Game {
             turn: 0,
             log: Log::default(),
             outcome: None,
+            stash: Inventory::with_slots(STASH_SLOTS),
+            last_burden: Burden::Light,
             dice,
             next_id: 1,
         };
@@ -82,6 +91,7 @@ impl Game {
             format!("Their Beacon still hums somewhere below depth {}. Find it.", FINAL_DEPTH - 1),
             Tone::Special,
         );
+        game.last_burden = game.player.burden();
         game.enter_level(1);
         game.log.info("Press ? for help.");
         game
@@ -144,6 +154,22 @@ impl Game {
             return;
         }
         self.items.push(FloorItem { pos, item });
+    }
+
+    /// Announce when the player's burden tier changes.
+    fn note_burden(&mut self) {
+        let now = self.player.burden();
+        if now == self.last_burden {
+            return;
+        }
+        let tone = if now > self.last_burden { Tone::Bad } else { Tone::Good };
+        let load = format!(
+            "{}/{}",
+            crate::items::weight::fmt_lb(self.player.carried_weight()),
+            crate::items::weight::fmt_lb(self.player.carry_capacity())
+        );
+        self.log.push(format!("You are now {} ({load}). {}", now.name(), now.describe()), tone);
+        self.last_burden = now;
     }
 
     /// Put an item in the pack, or at the player's feet if the pack is full.

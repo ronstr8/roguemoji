@@ -3,7 +3,7 @@
 use super::{footer, paragraph, popup, scroll_offset};
 use crate::game::Game;
 use crate::items::GUN_GLYPH;
-use crate::items::inventory::MAX_SLOTS;
+use crate::items::weight::fmt_lb;
 use crate::ui::canvas::Canvas;
 use crate::ui::theme;
 
@@ -24,10 +24,20 @@ pub fn draw(canvas: &mut Canvas, game: &Game, selected: usize) {
     y += 1;
     let armor = p.armor.map_or(("  ", "—"), |a| (a.def().glyph, a.def().name));
     canvas.text_max(x, y, &format!(" {} {}", armor.0, armor.1), list_w, theme::TEXT, theme::POPUP);
+    y += 1;
+    let pack = p.pack.map_or(("  ", "— (no pack)".to_string()), |k| {
+        (k.def().glyph, format!("{} (+{})", k.def().name, fmt_lb(k.def().capacity)))
+    });
+    canvas.text_max(x, y, &format!(" {} {}", pack.0, pack.1), list_w, theme::TEXT, theme::POPUP);
+    y += 1;
+    let burden = p.burden();
+    let load = format!("Load {} / {} · {}", fmt_lb(p.carried_weight()), fmt_lb(p.carry_capacity()), burden.name());
+    canvas.text_max(x, y, &load, list_w, theme::burden(burden), theme::POPUP);
     y += 2;
 
     let items = p.inventory.items();
-    canvas.text(x, y, &format!("Pack ({}/{})", items.len(), MAX_SLOTS), theme::TITLE, theme::POPUP);
+    let pack_title = format!("Pack ({}/{}) · {}", items.len(), p.inventory.slots(), fmt_lb(p.inventory.weight()));
+    canvas.text(x, y, &pack_title, theme::TITLE, theme::POPUP);
     y += 1;
     if p.inventory.is_empty() {
         canvas.text(x, y, " (empty)", theme::DIM, theme::POPUP);
@@ -38,8 +48,11 @@ pub fn draw(canvas: &mut Canvas, game: &Game, selected: usize) {
         let letter = (b'a' + i as u8) as char;
         let bg = if i == selected { theme::SELECTED } else { theme::POPUP };
         canvas.fill(x, y, list_w, 1, bg);
+        let wt = fmt_lb(item.weight());
+        let name_w = list_w.saturating_sub(wt.len() as u16 + 1);
         let text = format!("{letter}) {} {}", item.glyph(), item.display_name());
-        canvas.text_max(x, y, &text, list_w, theme::TEXT, bg);
+        canvas.text_max(x, y, &text, name_w, theme::TEXT, bg);
+        canvas.text(x + list_w.saturating_sub(wt.len() as u16), y, &wt, theme::DIM, bg);
         y += 1;
     }
 

@@ -5,7 +5,7 @@ use crate::ui::canvas::Canvas;
 use crate::ui::theme;
 
 const LINES: &[(&str, &str)] = &[
-    ("MOVE", "arrows · hjkl yubn · numpad.  Bump to attack, harvest 🌿🚗, or use 🏧"),
+    ("MOVE", "arrows · hjkl yubn · numpad.  Bump to attack, harvest 🌿🚗, or use 🏧 🛅"),
     (". / 5", "wait a turn"),
     ("f", "fire gun: Tab/←→ cycle targets, f/Enter shoot, Esc cancel"),
     ("r", "reload (revolvers and tube magazines take longer)"),
@@ -23,6 +23,9 @@ const LINES: &[(&str, &str)] = &[
     ("", "length. JHP/SP wound more; FMJ/slugs penetrate armor. Buckshot spreads with distance."),
     ("CRYSTALS", "Everything that dies leaves 💎. Absorb them to heal, or spend them at Autovends."),
     ("FOOD", "Harvest components and craft meals and drinks for timed attribute buffs."),
+    ("LOAD", "Carry 45 lb + 6 per Brawn point over 5, plus a worn pack 🎒. Over that you're Burdened"),
+    ("", "(slower, -1 DEF); over 1.5× Strained (half speed, -3 DEF); over 2× you can't move."),
+    ("🛅", "Visitor lockboxes share one stash: leave gear in one, take it out of any other."),
     ("GOAL", "Find the Visitor Beacon 📡 on depth 10."),
 ];
 

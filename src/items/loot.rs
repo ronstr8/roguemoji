@@ -1,6 +1,6 @@
 //! Depth-scaled loot tables for floor items and Autovend stock.
 
-use super::{Ammo, Armor, Component, Consumable, Gun, GunModel, Item, ItemKind, MeleeWeapon};
+use super::{Ammo, Armor, Component, Consumable, Gun, GunModel, Item, ItemKind, MeleeWeapon, Pack};
 use crate::dice::Dice;
 
 /// Guns weighted by how common they'd be in an abandoned American town,
@@ -72,6 +72,17 @@ fn random_armor(dice: &mut Dice, depth: u32) -> Armor {
     .unwrap_or(LeatherJacket)
 }
 
+fn random_pack(dice: &mut Dice, depth: u32) -> Pack {
+    use Pack::*;
+    dice.weighted(&[
+        (SchoolBackpack, 10),
+        (HikingPack, 3 + depth),
+        (FramePack, if depth >= 3 { depth } else { 0 }),
+        (GravHarness, if depth >= 6 { 1 } else { 0 }),
+    ])
+    .unwrap_or(SchoolBackpack)
+}
+
 #[derive(Clone, Copy)]
 enum Category {
     Gun,
@@ -79,6 +90,7 @@ enum Category {
     Tool,
     Alien,
     Armor,
+    Pack,
     Food,
     Component,
 }
@@ -93,6 +105,7 @@ pub fn random_floor_item(dice: &mut Dice, depth: u32) -> Item {
             (Category::Tool, 8),
             (Category::Alien, alien_weight),
             (Category::Armor, 4),
+            (Category::Pack, 3),
             (Category::Food, 12),
             (Category::Component, 14),
         ])
@@ -103,6 +116,7 @@ pub fn random_floor_item(dice: &mut Dice, depth: u32) -> Item {
         Category::Tool => Item::one(ItemKind::Melee(*dice.pick(&MeleeWeapon::TOOLS))),
         Category::Alien => Item::one(ItemKind::Melee(*dice.pick(&MeleeWeapon::ALIEN))),
         Category::Armor => Item::one(ItemKind::Armor(random_armor(dice, depth))),
+        Category::Pack => Item::one(ItemKind::Pack(random_pack(dice, depth))),
         Category::Food => Item::food(random_consumable(dice), 1),
         Category::Component => Item::component(random_component(dice), dice.range(1, 2) as u32),
     }
@@ -125,6 +139,9 @@ pub fn kiosk_stock(dice: &mut Dice, depth: u32) -> Vec<(Item, u32)> {
     stock.push((Item::gun(gun), gun_price));
     if dice.chance(0.5) {
         stock.push((Item::one(ItemKind::Armor(random_armor(dice, depth + 1))), 25 + depth * 3));
+    }
+    if dice.chance(0.35) {
+        stock.push((Item::one(ItemKind::Pack(random_pack(dice, depth + 1))), 18 + depth * 3));
     }
     if depth >= 4 && dice.chance(0.3) {
         stock.push((Item::one(ItemKind::Melee(*dice.pick(&MeleeWeapon::ALIEN))), 60 + depth * 5));

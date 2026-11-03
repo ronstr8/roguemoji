@@ -4,7 +4,7 @@
 use super::{Game, Outcome, Tone};
 use crate::combat::{self, Attack, HitTier};
 use crate::crafting::{RECIPES, Recipe};
-use crate::creatures::player::MAX_SATIETY;
+use crate::creatures::player::{Burden, MAX_SATIETY};
 use crate::effects::{EffectKind, EffectSpec};
 use crate::geometry::{Dir, Pos, line};
 use crate::items::melee::Special;
@@ -19,6 +19,14 @@ use crate::world::{Feature, Harvestable};
 pub enum Event {
     None,
     OpenShop(usize),
+    OpenStash,
+}
+
+/// Where an item moves when shuffling between pack and lockbox.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum StashSide {
+    Pack,
+    Lockbox,
 }
 
 /// Radius within which a gunshot wakes monsters.
@@ -46,9 +54,19 @@ impl Game {
                 return Event::None;
             }
             Some(Feature::Kiosk(k)) => return Event::OpenShop(k),
+            Some(Feature::Lockbox) => {
+                self.log
+                    .push("The lockbox irises open. Its contents are the same as every other one's.", Tone::Special);
+                return Event::OpenStash;
+            }
             _ => {}
         }
         if !self.map.passable(target) {
+            return Event::None;
+        }
+        let burden = self.player.burden();
+        if burden == Burden::Overloaded {
+            self.log.push(burden.describe(), Tone::Bad);
             return Event::None;
         }
         self.player.pos = target;
@@ -58,7 +76,10 @@ impl Game {
             self.outcome = Some(Outcome::Won);
             return Event::None;
         }
-        self.pass_time(1);
+        // Heavy loads cost fractional turns; carry the remainder to the next step.
+        let halves = self.player.move_debt + burden.move_cost_halves();
+        self.player.move_debt = halves % 2;
+        self.pass_time(halves / 2);
         Event::None
     }
 
@@ -425,7 +446,7 @@ impl Game {
                 self.consume(c);
                 self.pass_time(1);
             }
-            ItemKind::Gun(_) | ItemKind::Melee(_) | ItemKind::Armor(_) => self.equip(idx),
+            ItemKind::Gun(_) | ItemKind::Melee(_) | ItemKind::Armor(_) | ItemKind::Pack(_) => self.equip(idx),
             ItemKind::Ammo(_) => self.log.info("Equip a matching gun and press r to load it."),
             ItemKind::Component(_) => self.log.info("Components are used for crafting (m)."),
             ItemKind::Crystals => {}
@@ -464,6 +485,7 @@ impl Game {
             }
             ItemKind::Melee(m) => (p.melee.replace(m).map(|o| Item::one(ItemKind::Melee(o))), m.def().name),
             ItemKind::Armor(a) => (p.armor.replace(a).map(|o| Item::one(ItemKind::Armor(o))), a.def().name),
+            ItemKind::Pack(k) => (p.pack.replace(k).map(|o| Item::one(ItemKind::Pack(o))), k.def().name),
             other => {
                 let _ = p.inventory.add(Item { kind: other, qty: item.qty });
                 return;
@@ -488,6 +510,31 @@ impl Game {
         self.log.info(format!("You drop {}.", item.display_name()));
         let pos = self.player.pos;
         self.drop_at(pos, item);
+        self.pass_time(1);
+    }
+
+    /// Move a whole stack between the pack and the lockbox stash.
+    pub fn stash_transfer(&mut self, from: StashSide, idx: usize) {
+        let (src, dst) = match from {
+            StashSide::Pack => (&mut self.player.inventory, &mut self.stash),
+            StashSide::Lockbox => (&mut self.stash, &mut self.player.inventory),
+        };
+        let Some(item) = src.get(idx) else { return };
+        if !dst.has_room_for(item) {
+            let msg = match from {
+                StashSide::Pack => "The lockbox is full.",
+                StashSide::Lockbox => "Your pack has no free slots.",
+            };
+            self.log.push(msg, Tone::Bad);
+            return;
+        }
+        let Some(item) = src.take(idx, u32::MAX) else { return };
+        let name = item.display_name();
+        let _ = dst.add(item);
+        match from {
+            StashSide::Pack => self.log.info(format!("You stow {name} in the lockbox.")),
+            StashSide::Lockbox => self.log.push(format!("You take {name} from the lockbox."), Tone::Loot),
+        }
         self.pass_time(1);
     }
 
@@ -569,6 +616,7 @@ impl Game {
         self.kiosks[kiosk].stock.remove(idx);
         self.log.push(format!("*ka-chunk* The Autovend dispenses {}.", item.display_name()), Tone::Loot);
         self.give_player(item);
+        self.note_burden();
     }
 }
 

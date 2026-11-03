@@ -68,6 +68,15 @@ impl Game {
             self.map.set_feature(p, Feature::Kiosk(self.kiosks.len() - 1));
         }
 
+        // Visitor lockboxes all share one stash, so gear left on one depth
+        // can be picked up on another.
+        if (depth == 1 || self.dice.chance(0.5))
+            && depth < FINAL_DEPTH
+            && let Some(p) = take_isolated(&mut open, &self.map)
+        {
+            self.map.set_feature(p, Feature::Lockbox);
+        }
+
         // Loot, favoring building interiors in the ruins.
         let floor: Vec<Pos> = self
             .map
