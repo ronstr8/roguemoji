@@ -1,0 +1,9 @@
+label = "7.62x39 123gr FMJ"
+cartridge = "762x39"
+load = "fmj"
+box_size = 10
+
+grains = 123.0
+ref_fps = 2350.0
+ref_barrel_in = 20.0
+fps_per_inch = 20.0

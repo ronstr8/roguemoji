@@ -1,0 +1,13 @@
+name = ".357 Revolver"
+description = "Six magnum rounds and a loud bark. Will also chamber .38 Special."
+weight = 2.8
+
+cartridge = "357_magnum"
+action = "revolver"
+skill = "small_arms"
+barrel_in = 4.0
+capacity = 6
+accuracy = 1
+effective_range = 6
+rifled = true
+loot = { weight = 3, per_depth = 1 }

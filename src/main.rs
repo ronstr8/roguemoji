@@ -25,6 +25,9 @@ fn main() -> io::Result<()> {
         .and_then(|_| items::melee::init())
         .and_then(|_| items::armor::init())
         .and_then(|_| items::packs::init())
+        .and_then(|_| items::ballistics::init_cartridges())
+        .and_then(|_| items::ballistics::init_ammo())
+        .and_then(|_| items::guns::init())
         .and_then(|_| crafting::init())
         .and_then(|_| creatures::species::init())
     {

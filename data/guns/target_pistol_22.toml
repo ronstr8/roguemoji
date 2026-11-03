@@ -1,0 +1,13 @@
+name = ".22 Target Pistol"
+description = "Long slim barrel and adjustable sights. Accurate, quiet, and weak."
+weight = 2.5
+
+cartridge = "22lr"
+action = "semi_auto"
+skill = "small_arms"
+barrel_in = 5.5
+capacity = 10
+accuracy = 2
+effective_range = 6
+rifled = true
+loot = { weight = 10 }

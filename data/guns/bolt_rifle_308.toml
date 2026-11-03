@@ -1,0 +1,13 @@
+name = ".308 Bolt Rifle"
+description = "Scoped hunting rifle. Slow to cycle, devastating on target."
+weight = 9
+
+cartridge = "308_win"
+action = "bolt"
+skill = "long_arms"
+barrel_in = 22.0
+capacity = 4
+accuracy = 4
+effective_range = 18
+rifled = true
+loot = { per_depth = 1, min_depth = 4 }

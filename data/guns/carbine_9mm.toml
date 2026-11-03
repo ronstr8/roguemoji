@@ -1,0 +1,13 @@
+name = "9mm Carbine"
+description = "Pistol-caliber carbine. The long barrel squeezes extra speed from 9mm."
+weight = 6.5
+
+cartridge = "9mm"
+action = "semi_auto"
+skill = "long_arms"
+barrel_in = 16.0
+capacity = 15
+accuracy = 2
+effective_range = 9
+rifled = true
+loot = { weight = 2, per_depth = 1 }

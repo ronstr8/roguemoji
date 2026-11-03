@@ -1,0 +1,10 @@
+label = "20ga #3 Buck"
+cartridge = "20ga"
+load = "buckshot"
+box_size = 5
+
+grains = 400.0
+projectiles = 20
+ref_fps = 1200.0
+ref_barrel_in = 26.0
+fps_per_inch = 8.0

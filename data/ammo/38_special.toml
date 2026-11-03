@@ -1,0 +1,9 @@
+label = ".38 Spl 158gr"
+cartridge = "38_special"
+load = "lead_round_nose"
+box_size = 12
+
+grains = 158.0
+ref_fps = 800.0
+ref_barrel_in = 4.0
+fps_per_inch = 25.0

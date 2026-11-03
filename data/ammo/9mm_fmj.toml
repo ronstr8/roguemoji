@@ -1,0 +1,9 @@
+label = "9mm 115gr FMJ"
+cartridge = "9mm"
+load = "fmj"
+box_size = 15
+
+grains = 115.0
+ref_fps = 1180.0
+ref_barrel_in = 4.0
+fps_per_inch = 18.0

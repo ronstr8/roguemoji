@@ -1,0 +1,13 @@
+name = "AR-15 Rifle"
+description = "Light, modular, flat-shooting. Small fast bullets."
+weight = 7
+
+cartridge = "556_nato"
+action = "semi_auto"
+skill = "long_arms"
+barrel_in = 16.0
+capacity = 30
+accuracy = 3
+effective_range = 14
+rifled = true
+loot = { weight = 1, per_depth = 1, min_depth = 3 }

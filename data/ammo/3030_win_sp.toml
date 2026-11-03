@@ -1,0 +1,9 @@
+label = ".30-30 150gr SP"
+cartridge = "3030_win"
+load = "soft_point"
+box_size = 6
+
+grains = 150.0
+ref_fps = 2390.0
+ref_barrel_in = 24.0
+fps_per_inch = 25.0

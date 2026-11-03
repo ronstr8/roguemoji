@@ -1,0 +1,13 @@
+name = ".30-30 Lever Rifle"
+description = "The deer rifle of a dozen generations. Tube-fed, quick-handling."
+weight = 7
+
+cartridge = "3030_win"
+action = "lever"
+skill = "long_arms"
+barrel_in = 20.0
+capacity = 6
+accuracy = 2
+effective_range = 12
+rifled = true
+loot = { weight = 3, per_depth = 1, min_depth = 2 }

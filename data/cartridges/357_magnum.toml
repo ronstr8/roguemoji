@@ -1,0 +1,3 @@
+name = ".357 Magnum"
+round_weight = 0.03
+also_fires = ["38_special"]

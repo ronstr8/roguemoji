@@ -373,7 +373,7 @@ impl Game {
         let out = combat::resolve(&mut self.dice, attack, defense, effective_armor);
         self.player.momentum.record(id, out.tier);
 
-        let gun_name = gun.def().name;
+        let gun_name = &gun.def().name;
         let tone = if out.tier == HitTier::Crit { Tone::Good } else { Tone::Combat };
         match out.tier {
             HitTier::Miss => self.log.push(format!("You fire the {gun_name} and miss the {name}."), tone),
@@ -480,7 +480,7 @@ impl Game {
         let p = &mut self.player;
         let (old, name) = match item.kind {
             ItemKind::Gun(g) => {
-                let name = g.def().name;
+                let name = g.def().name.as_str();
                 (p.gun.replace(g).map(Item::gun), name)
             }
             ItemKind::Melee(m) => (p.melee.replace(m).map(|o| Item::one(ItemKind::Melee(o))), m.def().name.as_str()),

@@ -1,0 +1,13 @@
+name = "20ga Single-Shot"
+description = "A hinge, a hammer and one shell. The classic first shotgun."
+weight = 5.5
+
+cartridge = "20ga"
+action = "break_open"
+skill = "long_arms"
+barrel_in = 26.0
+capacity = 1
+accuracy = 0
+effective_range = 5
+rifled = false
+loot = { weight = 8 }

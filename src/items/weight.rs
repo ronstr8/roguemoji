@@ -1,7 +1,6 @@
 //! Item weights. All weights are in hundredths of a pound so that a single
 //! .22 round (about 0.01 lb) still counts.
 
-use super::ballistics::Cartridge;
 use super::{Ammo, Armor, Component, Consumable, Gun, GunModel, ItemKind, MeleeWeapon, Pack};
 
 /// Format a weight in hundredths of a pound as e.g. `12.5 lb`.
@@ -30,35 +29,11 @@ pub fn loaded_gun(g: &Gun) -> u32 {
 }
 
 pub fn gun(m: GunModel) -> u32 {
-    use GunModel::*;
-    match m {
-        TargetPistol22 => 250,
-        SnubRevolver38 => 140,
-        CompactPistol9 => 160,
-        ServicePistol9 => 190,
-        Pistol1911 => 240,
-        Revolver357 => 280,
-        Rifle22 => 500,
-        Carbine9 => 650,
-        SingleShot20 => 550,
-        PumpShotgun12 => 750,
-        LeverAction3030 => 700,
-        Sks => 850,
-        Ar15 => 700,
-        BoltRifle308 => 900,
-    }
+    m.def().weight
 }
 
 pub fn ammo(a: Ammo) -> u32 {
-    match a.def().cartridge {
-        Cartridge::Lr22 => 1,
-        Cartridge::Spl38 | Cartridge::Mag357 | Cartridge::Luger9 | Cartridge::Nato556 => 3,
-        Cartridge::Acp45 | Cartridge::Sov762 => 4,
-        Cartridge::Win3030 => 5,
-        Cartridge::Win308 => 6,
-        Cartridge::Ga20 => 7,
-        Cartridge::Ga12 => 10,
-    }
+    a.def().cartridge.def().round_weight
 }
 
 pub fn melee(x: MeleeWeapon) -> u32 {

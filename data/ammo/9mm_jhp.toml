@@ -1,0 +1,9 @@
+label = "9mm 124gr JHP"
+cartridge = "9mm"
+load = "hollow_point"
+box_size = 10
+
+grains = 124.0
+ref_fps = 1150.0
+ref_barrel_in = 4.0
+fps_per_inch = 18.0

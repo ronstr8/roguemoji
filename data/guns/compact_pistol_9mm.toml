@@ -1,0 +1,13 @@
+name = "9mm Compact Pistol"
+description = "The most common carry pistol in the old world. Short sight radius."
+weight = 1.6
+
+cartridge = "9mm"
+action = "semi_auto"
+skill = "small_arms"
+barrel_in = 3.5
+capacity = 12
+accuracy = 0
+effective_range = 5
+rifled = true
+loot = { weight = 12 }

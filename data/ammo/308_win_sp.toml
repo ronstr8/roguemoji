@@ -1,0 +1,9 @@
+label = ".308 150gr SP"
+cartridge = "308_win"
+load = "soft_point"
+box_size = 5
+
+grains = 150.0
+ref_fps = 2820.0
+ref_barrel_in = 24.0
+fps_per_inch = 25.0

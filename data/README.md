@@ -138,7 +138,7 @@ a second recipe for the same item (e.g. `grilled_meat_cactus.toml`).
 
 ## Loot chances for gear
 
-Melee weapons, armor and packs share one optional `loot` field that says how
+Guns, melee weapons, armor and packs share one optional `loot` field that says how
 often each turns up on the floor and in Autovends, by depth:
 
 ```toml
@@ -213,3 +213,77 @@ weight = 3                   # pounds
 capacity = 25                # extra pounds you can carry before you're Burdened
 loot = { weight = 3, per_depth = 1 }
 ```
+
+## Guns and ammunition
+
+Firearms are built from three kinds of file: a **cartridge** (the round's
+size), **ammo** (a specific load of that cartridge with real ballistic figures),
+and a **gun** (chambered for one cartridge). Damage isn't set by hand. It comes
+from the bullet's muzzle energy, which depends on the gun's barrel length:
+
+- velocity = `ref_fps + (barrel_in − ref_barrel_in) × fps_per_inch`, kept within 60–125% of `ref_fps`
+- energy = ½ × mass × velocity² (grains and fps converted to SI)
+- damage ≈ √joules ÷ 3 × the load type's multiplier, split across `projectiles`
+- penetration = +1 at 1400 fps or faster, +2 at 2000 fps, plus the load type's modifier
+
+### Cartridges — `cartridges/*.toml`
+
+```toml
+name = ".357 Magnum"
+round_weight = 0.03          # pounds per round
+also_fires = ["38_special"]  # optional; other cartridges this chamber can safely fire
+```
+
+### Ammo — `ammo/*.toml`
+
+```toml
+label = "9mm 124gr JHP"      # shown in the inventory and HUD
+cartridge = "9mm"
+load = "hollow_point"        # see the table below
+box_size = 10                # rounds in a box when found (you find half to all of it)
+
+grains = 124.0               # projectile mass; for shot, all pellets together
+projectiles = 1              # optional, default 1; pellets per shell for buckshot
+ref_fps = 1150.0             # published muzzle velocity…
+ref_barrel_in = 4.0          # …from a barrel this long
+fps_per_inch = 18.0          # velocity gained or lost per inch of barrel
+```
+
+| load | damage | pen | notes |
+|---|---|---|---|
+| `lead_round_nose` | ×0.95 | +0 | |
+| `fmj` | ×1.0 | +1 | |
+| `hollow_point` | ×1.25 | −1 | |
+| `soft_point` | ×1.2 | +0 | |
+| `buckshot` | ×1.0 | −1 | +2 to hit within 4 tiles; range capped at 5; pellets spread with distance |
+| `slug` | ×1.1 | +1 | from a smoothbore: −1 to hit, but range at least 8 |
+
+### Guns — `guns/*.toml`
+
+```toml
+name = "9mm Service Pistol"
+description = "Full-size polymer duty pistol. Reliable and high capacity."
+weight = 1.9                 # pounds, unloaded (loaded rounds add their own weight)
+
+cartridge = "9mm"
+action = "semi_auto"         # semi_auto | revolver | pump | lever | bolt | break_open
+skill = "small_arms"         # small_arms | long_arms
+barrel_in = 4.5
+capacity = 15
+accuracy = 1                 # optional, default 0; to-hit modifier
+effective_range = 6          # tiles before range penalties start
+rifled = true                # false for shotguns
+loot = { weight = 8, per_depth = 1 }   # see "Loot chances for gear"
+```
+
+**Reload time** comes from `action`: `semi_auto` and `break_open` take 1 turn,
+`bolt` takes 2, and `revolver`, `pump` and `lever` take 3.
+
+**Range.** Each tile past `effective_range` costs −2 to hit with `small_arms`
+and −1 with `long_arms`. A `long_arms` gun is also −2 to hit at point-blank.
+
+Every gun's cartridge needs at least one ammo file that fits it (directly or
+through `also_fires`), or the game won't start. Starting kits name the guns
+`target_pistol_22`, `service_pistol_9mm`, `snub_revolver_38` and
+`single_shot_20ga`, and the ammo `22lr`, `9mm_jhp`, `9mm_fmj`, `38_special`
+and `20ga_buck`.

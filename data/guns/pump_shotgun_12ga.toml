@@ -1,0 +1,13 @@
+name = "12ga Pump Shotgun"
+description = "Short-barreled home-defense pump. Smoothbore: buckshot or slugs."
+weight = 7.5
+
+cartridge = "12ga"
+action = "pump"
+skill = "long_arms"
+barrel_in = 18.5
+capacity = 5
+accuracy = 0
+effective_range = 5
+rifled = false
+loot = { weight = 4, per_depth = 1 }

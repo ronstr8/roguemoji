@@ -79,7 +79,7 @@ impl Item {
     pub fn base_name(&self) -> String {
         match &self.kind {
             ItemKind::Crystals => "Life Crystal".into(),
-            ItemKind::Gun(g) => g.def().name.into(),
+            ItemKind::Gun(g) => g.def().name.clone(),
             ItemKind::Melee(m) => m.def().name.clone(),
             ItemKind::Ammo(a) => a.name().into(),
             ItemKind::Armor(a) => a.def().name.clone(),
@@ -170,8 +170,8 @@ impl Item {
                     d.effective_range,
                     d.action.reload_turns()
                 ));
-                for ammo in Ammo::ALL.iter().filter(|a| g.accepts(**a)) {
-                    let p = g.ballistics(*ammo);
+                for ammo in Ammo::all().filter(|a| g.accepts(*a)) {
+                    let p = g.ballistics(ammo);
                     out.push(format!(
                         "  {:<20} {:>4.0} fps {:>5.0} J  dmg ~{:.1}  pen {:+}",
                         ammo.name(),

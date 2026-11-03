@@ -1,0 +1,9 @@
+label = "12ga 1oz Slug"
+cartridge = "12ga"
+load = "slug"
+box_size = 5
+
+grains = 437.5
+ref_fps = 1560.0
+ref_barrel_in = 28.0
+fps_per_inch = 8.0

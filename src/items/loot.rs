@@ -5,39 +5,22 @@ use super::{Ammo, Armor, Component, Consumable, Gun, GunModel, Item, ItemKind, M
 use crate::content::Loot;
 use crate::dice::Dice;
 
-/// Guns weighted by how common they'd be in an abandoned American town,
-/// with heavier rifles appearing deeper.
-fn gun_table(depth: u32) -> Vec<(GunModel, u32)> {
-    use GunModel::*;
-    let d = depth;
-    vec![
-        (TargetPistol22, 10),
-        (SnubRevolver38, 10),
-        (CompactPistol9, 12),
-        (ServicePistol9, 8 + d),
-        (Pistol1911, 5 + d),
-        (Revolver357, 3 + d),
-        (Rifle22, 10),
-        (SingleShot20, 8),
-        (PumpShotgun12, 4 + d),
-        (Carbine9, 2 + d),
-        (LeverAction3030, if d >= 2 { 3 + d } else { 0 }),
-        (Sks, if d >= 3 { 2 + d } else { 0 }),
-        (Ar15, if d >= 3 { 1 + d } else { 0 }),
-        (BoltRifle308, if d >= 4 { d } else { 0 }),
-    ]
+/// A gun model found at `depth`, weighted by each gun's `loot`. Falls back
+/// to any gun at all if none is marked as loot here.
+fn random_model(dice: &mut Dice, depth: u32) -> GunModel {
+    pick_loot(dice, GunModel::all().map(|g| (g, g.def().loot)), depth)
+        .unwrap_or_else(|| *dice.pick(&GunModel::all().collect::<Vec<_>>()))
 }
 
-/// Ammo for a gun model: the first load for its cartridge (plus the
-/// alternative load sometimes).
+/// Ammo for a gun model: any load that fits its chamber. Startup validation
+/// guarantees there is at least one.
 pub fn ammo_for(model: GunModel, dice: &mut Dice) -> Ammo {
-    let options: Vec<Ammo> =
-        Ammo::ALL.iter().copied().filter(|a| model.def().cartridge.accepts(a.def().cartridge)).collect();
+    let options: Vec<Ammo> = Ammo::all().filter(|a| model.def().cartridge.accepts(a.def().cartridge)).collect();
     *dice.pick(&options)
 }
 
 pub fn random_gun(dice: &mut Dice, depth: u32) -> Gun {
-    let model = dice.weighted(&gun_table(depth)).unwrap_or(GunModel::TargetPistol22);
+    let model = random_model(dice, depth);
     let ammo = ammo_for(model, dice);
     let cap = model.def().capacity;
     let rounds = dice.range(0, cap as i32) as u32;
@@ -46,7 +29,7 @@ pub fn random_gun(dice: &mut Dice, depth: u32) -> Gun {
 
 fn random_ammo(dice: &mut Dice, depth: u32) -> Item {
     // Ammo found tends to match guns that exist at this depth.
-    let model = dice.weighted(&gun_table(depth)).unwrap_or(GunModel::TargetPistol22);
+    let model = random_model(dice, depth);
     let ammo = ammo_for(model, dice);
     let box_size = ammo.def().box_size as i32;
     Item::ammo(ammo, dice.range(box_size / 2, box_size) as u32)

@@ -1,0 +1,9 @@
+label = ".45 ACP 230gr FMJ"
+cartridge = "45_acp"
+load = "fmj"
+box_size = 10
+
+grains = 230.0
+ref_fps = 850.0
+ref_barrel_in = 5.0
+fps_per_inch = 15.0

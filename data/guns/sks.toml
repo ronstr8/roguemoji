@@ -1,0 +1,13 @@
+name = "SKS Rifle"
+description = "Surplus semi-auto with a fixed ten-round magazine. Crude but rugged."
+weight = 8.5
+
+cartridge = "762x39"
+action = "semi_auto"
+skill = "long_arms"
+barrel_in = 20.5
+capacity = 10
+accuracy = 2
+effective_range = 12
+rifled = true
+loot = { weight = 2, per_depth = 1, min_depth = 3 }

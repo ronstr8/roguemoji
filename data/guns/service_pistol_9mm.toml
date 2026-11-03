@@ -1,0 +1,13 @@
+name = "9mm Service Pistol"
+description = "Full-size polymer duty pistol. Reliable and high capacity."
+weight = 1.9
+
+cartridge = "9mm"
+action = "semi_auto"
+skill = "small_arms"
+barrel_in = 4.5
+capacity = 15
+accuracy = 1
+effective_range = 6
+rifled = true
+loot = { weight = 8, per_depth = 1 }

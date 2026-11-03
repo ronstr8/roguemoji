@@ -1,0 +1,13 @@
+name = ".22 Rifle"
+description = "A farmhouse plinker. Barely kicks, very accurate."
+weight = 5
+
+cartridge = "22lr"
+action = "semi_auto"
+skill = "long_arms"
+barrel_in = 18.0
+capacity = 10
+accuracy = 3
+effective_range = 10
+rifled = true
+loot = { weight = 10 }

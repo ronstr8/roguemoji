@@ -1,0 +1,9 @@
+label = ".22 LR 40gr"
+cartridge = "22lr"
+load = "lead_round_nose"
+box_size = 20
+
+grains = 40.0
+ref_fps = 1235.0
+ref_barrel_in = 18.0
+fps_per_inch = 14.0

@@ -76,27 +76,15 @@ impl Background {
         let give = |p: &mut Player, item: Item| {
             let _ = p.inventory.add(item);
         };
-        match self {
-            Background::Scavenger => {
-                p.gun = Some(Gun::loaded_with(GunModel::TargetPistol22, Ammo::Lr22, 10));
-                give(&mut p, Item::ammo(Ammo::Lr22, 20));
-            }
-            Background::ExDeputy => {
-                p.gun = Some(Gun::loaded_with(GunModel::ServicePistol9, Ammo::Luger9Jhp, 15));
-                give(&mut p, Item::ammo(Ammo::Luger9Fmj, 15));
-            }
-            Background::Mechanic => {
-                p.gun = Some(Gun::loaded_with(GunModel::SnubRevolver38, Ammo::Spl38, 5));
-                give(&mut p, Item::ammo(Ammo::Spl38, 10));
-            }
-            Background::Homesteader => {
-                p.gun = Some(Gun::loaded_with(GunModel::SingleShot20, Ammo::Ga20Buck, 1));
-                give(&mut p, Item::ammo(Ammo::Ga20Buck, 8));
-            }
-        }
         let gear = self.starting_gear();
         p.melee = gear.wield.map(MeleeWeapon::named);
         p.armor = gear.armor.map(Armor::named);
+        if let Some((gun, ammo, rounds)) = gear.gun {
+            p.gun = Some(Gun::loaded_with(GunModel::named(gun), Ammo::named(ammo), rounds));
+        }
+        for (id, n) in gear.ammo {
+            give(&mut p, Item::ammo(Ammo::named(id), *n));
+        }
         for id in gear.spare {
             give(&mut p, Item::one(ItemKind::Melee(MeleeWeapon::named(id))));
         }
@@ -110,15 +98,37 @@ impl Background {
         p
     }
 
-    /// Melee weapons and armor in the starting kit, by id.
+    /// Weapons, ammo and armor in the starting kit, by id.
     pub fn starting_gear(self) -> StartingGear {
         match self {
-            Background::Scavenger => StartingGear { wield: Some("crowbar"), spare: &[], armor: None },
-            Background::ExDeputy => StartingGear { wield: None, spare: &[], armor: Some("kevlar_vest") },
-            Background::Mechanic => StartingGear { wield: Some("pipe_wrench"), spare: &["baseball_bat"], armor: None },
-            Background::Homesteader => {
-                StartingGear { wield: Some("kitchen_knife"), spare: &[], armor: Some("leather_jacket") }
-            }
+            Background::Scavenger => StartingGear {
+                gun: Some(("target_pistol_22", "22lr", 10)),
+                ammo: &[("22lr", 20)],
+                wield: Some("crowbar"),
+                spare: &[],
+                armor: None,
+            },
+            Background::ExDeputy => StartingGear {
+                gun: Some(("service_pistol_9mm", "9mm_jhp", 15)),
+                ammo: &[("9mm_fmj", 15)],
+                wield: None,
+                spare: &[],
+                armor: Some("kevlar_vest"),
+            },
+            Background::Mechanic => StartingGear {
+                gun: Some(("snub_revolver_38", "38_special", 5)),
+                ammo: &[("38_special", 10)],
+                wield: Some("pipe_wrench"),
+                spare: &["baseball_bat"],
+                armor: None,
+            },
+            Background::Homesteader => StartingGear {
+                gun: Some(("single_shot_20ga", "20ga_buck", 1)),
+                ammo: &[("20ga_buck", 8)],
+                wield: Some("kitchen_knife"),
+                spare: &[],
+                armor: Some("leather_jacket"),
+            },
         }
     }
 
@@ -146,6 +156,10 @@ impl Background {
 /// Gear a background starts with, by content id.
 #[derive(Clone, Copy)]
 pub struct StartingGear {
+    /// `(gun, ammo loaded, rounds loaded)`.
+    pub gun: Option<(&'static str, &'static str, u32)>,
+    /// Spare ammunition: `(ammo, rounds)`.
+    pub ammo: &'static [(&'static str, u32)],
     /// The melee weapon in hand.
     pub wield: Option<&'static str>,
     /// Extra melee weapons in the pack.
@@ -156,5 +170,9 @@ pub struct StartingGear {
 impl StartingGear {
     pub fn melee_ids(self) -> impl Iterator<Item = &'static str> {
         self.wield.into_iter().chain(self.spare.iter().copied())
+    }
+
+    pub fn ammo_ids(self) -> impl Iterator<Item = &'static str> {
+        self.gun.map(|(_, ammo, _)| ammo).into_iter().chain(self.ammo.iter().map(|(id, _)| *id))
     }
 }

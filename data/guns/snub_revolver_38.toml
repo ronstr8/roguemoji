@@ -1,0 +1,13 @@
+name = ".38 Snub Revolver"
+description = "Five shots, two-inch barrel, a heavy trigger. A pocket gun, not a fight gun."
+weight = 1.4
+
+cartridge = "38_special"
+action = "revolver"
+skill = "small_arms"
+barrel_in = 2.0
+capacity = 5
+accuracy = -2
+effective_range = 3
+rifled = true
+loot = { weight = 10 }

@@ -1,0 +1,9 @@
+label = "5.56 55gr FMJ"
+cartridge = "556_nato"
+load = "fmj"
+box_size = 20
+
+grains = 55.0
+ref_fps = 3240.0
+ref_barrel_in = 20.0
+fps_per_inch = 30.0

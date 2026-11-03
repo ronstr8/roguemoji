@@ -9,47 +9,100 @@
 //! ~25x range from a .22 pistol to a .308 rifle, but wounding effect does not;
 //! the square root compresses that to ~5x, which keeps the ordering faithful
 //! while letting a .22 still matter against a rat.
+//!
+//! Cartridges and loads are content: `data/cartridges/*.toml` and
+//! `data/ammo/*.toml` (see `data/README.md`). Load types stay in code because
+//! they carry rules.
 
+use serde::Deserialize;
+
+use crate::content::{self, Problems};
+
+// ── Cartridges ──
+
+/// A handle to a loaded cartridge: an index into the cartridge table.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum Cartridge {
-    Lr22,
-    Spl38,
-    Mag357,
-    Luger9,
-    Acp45,
-    Ga20,
-    Ga12,
-    Nato556,
-    Sov762,
-    Win3030,
-    Win308,
+pub struct Cartridge(u16);
+
+#[derive(Debug)]
+pub struct CartridgeDef {
+    /// The file name without `.toml`, e.g. `9mm`.
+    pub id: String,
+    pub name: String,
+    /// Weight of one round, in hundredths of a pound.
+    pub round_weight: u32,
+    /// Other cartridges a chamber for this one can safely fire.
+    pub also_fires: Vec<Cartridge>,
 }
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RawCartridge {
+    name: String,
+    /// Pounds per round.
+    round_weight: f64,
+    #[serde(default)]
+    also_fires: Vec<String>,
+}
+
+fn build_cartridge(id: String, raw: RawCartridge) -> Result<(CartridgeDef, Vec<String>), Vec<String>> {
+    let mut p = Problems::default();
+    p.check(!raw.name.trim().is_empty(), "name is empty");
+    p.check(raw.round_weight >= 0.0 && raw.round_weight.is_finite(), "round_weight must be zero or more pounds");
+    let weight = (raw.round_weight * 100.0).round() as u32;
+    p.finish(|| (CartridgeDef { id, name: raw.name, round_weight: weight, also_fires: Vec::new() }, raw.also_fires))
+}
+
+fn load_cartridges() -> Result<Vec<CartridgeDef>, String> {
+    let loaded = content::load_defs("cartridges", build_cartridge)?;
+    // `also_fires` names other cartridges in this same table, so resolve it
+    // here rather than through `Cartridge::lookup` (the table isn't ready yet).
+    let index = |id: &str| loaded.iter().position(|(d, _)| d.id == id);
+    let mut errors = Vec::new();
+    let mut resolved = Vec::new();
+    for (def, names) in &loaded {
+        let mut fires = Vec::new();
+        for n in names {
+            match index(n) {
+                Some(i) => fires.push(Cartridge(i as u16)),
+                None => errors.push(format!("cartridge `{}`: also_fires `{n}` is not a cartridge", def.id)),
+            }
+        }
+        resolved.push(fires);
+    }
+    if !errors.is_empty() {
+        return Err(errors.join("\n"));
+    }
+    Ok(loaded
+        .into_iter()
+        .zip(resolved)
+        .map(|((mut d, _), fires)| {
+            d.also_fires = fires;
+            d
+        })
+        .collect())
+}
+
+mod cartridge_registry {
+    use super::*;
+    content::registry!(Cartridge, CartridgeDef, "cartridge", load_cartridges);
+}
+pub use cartridge_registry::init as init_cartridges;
 
 impl Cartridge {
     pub fn name(self) -> &'static str {
-        match self {
-            Cartridge::Lr22 => ".22 LR",
-            Cartridge::Spl38 => ".38 Special",
-            Cartridge::Mag357 => ".357 Magnum",
-            Cartridge::Luger9 => "9mm Luger",
-            Cartridge::Acp45 => ".45 ACP",
-            Cartridge::Ga20 => "20 gauge",
-            Cartridge::Ga12 => "12 gauge",
-            Cartridge::Nato556 => "5.56 NATO",
-            Cartridge::Sov762 => "7.62x39",
-            Cartridge::Win3030 => ".30-30 Win",
-            Cartridge::Win308 => ".308 Win",
-        }
+        &self.def().name
     }
 
     /// Whether a chamber for `self` can safely fire `other`.
     /// (.357 Magnum revolvers famously chamber .38 Special.)
     pub fn accepts(self, other: Cartridge) -> bool {
-        self == other || (self == Cartridge::Mag357 && other == Cartridge::Spl38)
+        self == other || self.def().also_fires.contains(&other)
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum LoadType {
     LeadRoundNose,
     Fmj,
@@ -92,27 +145,19 @@ impl LoadType {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum Ammo {
-    Lr22,
-    Spl38,
-    Mag357Jhp,
-    Luger9Fmj,
-    Luger9Jhp,
-    Acp45Fmj,
-    Ga20Buck,
-    Ga12Buck,
-    Ga12Slug,
-    Nato556Fmj,
-    Sov762Fmj,
-    Win3030Sp,
-    Win308Sp,
-}
+// ── Ammunition ──
 
+/// A handle to a loaded ammunition type: an index into the ammo table.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct Ammo(u16);
+
+#[derive(Debug)]
 pub struct AmmoDef {
+    /// The file name without `.toml`, e.g. `9mm_fmj`.
+    pub id: String,
     pub cartridge: Cartridge,
     pub load: LoadType,
-    pub label: &'static str,
+    pub label: String,
     /// Total projectile mass in grains (all pellets for shot).
     pub grains: f64,
     pub projectiles: u32,
@@ -125,60 +170,69 @@ pub struct AmmoDef {
     pub box_size: u32,
 }
 
-impl Ammo {
-    pub const ALL: [Ammo; 13] = [
-        Ammo::Lr22,
-        Ammo::Spl38,
-        Ammo::Mag357Jhp,
-        Ammo::Luger9Fmj,
-        Ammo::Luger9Jhp,
-        Ammo::Acp45Fmj,
-        Ammo::Ga20Buck,
-        Ammo::Ga12Buck,
-        Ammo::Ga12Slug,
-        Ammo::Nato556Fmj,
-        Ammo::Sov762Fmj,
-        Ammo::Win3030Sp,
-        Ammo::Win308Sp,
-    ];
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RawAmmo {
+    label: String,
+    cartridge: String,
+    load: LoadType,
+    box_size: u32,
+    grains: f64,
+    #[serde(default = "one")]
+    projectiles: u32,
+    ref_fps: f64,
+    ref_barrel_in: f64,
+    fps_per_inch: f64,
+}
 
-    pub fn def(self) -> &'static AmmoDef {
-        use Cartridge as C;
-        use LoadType as L;
-        macro_rules! ammo {
-            ($c:expr, $l:expr, $label:expr, $gr:expr, $n:expr, $fps:expr, $bar:expr, $slope:expr, $box:expr) => {
-                &AmmoDef {
-                    cartridge: $c,
-                    load: $l,
-                    label: $label,
-                    grains: $gr,
-                    projectiles: $n,
-                    ref_fps: $fps,
-                    ref_barrel_in: $bar,
-                    fps_per_inch: $slope,
-                    box_size: $box,
-                }
-            };
-        }
-        match self {
-            Ammo::Lr22 => ammo!(C::Lr22, L::LeadRoundNose, ".22 LR 40gr", 40.0, 1, 1235.0, 18.0, 14.0, 20),
-            Ammo::Spl38 => ammo!(C::Spl38, L::LeadRoundNose, ".38 Spl 158gr", 158.0, 1, 800.0, 4.0, 25.0, 12),
-            Ammo::Mag357Jhp => ammo!(C::Mag357, L::HollowPoint, ".357 Mag 158gr JHP", 158.0, 1, 1240.0, 4.0, 40.0, 12),
-            Ammo::Luger9Fmj => ammo!(C::Luger9, L::Fmj, "9mm 115gr FMJ", 115.0, 1, 1180.0, 4.0, 18.0, 15),
-            Ammo::Luger9Jhp => ammo!(C::Luger9, L::HollowPoint, "9mm 124gr JHP", 124.0, 1, 1150.0, 4.0, 18.0, 10),
-            Ammo::Acp45Fmj => ammo!(C::Acp45, L::Fmj, ".45 ACP 230gr FMJ", 230.0, 1, 850.0, 5.0, 15.0, 10),
-            Ammo::Ga20Buck => ammo!(C::Ga20, L::Buckshot, "20ga #3 Buck", 400.0, 20, 1200.0, 26.0, 8.0, 5),
-            Ammo::Ga12Buck => ammo!(C::Ga12, L::Buckshot, "12ga 00 Buck", 484.0, 9, 1325.0, 28.0, 8.0, 5),
-            Ammo::Ga12Slug => ammo!(C::Ga12, L::Slug, "12ga 1oz Slug", 437.5, 1, 1560.0, 28.0, 8.0, 5),
-            Ammo::Nato556Fmj => ammo!(C::Nato556, L::Fmj, "5.56 55gr FMJ", 55.0, 1, 3240.0, 20.0, 30.0, 20),
-            Ammo::Sov762Fmj => ammo!(C::Sov762, L::Fmj, "7.62x39 123gr FMJ", 123.0, 1, 2350.0, 20.0, 20.0, 10),
-            Ammo::Win3030Sp => ammo!(C::Win3030, L::SoftPoint, ".30-30 150gr SP", 150.0, 1, 2390.0, 24.0, 25.0, 6),
-            Ammo::Win308Sp => ammo!(C::Win308, L::SoftPoint, ".308 150gr SP", 150.0, 1, 2820.0, 24.0, 25.0, 5),
-        }
+fn one() -> u32 {
+    1
+}
+
+fn build_ammo(id: String, raw: RawAmmo) -> Result<AmmoDef, Vec<String>> {
+    let mut p = Problems::default();
+    let cartridge = Cartridge::lookup(&raw.cartridge);
+    p.check(cartridge.is_some(), format!("cartridge `{}` is not in data/cartridges/", raw.cartridge));
+    p.check(!raw.label.trim().is_empty(), "label is empty");
+    p.check(raw.box_size >= 1, "box_size must be at least 1");
+    p.check(raw.grains > 0.0, "grains must be positive");
+    p.check(raw.projectiles >= 1, "projectiles must be at least 1");
+    p.check(raw.ref_fps > 0.0, "ref_fps must be positive");
+    p.check(raw.ref_barrel_in > 0.0, "ref_barrel_in must be positive");
+    p.check(raw.fps_per_inch >= 0.0, "fps_per_inch cannot be negative");
+    match cartridge {
+        Some(cartridge) => p.finish(|| AmmoDef {
+            id,
+            cartridge,
+            load: raw.load,
+            label: raw.label,
+            grains: raw.grains,
+            projectiles: raw.projectiles,
+            ref_fps: raw.ref_fps,
+            ref_barrel_in: raw.ref_barrel_in,
+            fps_per_inch: raw.fps_per_inch,
+            box_size: raw.box_size,
+        }),
+        None => Err(p.0),
     }
+}
 
+fn load_ammo() -> Result<Vec<AmmoDef>, String> {
+    let defs = content::load_defs("ammo", build_ammo)?;
+    let kits = crate::creatures::Background::ALL.into_iter().flat_map(|b| b.starting_gear().ammo_ids());
+    content::require("ammo", |id| defs.iter().any(|d| d.id == id), kits)?;
+    Ok(defs)
+}
+
+mod ammo_registry {
+    use super::*;
+    content::registry!(Ammo, AmmoDef, "ammo", load_ammo);
+}
+pub use ammo_registry::init as init_ammo;
+
+impl Ammo {
     pub fn name(self) -> &'static str {
-        self.def().label
+        &self.def().label
     }
 }
 
@@ -244,8 +298,8 @@ mod tests {
 
     #[test]
     fn longer_barrels_are_faster() {
-        let pistol = profile(Ammo::Luger9Fmj, 4.0);
-        let carbine = profile(Ammo::Luger9Fmj, 16.0);
+        let pistol = profile(Ammo::named("9mm_fmj"), 4.0);
+        let carbine = profile(Ammo::named("9mm_fmj"), 16.0);
         assert!(carbine.fps > pistol.fps);
         assert!(carbine.base_damage > pistol.base_damage);
     }
@@ -253,16 +307,24 @@ mod tests {
     #[test]
     fn damage_ordering_is_realistic() {
         let d = |a, b| profile(a, b).base_damage;
-        assert!(d(Ammo::Lr22, 4.5) < d(Ammo::Spl38, 2.0));
-        assert!(d(Ammo::Spl38, 2.0) < d(Ammo::Luger9Fmj, 4.0));
-        assert!(d(Ammo::Luger9Fmj, 4.0) < d(Ammo::Mag357Jhp, 4.0));
-        assert!(d(Ammo::Mag357Jhp, 4.0) < d(Ammo::Nato556Fmj, 16.0));
-        assert!(d(Ammo::Nato556Fmj, 16.0) < d(Ammo::Win308Sp, 22.0));
+        assert!(d(Ammo::named("22lr"), 4.5) < d(Ammo::named("38_special"), 2.0));
+        assert!(d(Ammo::named("38_special"), 2.0) < d(Ammo::named("9mm_fmj"), 4.0));
+        assert!(d(Ammo::named("9mm_fmj"), 4.0) < d(Ammo::named("357_magnum_jhp"), 4.0));
+        assert!(d(Ammo::named("357_magnum_jhp"), 4.0) < d(Ammo::named("556_nato_fmj"), 16.0));
+        assert!(d(Ammo::named("556_nato_fmj"), 16.0) < d(Ammo::named("308_win_sp"), 22.0));
+    }
+
+    #[test]
+    fn stock_ammo_loads() {
+        load_cartridges().expect("stock cartridge data is valid");
+        load_ammo().expect("stock ammo data is valid");
+        assert_eq!(Ammo::named("12ga_buck").def().projectiles, 9);
     }
 
     #[test]
     fn magnum_accepts_special() {
-        assert!(Cartridge::Mag357.accepts(Cartridge::Spl38));
-        assert!(!Cartridge::Spl38.accepts(Cartridge::Mag357));
+        let (mag, spl) = (Cartridge::named("357_magnum"), Cartridge::named("38_special"));
+        assert!(mag.accepts(spl));
+        assert!(!spl.accepts(mag));
     }
 }

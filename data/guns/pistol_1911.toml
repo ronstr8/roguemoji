@@ -1,0 +1,13 @@
+name = ".45 1911 Pistol"
+description = "A century-old steel design with a crisp trigger and a slow, heavy bullet."
+weight = 2.4
+
+cartridge = "45_acp"
+action = "semi_auto"
+skill = "small_arms"
+barrel_in = 5.0
+capacity = 7
+accuracy = 1
+effective_range = 6
+rifled = true
+loot = { weight = 5, per_depth = 1 }
