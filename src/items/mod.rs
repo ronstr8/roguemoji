@@ -84,7 +84,7 @@ impl Item {
             ItemKind::Ammo(a) => a.name().into(),
             ItemKind::Armor(a) => a.def().name.into(),
             ItemKind::Component(c) => c.def().name.clone(),
-            ItemKind::Consumable(c) => c.def().name.into(),
+            ItemKind::Consumable(c) => c.def().name.clone(),
             ItemKind::Pack(p) => p.def().name.into(),
         }
     }
@@ -106,7 +106,7 @@ impl Item {
             ItemKind::Ammo(_) => AMMO_GLYPH,
             ItemKind::Armor(a) => a.def().glyph,
             ItemKind::Component(c) => c.def().glyph.as_str(),
-            ItemKind::Consumable(c) => c.def().glyph,
+            ItemKind::Consumable(c) => c.def().glyph.as_str(),
             ItemKind::Pack(p) => p.def().glyph,
         }
     }
@@ -217,7 +217,7 @@ impl Item {
             ItemKind::Component(c) => out.push(c.def().desc.clone()),
             ItemKind::Consumable(c) => {
                 let d = c.def();
-                out.push(d.desc.into());
+                out.push(d.desc.clone());
                 let mut parts = vec![format!("satiety +{}", d.satiety)];
                 if d.heal > 0 {
                     parts.push(format!("heal {}", d.heal));

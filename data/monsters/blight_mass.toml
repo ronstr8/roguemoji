@@ -10,7 +10,7 @@ damage = [2, 5]
 armor = 1
 speed = 60
 crystals = [7, 10]
-on_hit = { effect = "poison", potency = 3, turns = 10 }
+on_hit = { kind = "poison", potency = 3, turns = 10 }
 drops = [{ item = "mutagen", chance = 1.0 }]
 
 [spawn]

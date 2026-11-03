@@ -10,7 +10,7 @@ damage = [5, 10]
 armor = 1
 speed = 120
 crystals = [20, 26]
-on_hit = { effect = "dread" }
+on_hit = { kind = "dread" }
 drops = [{ item = "cryptid_hair", chance = 1.0 }, { item = "bone", chance = 1.0 }]
 
 [spawn]

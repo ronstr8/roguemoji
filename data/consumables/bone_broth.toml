@@ -1,0 +1,11 @@
+name = "Bone Broth"
+glyph = "🍜"
+description = "Long-simmered marrow broth."
+weight = 1.2
+
+satiety = 200
+heal = 4
+effects = [
+    { kind = "boost", attribute = "fortitude", potency = 1, turns = 150 },
+    { kind = "regen", potency = 1, turns = 16 },
+]

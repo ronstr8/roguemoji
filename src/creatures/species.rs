@@ -93,7 +93,7 @@ fn default_speed() -> i32 {
 }
 
 #[derive(Deserialize)]
-#[serde(tag = "effect", rename_all = "snake_case", deny_unknown_fields)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 enum RawOnHit {
     Poison { potency: i32, turns: u32 },
     Bleed { potency: i32, turns: u32 },
@@ -227,7 +227,7 @@ mod tests {
         defense = 9
         damage = [1, 2]
         crystals = [1, 2]
-        on_hit = { effect = "poison", potency = 2, turns = 4 }
+        on_hit = { kind = "poison", potency = 2, turns = 4 }
         drops = [{ item = "raw_meat", chance = 0.5 }]
         [spawn]
         min_depth = 2

@@ -51,9 +51,9 @@ fn random_ammo(dice: &mut Dice, depth: u32) -> Item {
 }
 
 fn random_consumable(dice: &mut Dice) -> Consumable {
-    use Consumable::*;
-    dice.weighted(&[(BottledWater, 5), (CannedPeaches, 4), (Painkillers, 3), (Hardtack, 2), (Moonshine, 1)])
-        .unwrap_or(BottledWater)
+    let table: Vec<(Consumable, u32)> = Consumable::all().map(|c| (c, c.def().loot_weight)).collect();
+    // If no food is marked as loot, any will do.
+    dice.weighted(&table).unwrap_or_else(|| *dice.pick(&Consumable::all().collect::<Vec<_>>()))
 }
 
 fn random_component(dice: &mut Dice) -> Component {
@@ -132,7 +132,8 @@ pub fn kiosk_stock(dice: &mut Dice, depth: u32) -> Vec<(Item, u32)> {
         stock.push((item, price));
     }
     for _ in 0..2 {
-        stock.push((Item::food(random_consumable(dice), 1), 5));
+        let food = random_consumable(dice);
+        stock.push((Item::food(food, 1), food.def().price));
     }
     stock.push((Item::component(random_component(dice), 2), 4));
     let gun = random_gun(dice, depth + 1);

@@ -1,0 +1,3 @@
+makes = { food = "hardtack" }
+difficulty = 8
+ingredients = { grain = 1, dirty_water = 1 }

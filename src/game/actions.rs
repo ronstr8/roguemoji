@@ -3,7 +3,7 @@
 
 use super::{Game, Outcome, Tone};
 use crate::combat::{self, Attack, HitTier};
-use crate::crafting::{RECIPES, Recipe};
+use crate::crafting::{Recipe, recipes};
 use crate::creatures::player::{Burden, MAX_SATIETY};
 use crate::effects::{EffectKind, EffectSpec};
 use crate::geometry::{Dir, Pos, line};
@@ -461,8 +461,8 @@ impl Game {
         if def.cures {
             p.effects.clear_harmful();
         }
-        for spec in def.effects {
-            p.effects.add(*spec, def.name);
+        for spec in &def.effects {
+            p.effects.add(*spec, &def.name);
         }
         let mut msg = format!("You consume the {}.", def.name);
         if healed > 0 {
@@ -555,7 +555,7 @@ impl Game {
     }
 
     pub fn craft(&mut self, recipe_idx: usize) {
-        let Some(recipe) = RECIPES.get(recipe_idx) else { return };
+        let Some(recipe) = recipes().get(recipe_idx) else { return };
         let name = recipe.name();
         if !self.can_craft(recipe) {
             self.log.push(format!("You lack what you need for {name}."), Tone::Bad);

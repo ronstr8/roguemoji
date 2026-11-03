@@ -1,0 +1,11 @@
+name = "Moonshine"
+glyph = "🍶"
+description = "Clear grain liquor. Liquid courage, wobbly hands."
+weight = 1
+
+satiety = 20
+loot_weight = 1
+effects = [
+    { kind = "boost", attribute = "willpower", potency = 3, turns = 100 },
+    { kind = "boost", attribute = "reflexes", potency = -1, turns = 100 },
+]

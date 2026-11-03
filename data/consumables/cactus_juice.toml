@@ -1,0 +1,9 @@
+name = "Cactus Juice"
+glyph = "🧃"
+description = "Sweetened pulp. Twitchy-quick hydration."
+weight = 1
+
+satiety = 80
+effects = [
+    { kind = "boost", attribute = "reflexes", potency = 2, turns = 120 },
+]

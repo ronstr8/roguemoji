@@ -10,7 +10,7 @@ damage = [4, 9]
 armor = 1
 speed = 120
 crystals = [14, 18]
-on_hit = { effect = "bleed", potency = 2, turns = 5 }
+on_hit = { kind = "bleed", potency = 2, turns = 5 }
 drops = [{ item = "cryptid_hair", chance = 0.8 }, { item = "bone", chance = 0.5 }]
 
 [spawn]

@@ -1,0 +1,3 @@
+makes = { food = "moonshine" }
+difficulty = 12
+ingredients = { grain = 2, sugar = 1, dirty_water = 1 }

@@ -1,0 +1,4 @@
+makes = { melee = "pipe_spear" }
+difficulty = 11
+ingredients = { pipe = 1, duct_tape = 1 }
+uses_up = "kitchen_knife"

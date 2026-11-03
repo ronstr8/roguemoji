@@ -101,15 +101,7 @@ pub fn component(c: Component) -> u32 {
 }
 
 pub fn consumable(c: Consumable) -> u32 {
-    use Consumable::*;
-    match c {
-        Painkillers => 10,
-        Hardtack => 30,
-        GrilledMeat => 80,
-        HerbalTea | GlowcapBrew | CactusJuice | Moonshine | StimSoda | CryptidTonic | CannedPeaches => 100,
-        BeanChili | MutantStew | BoneBroth => 120,
-        BottledWater => 200,
-    }
+    c.def().weight
 }
 
 pub fn pack(p: Pack) -> u32 {

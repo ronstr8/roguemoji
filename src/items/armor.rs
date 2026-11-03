@@ -1,7 +1,8 @@
 //! Wearable protection. Armor subtracts from incoming damage, reduced by the
 //! attack's penetration; heavier pieces hamper dodging.
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Armor {
     LeatherJacket,
     ScrapVest,

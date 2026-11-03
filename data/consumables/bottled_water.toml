@@ -1,0 +1,8 @@
+name = "Bottled Water"
+glyph = "🍼"
+description = "Sealed, clean water. A rare luxury."
+weight = 2
+
+satiety = 60
+heal = 1
+loot_weight = 5

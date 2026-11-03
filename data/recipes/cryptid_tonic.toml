@@ -1,0 +1,3 @@
+makes = { food = "cryptid_tonic" }
+difficulty = 15
+ingredients = { cryptid_hair = 1, glowcap = 1, dirty_water = 1 }

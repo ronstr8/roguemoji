@@ -4,7 +4,7 @@ use std::io;
 
 use crossterm::event::{self, Event as TermEvent, KeyCode, KeyEvent, KeyEventKind};
 
-use crate::crafting::RECIPES;
+use crate::crafting::recipes;
 use crate::creatures::Background;
 use crate::dice::Dice;
 use crate::game::{Event, Game, StashSide};
@@ -285,7 +285,7 @@ impl App {
             game.craft(selected);
             return Screen::Crafting { selected };
         }
-        Screen::Crafting { selected: input::list_nav(key, selected, RECIPES.len()) }
+        Screen::Crafting { selected: input::list_nav(key, selected, recipes().len()) }
     }
 
     fn on_shop(&mut self, key: KeyEvent, kiosk: usize, selected: usize) -> Screen {

@@ -1,0 +1,3 @@
+makes = { melee = "spiked_knuckles" }
+difficulty = 11
+ingredients = { scrap_metal = 1, nails = 1 }

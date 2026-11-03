@@ -1,0 +1,8 @@
+name = "Canned Peaches"
+glyph = "🍑"
+description = "Syrupy and perfect."
+weight = 1
+
+satiety = 220
+heal = 2
+loot_weight = 4

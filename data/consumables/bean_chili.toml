@@ -1,0 +1,10 @@
+name = "Bean Chili"
+glyph = "🥘"
+description = "Spiced beans. Warms the belly and stiffens the spine."
+weight = 1.2
+
+satiety = 320
+heal = 2
+effects = [
+    { kind = "boost", attribute = "willpower", potency = 2, turns = 150 },
+]

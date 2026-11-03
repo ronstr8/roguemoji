@@ -55,7 +55,7 @@ static TABLE: OnceLock<Vec<ComponentDef>> = OnceLock::new();
 
 fn load() -> Result<Vec<ComponentDef>, String> {
     let defs = content::load_defs("components", build)?;
-    // Components the game's own tables name (recipes, harvest nodes, kits).
+    // Components the game's own tables name (harvest nodes, starting kits).
     let missing: Vec<String> = required_ids()
         .into_iter()
         .filter(|id| !defs.iter().any(|d| d.id == *id))
@@ -66,9 +66,6 @@ fn load() -> Result<Vec<ComponentDef>, String> {
 
 fn required_ids() -> Vec<&'static str> {
     let mut ids: Vec<&'static str> = Vec::new();
-    for r in crate::crafting::RECIPES {
-        ids.extend(r.ingredients.iter().map(|(id, _)| *id));
-    }
     for h in crate::world::Harvestable::ALL {
         ids.extend(h.def().yields.iter().map(|(id, _, _)| *id));
     }

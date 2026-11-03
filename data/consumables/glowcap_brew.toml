@@ -1,0 +1,10 @@
+name = "Glowcap Brew"
+glyph = "🧉"
+description = "Shimmering mushroom tea. Thoughts come fast and bright."
+weight = 1
+
+satiety = 40
+effects = [
+    { kind = "boost", attribute = "brains", potency = 2, turns = 120 },
+    { kind = "boost", attribute = "wit", potency = 2, turns = 120 },
+]

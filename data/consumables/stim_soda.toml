@@ -1,0 +1,10 @@
+name = "Stim Soda"
+glyph = "🥤"
+description = "Sugar syrup spiked with mutagen extract. Everything slows down."
+weight = 1
+
+satiety = 30
+effects = [
+    { kind = "boost", attribute = "reflexes", potency = 2, turns = 80 },
+    { kind = "focus", potency = 2, turns = 80 },
+]

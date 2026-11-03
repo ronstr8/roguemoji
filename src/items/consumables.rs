@@ -1,171 +1,171 @@
-//! Food and drink: crafted buffs and scavenged provisions.
+//! Food and drink: crafted buffs and scavenged provisions, loaded from
+//! `data/consumables/*.toml` (see `data/README.md`).
 
-use crate::effects::{EffectKind, EffectSpec};
-use crate::stats::Attribute;
+use std::sync::OnceLock;
 
+use serde::Deserialize;
+
+use crate::content::{self, Problems};
+use crate::effects::{EffectSpec, RawEffect};
+
+/// A handle to a loaded consumable: an index into the consumable table.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum Consumable {
-    // Crafted
-    HerbalTea,
-    GlowcapBrew,
-    CactusJuice,
-    GrilledMeat,
-    Hardtack,
-    BeanChili,
-    BoneBroth,
-    MutantStew,
-    Moonshine,
-    StimSoda,
-    CryptidTonic,
-    // Found
-    BottledWater,
-    CannedPeaches,
-    Painkillers,
-}
+pub struct Consumable(u16);
 
+#[derive(Debug)]
 pub struct ConsumableDef {
-    pub name: &'static str,
-    pub glyph: &'static str,
-    pub desc: &'static str,
+    /// The file name without `.toml`, e.g. `herbal_tea`.
+    pub id: String,
+    pub name: String,
+    pub glyph: String,
+    pub desc: String,
+    /// Hundredths of a pound.
+    pub weight: u32,
     /// Hunger restored.
     pub satiety: i32,
     /// Immediate healing.
     pub heal: i32,
     /// Removes poison and bleeding.
     pub cures: bool,
-    pub effects: &'static [EffectSpec],
+    pub effects: Vec<EffectSpec>,
+    /// Relative chance among food found on the floor or sold at Autovends; 0 = never.
+    pub loot_weight: u32,
+    /// Autovend price in crystals.
+    pub price: u32,
 }
 
-const fn boost(a: Attribute, potency: i32, turns: u32) -> EffectSpec {
-    EffectSpec::new(EffectKind::Boost(a), potency, turns)
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RawConsumable {
+    name: String,
+    glyph: String,
+    description: String,
+    /// Pounds.
+    weight: f64,
+    satiety: i32,
+    #[serde(default)]
+    heal: i32,
+    #[serde(default)]
+    cures: bool,
+    #[serde(default)]
+    effects: Vec<RawEffect>,
+    #[serde(default)]
+    loot_weight: u32,
+    #[serde(default = "default_price")]
+    price: u32,
+}
+
+fn default_price() -> u32 {
+    5
+}
+
+fn build(id: String, raw: RawConsumable) -> Result<ConsumableDef, Vec<String>> {
+    let mut p = Problems::default();
+    p.check(!raw.name.trim().is_empty(), "name is empty");
+    p.check(!raw.glyph.trim().is_empty(), "glyph is empty");
+    p.check(raw.weight >= 0.0 && raw.weight.is_finite(), "weight must be zero or more pounds");
+    p.check(raw.satiety >= 0, "satiety cannot be negative");
+    p.check(raw.heal >= 0, "heal cannot be negative");
+    let effects: Vec<EffectSpec> = raw.effects.iter().map(RawEffect::spec).collect();
+    p.check(effects.iter().all(|e| e.turns > 0), "effect turns must be positive");
+    p.finish(|| ConsumableDef {
+        id,
+        name: raw.name,
+        glyph: raw.glyph,
+        desc: raw.description,
+        weight: (raw.weight * 100.0).round() as u32,
+        satiety: raw.satiety,
+        heal: raw.heal,
+        cures: raw.cures,
+        effects,
+        loot_weight: raw.loot_weight,
+        price: raw.price,
+    })
+}
+
+static TABLE: OnceLock<Vec<ConsumableDef>> = OnceLock::new();
+
+fn load() -> Result<Vec<ConsumableDef>, String> {
+    let defs = content::load_defs("consumables", build)?;
+    // Consumables the game's code names (starting kits).
+    let missing: Vec<String> = crate::creatures::Background::ALL
+        .iter()
+        .flat_map(|b| b.starting_food().iter().map(|(id, _)| *id))
+        .filter(|id| !defs.iter().any(|d| d.id == *id))
+        .map(|id| format!("data/consumables/{id}.toml is missing, but the game uses `{id}`"))
+        .collect();
+    if missing.is_empty() { Ok(defs) } else { Err(missing.join("\n")) }
+}
+
+/// Load consumables now, reporting bad content files as an error.
+pub fn init() -> Result<(), String> {
+    if TABLE.get().is_none() {
+        let _ = TABLE.set(load()?);
+    }
+    Ok(())
+}
+
+fn table() -> &'static [ConsumableDef] {
+    TABLE.get_or_init(|| load().unwrap_or_else(|e| panic!("invalid consumable data:\n{e}")))
 }
 
 impl Consumable {
+    pub fn all() -> impl Iterator<Item = Consumable> {
+        (0..table().len() as u16).map(Consumable)
+    }
+
+    pub fn lookup(id: &str) -> Option<Consumable> {
+        table().iter().position(|d| d.id == id).map(|i| Consumable(i as u16))
+    }
+
+    /// A consumable the game's code refers to by id; validated at startup.
+    pub fn named(id: &str) -> Consumable {
+        Consumable::lookup(id).unwrap_or_else(|| panic!("consumable `{id}` is not defined"))
+    }
+
     pub fn def(self) -> &'static ConsumableDef {
-        use Attribute::*;
-        use EffectKind::*;
-        macro_rules! c {
-            ($n:expr, $g:expr, $sat:expr, $heal:expr, $cure:expr, [$($e:expr),*], $d:expr) => {
-{
-                    const DEF: ConsumableDef = ConsumableDef {
-                        name: $n, glyph: $g, satiety: $sat, heal: $heal, cures: $cure, effects: &[$($e),*], desc: $d,
-                    };
-                    &DEF
-                }
-            };
-        }
-        match self {
-            Consumable::HerbalTea => c!(
-                "Herbal Tea",
-                "🍵",
-                60,
-                2,
-                true,
-                [EffectSpec::new(Regen, 1, 20)],
-                "Calming and clean. Purges toxins and knits small wounds."
-            ),
-            Consumable::GlowcapBrew => c!(
-                "Glowcap Brew",
-                "🧉",
-                40,
-                0,
-                false,
-                [boost(Brains, 2, 120), boost(Wit, 2, 120)],
-                "Shimmering mushroom tea. Thoughts come fast and bright."
-            ),
-            Consumable::CactusJuice => c!(
-                "Cactus Juice",
-                "🧃",
-                80,
-                0,
-                false,
-                [boost(Reflexes, 2, 120)],
-                "Sweetened pulp. Twitchy-quick hydration."
-            ),
-            Consumable::GrilledMeat => c!(
-                "Grilled Meat",
-                "🍖",
-                350,
-                3,
-                false,
-                [boost(Brawn, 2, 150)],
-                "Seared over scrap-wood coals with herbs. Protein for punching."
-            ),
-            Consumable::Hardtack => {
-                c!("Hardtack", "🍘", 300, 0, false, [], "Flour and water baked into a brick. Lasts forever.")
-            }
-            Consumable::BeanChili => c!(
-                "Bean Chili",
-                "🥘",
-                320,
-                2,
-                false,
-                [boost(Willpower, 2, 150)],
-                "Spiced beans. Warms the belly and stiffens the spine."
-            ),
-            Consumable::BoneBroth => c!(
-                "Bone Broth",
-                "🍜",
-                200,
-                4,
-                false,
-                [boost(Fortitude, 1, 150), EffectSpec::new(Regen, 1, 16)],
-                "Long-simmered marrow broth."
-            ),
-            Consumable::MutantStew => c!(
-                "Mutant Stew",
-                "🍲",
-                300,
-                0,
-                false,
-                [boost(Fortitude, 3, 150), EffectSpec::new(Fortified, 1, 150)],
-                "It glows a little. Your skin toughens like hide."
-            ),
-            Consumable::Moonshine => c!(
-                "Moonshine",
-                "🍶",
-                20,
-                0,
-                false,
-                [boost(Willpower, 3, 100), boost(Reflexes, -1, 100)],
-                "Clear grain liquor. Liquid courage, wobbly hands."
-            ),
-            Consumable::StimSoda => c!(
-                "Stim Soda",
-                "🥤",
-                30,
-                0,
-                false,
-                [boost(Reflexes, 2, 80), EffectSpec::new(Focus, 2, 80)],
-                "Sugar syrup spiked with mutagen extract. Everything slows down."
-            ),
-            Consumable::CryptidTonic => c!(
-                "Cryptid Tonic",
-                "🫖",
-                50,
-                10,
-                true,
-                [
-                    boost(Brawn, 2, 200),
-                    boost(Reflexes, 2, 200),
-                    boost(Fortitude, 2, 200),
-                    EffectSpec::new(Regen, 2, 30)
-                ],
-                "Steeped from the hair of things that shouldn't exist. Primal vigor."
-            ),
-            Consumable::BottledWater => {
-                c!("Bottled Water", "🍼", 60, 1, false, [], "Sealed, clean water. A rare luxury.")
-            }
-            Consumable::CannedPeaches => c!("Canned Peaches", "🍑", 220, 2, false, [], "Syrupy and perfect."),
-            Consumable::Painkillers => c!(
-                "Painkillers",
-                "💊",
-                0,
-                6,
-                false,
-                [EffectSpec::new(Focus, -1, 20)],
-                "Expired opioid tablets. Dulls pain and wits alike."
-            ),
-        }
+        &table()[self.0 as usize]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::effects::EffectKind;
+    use crate::stats::Attribute;
+
+    fn parse(text: &str) -> Result<ConsumableDef, String> {
+        let raw: RawConsumable = toml::from_str(text).map_err(|e| e.to_string())?;
+        build("t".into(), raw).map_err(|e| e.join("; "))
+    }
+
+    const GOOD: &str = r#"
+        name = "Test Soup"
+        glyph = "🍲"
+        description = "x"
+        weight = 1
+        satiety = 100
+        effects = [{ kind = "boost", attribute = "wit", potency = 2, turns = 50 }]
+    "#;
+
+    #[test]
+    fn stock_consumables_load() {
+        load().expect("stock consumable data is valid");
+        assert_eq!(Consumable::named("herbal_tea").def().name, "Herbal Tea");
+    }
+
+    #[test]
+    fn parses_and_defaults() {
+        let d = parse(GOOD).unwrap();
+        assert_eq!((d.weight, d.heal, d.cures, d.price, d.loot_weight), (100, 0, false, 5, 0));
+        assert_eq!(d.effects, vec![EffectSpec::new(EffectKind::Boost(Attribute::Wit), 2, 50)]);
+    }
+
+    #[test]
+    fn rejects_bad_content() {
+        assert!(parse(&GOOD.replace("\"wit\"", "\"charisma\"")).is_err());
+        assert!(parse(&GOOD.replace("\"boost\"", "\"teleport\"")).is_err());
+        assert!(parse(&GOOD.replace("turns = 50", "turns = 0")).unwrap_err().contains("turns"));
+        assert!(parse(&GOOD.replace("satiety = 100", "satiety = -1")).is_err());
     }
 }

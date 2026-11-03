@@ -81,13 +81,11 @@ impl Background {
                 p.melee = Some(MeleeWeapon::Crowbar);
                 p.gun = Some(Gun::loaded_with(GunModel::TargetPistol22, Ammo::Lr22, 10));
                 give(&mut p, Item::ammo(Ammo::Lr22, 20));
-                give(&mut p, Item::food(Consumable::CannedPeaches, 1));
             }
             Background::ExDeputy => {
                 p.gun = Some(Gun::loaded_with(GunModel::ServicePistol9, Ammo::Luger9Jhp, 15));
                 p.armor = Some(Armor::KevlarVest);
                 give(&mut p, Item::ammo(Ammo::Luger9Fmj, 15));
-                give(&mut p, Item::food(Consumable::BottledWater, 1));
             }
             Background::Mechanic => {
                 p.melee = Some(MeleeWeapon::PipeWrench);
@@ -100,14 +98,26 @@ impl Background {
                 p.gun = Some(Gun::loaded_with(GunModel::SingleShot20, Ammo::Ga20Buck, 1));
                 p.armor = Some(Armor::LeatherJacket);
                 give(&mut p, Item::ammo(Ammo::Ga20Buck, 8));
-                give(&mut p, Item::food(Consumable::Hardtack, 1));
             }
         }
         for (id, n) in self.starting_components() {
             give(&mut p, Item::component(Component::named(id), *n));
         }
+        for (id, n) in self.starting_food() {
+            give(&mut p, Item::food(Consumable::named(id), *n));
+        }
         p.crystals = 5;
         p
+    }
+
+    /// Food and drink in the starting kit, by id.
+    pub fn starting_food(self) -> &'static [(&'static str, u32)] {
+        match self {
+            Background::Scavenger => &[("canned_peaches", 1)],
+            Background::ExDeputy => &[("bottled_water", 1)],
+            Background::Mechanic => &[],
+            Background::Homesteader => &[("hardtack", 1)],
+        }
     }
 
     /// Crafting components in the starting kit, by id.

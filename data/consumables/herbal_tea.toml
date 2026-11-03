@@ -1,0 +1,11 @@
+name = "Herbal Tea"
+glyph = "🍵"
+description = "Calming and clean. Purges toxins and knits small wounds."
+weight = 1
+
+satiety = 60
+heal = 2
+cures = true
+effects = [
+    { kind = "regen", potency = 1, turns = 20 },
+]

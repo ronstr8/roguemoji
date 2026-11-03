@@ -64,6 +64,36 @@ impl EffectSpec {
     }
 }
 
+/// An effect as written in content files:
+/// `{ kind = "boost", attribute = "brawn", potency = 2, turns = 120 }`.
+#[derive(serde::Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+pub enum RawEffect {
+    Poison { potency: i32, turns: u32 },
+    Bleed { potency: i32, turns: u32 },
+    Stun { turns: u32 },
+    Regen { potency: i32, turns: u32 },
+    Boost { attribute: Attribute, potency: i32, turns: u32 },
+    Fortified { potency: i32, turns: u32 },
+    Focus { potency: i32, turns: u32 },
+}
+
+impl RawEffect {
+    pub fn spec(&self) -> EffectSpec {
+        match *self {
+            RawEffect::Poison { potency, turns } => EffectSpec::new(EffectKind::Poison, potency, turns),
+            RawEffect::Bleed { potency, turns } => EffectSpec::new(EffectKind::Bleed, potency, turns),
+            RawEffect::Stun { turns } => EffectSpec::new(EffectKind::Stun, 1, turns),
+            RawEffect::Regen { potency, turns } => EffectSpec::new(EffectKind::Regen, potency, turns),
+            RawEffect::Boost { attribute, potency, turns } => {
+                EffectSpec::new(EffectKind::Boost(attribute), potency, turns)
+            }
+            RawEffect::Fortified { potency, turns } => EffectSpec::new(EffectKind::Fortified, potency, turns),
+            RawEffect::Focus { potency, turns } => EffectSpec::new(EffectKind::Focus, potency, turns),
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Effect {
     pub kind: EffectKind,

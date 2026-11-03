@@ -1,0 +1,3 @@
+makes = { food = "grilled_meat" }
+difficulty = 9
+ingredients = { raw_meat = 1, herbs = 1 }

@@ -1,6 +1,7 @@
 //! The six core attributes, grouped as physical/mental pairs.
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Attribute {
     Brawn,
     Brains,

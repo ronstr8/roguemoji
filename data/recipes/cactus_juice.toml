@@ -1,0 +1,3 @@
+makes = { food = "cactus_juice" }
+difficulty = 9
+ingredients = { cactus_pulp = 1, sugar = 1 }

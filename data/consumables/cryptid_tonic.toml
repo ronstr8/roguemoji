@@ -1,0 +1,14 @@
+name = "Cryptid Tonic"
+glyph = "🫖"
+description = "Steeped from the hair of things that shouldn't exist. Primal vigor."
+weight = 1
+
+satiety = 50
+heal = 10
+cures = true
+effects = [
+    { kind = "boost", attribute = "brawn", potency = 2, turns = 200 },
+    { kind = "boost", attribute = "reflexes", potency = 2, turns = 200 },
+    { kind = "boost", attribute = "fortitude", potency = 2, turns = 200 },
+    { kind = "regen", potency = 2, turns = 30 },
+]

@@ -1,0 +1,3 @@
+makes = { pack = "rag_satchel" }
+difficulty = 9
+ingredients = { rags = 3, duct_tape = 1 }

@@ -1,0 +1,3 @@
+makes = { armor = "scrap_vest" }
+difficulty = 13
+ingredients = { scrap_metal = 3, rags = 2, duct_tape = 1 }

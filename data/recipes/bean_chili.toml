@@ -1,0 +1,3 @@
+makes = { food = "bean_chili" }
+difficulty = 9
+ingredients = { canned_beans = 1, herbs = 1 }

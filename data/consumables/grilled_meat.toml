@@ -1,0 +1,10 @@
+name = "Grilled Meat"
+glyph = "🍖"
+description = "Seared over scrap-wood coals with herbs. Protein for punching."
+weight = 0.8
+
+satiety = 350
+heal = 3
+effects = [
+    { kind = "boost", attribute = "brawn", potency = 2, turns = 150 },
+]

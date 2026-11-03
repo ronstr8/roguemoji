@@ -9,7 +9,7 @@ defense = 9
 damage = [3, 6]
 speed = 80
 crystals = [5, 8]
-on_hit = { effect = "poison", potency = 2, turns = 8 }
+on_hit = { kind = "poison", potency = 2, turns = 8 }
 drops = [{ item = "mutagen", chance = 0.5 }, { item = "rags", chance = 0.5 }]
 
 [spawn]

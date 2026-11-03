@@ -1,0 +1,7 @@
+name = "Hardtack"
+glyph = "🍘"
+description = "Flour and water baked into a brick. Lasts forever."
+weight = 0.3
+
+satiety = 300
+loot_weight = 2

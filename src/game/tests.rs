@@ -1,7 +1,7 @@
 //! Whole-game soak tests: generate every depth and play randomly.
 
 use super::*;
-use crate::crafting::RECIPES;
+use crate::crafting::recipes;
 use crate::creatures::Background;
 use crate::creatures::player::{BASE_CAPACITY, Burden, CAPACITY_PER_BRAWN};
 use crate::effects::{EffectKind, EffectSpec};
@@ -65,7 +65,7 @@ fn random_play_never_panics() {
                 }
                 15 => {
                     if d.chance(0.5) {
-                        g.craft(d.index(RECIPES.len()))
+                        g.craft(d.index(recipes().len()))
                     } else {
                         let from = if d.chance(0.5) { StashSide::Pack } else { StashSide::Lockbox };
                         g.stash_transfer(from, 0);

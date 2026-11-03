@@ -1,7 +1,7 @@
 //! Crafting pop-up: recipe list, ingredients on hand, odds of success.
 
 use super::{footer, paragraph, popup, scroll_offset};
-use crate::crafting::RECIPES;
+use crate::crafting::recipes;
 use crate::game::Game;
 use crate::stats::Skill;
 use crate::stats::check::success_chance;
@@ -16,7 +16,7 @@ pub fn draw(canvas: &mut Canvas, game: &Game, selected: usize) {
     let offset = scroll_offset(selected, visible);
     let bg = theme::POPUP;
 
-    for (row, (i, r)) in RECIPES.iter().enumerate().skip(offset).take(visible).enumerate() {
+    for (row, (i, r)) in recipes().iter().enumerate().skip(offset).take(visible).enumerate() {
         let y = inner.y + row as u16;
         let rbg = if i == selected { theme::SELECTED } else { bg };
         let ok = game.can_craft(r);
@@ -26,7 +26,7 @@ pub fn draw(canvas: &mut Canvas, game: &Game, selected: usize) {
         canvas.text_max(inner.x, y, &format!("{mark} {} {}", r.glyph(), r.name()), list_w, color, rbg);
     }
 
-    let Some(r) = RECIPES.get(selected) else { return };
+    let Some(r) = recipes().get(selected) else { return };
     let dx = inner.x + list_w + 3;
     let dw = inner.w.saturating_sub(list_w + 3);
     let mut y = inner.y;

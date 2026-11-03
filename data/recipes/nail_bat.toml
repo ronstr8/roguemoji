@@ -1,0 +1,4 @@
+makes = { melee = "nail_bat" }
+difficulty = 9
+ingredients = { nails = 2 }
+uses_up = "baseball_bat"

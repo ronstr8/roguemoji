@@ -1,0 +1,10 @@
+name = "Mutant Stew"
+glyph = "🍲"
+description = "It glows a little. Your skin toughens like hide."
+weight = 1.2
+
+satiety = 300
+effects = [
+    { kind = "boost", attribute = "fortitude", potency = 3, turns = 150 },
+    { kind = "fortified", potency = 1, turns = 150 },
+]
