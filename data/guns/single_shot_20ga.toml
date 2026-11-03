@@ -11,4 +11,4 @@ accuracy = 0
 effective_range = 5
 rifled = false
 loot = { weight = 8 }
-price = { base = 46, per_depth = 3 }
+price = { base = 24, per_depth = 3 }

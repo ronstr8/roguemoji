@@ -11,4 +11,4 @@ accuracy = 4
 effective_range = 18
 rifled = true
 loot = { per_depth = 1, min_depth = 4 }
-price = { base = 42, per_depth = 3 }
+price = { base = 52, per_depth = 3 }

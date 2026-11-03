@@ -177,7 +177,7 @@ artifact (30%). Each slot is picked from the priced items of its kind by `loot`
 rolled as if one level deeper. A slot with nothing priced to sell is left empty.
 Ammo `price` is for a full box; a partial box costs its share, rounded up.
 
-Stock prices: guns 20 + barrel inches, +3 per depth; armor 25, +3 per depth;
+Stock prices: guns by quality, from 15 (snub .38) to 55 (AR-15), +3 per depth; armor 25, +3 per depth;
 packs 18, +3 per depth; Visitor artifacts 60, +5 per depth. Tools and crafted
 weapons have no price.
 
@@ -301,7 +301,7 @@ accuracy = 1                 # optional, default 0; to-hit modifier
 effective_range = 6          # tiles before range penalties start
 rifled = true                # false for shotguns
 loot = { weight = 8, per_depth = 1 }   # see "Loot chances for gear"
-price = { base = 24, per_depth = 3 }   # optional; see "Autovend prices"
+price = { base = 28, per_depth = 3 }   # optional; see "Autovend prices"
 ```
 
 **Reload time** comes from `action`: `semi_auto` and `break_open` take 1 turn,
