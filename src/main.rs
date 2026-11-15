@@ -17,7 +17,14 @@ mod world;
 
 use std::io;
 
+/// The release version, from Cargo.toml. See CHANGELOG.md.
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 fn main() -> io::Result<()> {
+    if std::env::args().any(|a| a == "--version" || a == "-V") {
+        println!("roguemoji {VERSION}");
+        return Ok(());
+    }
     let seed = std::env::args().skip_while(|a| a != "--seed").nth(1).and_then(|s| s.parse().ok());
     // Validate content before taking over the terminal, so errors are readable.
     if let Err(e) = items::components::init()

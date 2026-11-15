@@ -9,6 +9,7 @@ levels down, their Beacon 📡 still hums. Go find it.
 ```
 cargo run --release            # play
 cargo run --release -- --seed 42   # reproducible world
+cargo run --release -- --version   # print the version
 cargo test                     # unit + soak tests
 make static                    # self-contained Linux binary (musl), no shared-lib deps
 ```
@@ -111,6 +112,12 @@ stackable items share one slot.
 
 **Visitor lockboxes** 🛅 all open onto one shared stash of 20 slots. Leave
 spare guns and armor in one, then take them out of a lockbox on a deeper level.
+
+## Versions
+
+The version lives in `Cargo.toml` and shows on the title screen. Each release is
+tagged `vX.Y.Z`, and [CHANGELOG.md](CHANGELOG.md) lists what changed. Add new
+entries under **Unreleased** as you go.
 
 ## Project layout
 

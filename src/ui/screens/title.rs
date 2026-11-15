@@ -64,5 +64,8 @@ pub fn draw(canvas: &mut Canvas, selected: usize) {
     paragraph(canvas, dx, dy, dw, bottom, &format!("Kit: {}", kit.join(" · ")), theme::DIM);
 
     let hint = "↑↓ / 1-4 choose · Enter begin · Q quit";
-    canvas.text(center(hint), canvas.height().saturating_sub(1), hint, theme::DIM, theme::BG);
+    let bottom_row = canvas.height().saturating_sub(1);
+    canvas.text(center(hint), bottom_row, hint, theme::DIM, theme::BG);
+    let version = format!("v{}", crate::VERSION);
+    canvas.text(w.saturating_sub(version.len() as u16 + 1), bottom_row, &version, theme::DIM, theme::BG);
 }
