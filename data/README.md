@@ -316,6 +316,9 @@ price = { base = 28, per_depth = 3 }   # optional; see "Autovend prices"
 
 **Range.** Each tile past `effective_range` costs −2 to hit with `small_arms`
 and −1 with `long_arms`. A `long_arms` gun is also −2 to hit at point-blank.
+A gun can't fire past its **max range**: `effective_range` (as adjusted for
+buckshot and slugs) plus one tile per 400 fps of muzzle velocity for the load,
+so faster, flatter-shooting rounds reach further.
 
 Every gun's cartridge needs at least one ammo file that fits it (directly or
 through `also_fires`), or the game won't start. Starting kits name the guns

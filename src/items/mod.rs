@@ -164,7 +164,7 @@ impl Item {
                     d.capacity
                 ));
                 out.push(format!(
-                    "Skill: {} · Accuracy {:+} · Range {} · Reload {} turn(s)",
+                    "Skill: {} · Accuracy {:+} · Effective range {} · Reload {} turn(s)",
                     d.skill.name(),
                     d.accuracy,
                     d.effective_range,
@@ -172,13 +172,16 @@ impl Item {
                 ));
                 for ammo in Ammo::all().filter(|a| g.accepts(*a)) {
                     let p = g.ballistics(ammo);
+                    // Two lines per load: the detail pane is narrow.
+                    out.push(format!("  {}", ammo.name()));
                     out.push(format!(
-                        "  {:<20} {:>4.0} fps {:>5.0} J  dmg ~{:.1}  pen {:+}",
-                        ammo.name(),
+                        "    {:.0} fps  {:.0} J  dmg ~{:.1}  pen {:+}  range {}-{}",
                         p.fps,
                         p.joules,
                         p.base_damage,
-                        p.pen
+                        p.pen,
+                        g.effective_range(ammo),
+                        g.max_range(ammo)
                     ));
                 }
             }

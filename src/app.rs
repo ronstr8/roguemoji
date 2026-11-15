@@ -1,6 +1,7 @@
 //! Application shell: screen state machine, input dispatch and drawing.
 
 use std::io;
+use std::time::{Duration, Instant};
 
 use crossterm::event::{self, Event as TermEvent, KeyCode, KeyEvent, KeyEventKind};
 
@@ -8,6 +9,7 @@ use crate::crafting::recipes;
 use crate::creatures::Background;
 use crate::dice::Dice;
 use crate::game::{Event, Game, StashSide};
+use crate::geometry::Pos;
 use crate::input::{self, Command};
 use crate::stats::check::success_chance;
 use crate::ui::canvas::Canvas;
@@ -26,6 +28,7 @@ enum Screen {
     Shop { kiosk: usize, selling: bool, selected: usize },
     Stash { side: StashSide, selected: usize },
     Targeting { targets: Vec<u32>, index: usize },
+    Shoot { targets: Vec<u32>, selected: usize },
     Help,
     ConfirmQuit,
     Ended,
@@ -36,6 +39,8 @@ pub struct App {
     screen: Screen,
     seed: Option<u64>,
     last_target: Option<u32>,
+    /// A 💥 drawn on a creature a shot struck, until the deadline passes.
+    flash: Option<(Pos, Instant)>,
     inv_sort: screens::inventory::Sort,
     running: bool,
 }
@@ -47,6 +52,7 @@ impl App {
             screen: Screen::Title { selected: 0 },
             seed,
             last_target: None,
+            flash: None,
             inv_sort: Default::default(),
             running: true,
         }
@@ -58,6 +64,14 @@ impl App {
             let mut canvas = Canvas::new(w, h);
             self.draw(&mut canvas);
             term.present(&canvas)?;
+            // While a flash is up, wait only until it expires, then redraw.
+            if let Some((_, until)) = self.flash {
+                let left = until.saturating_duration_since(Instant::now());
+                if left.is_zero() || !event::poll(left)? {
+                    self.flash = None;
+                    continue;
+                }
+            }
             match event::read()? {
                 TermEvent::Key(key) if key.kind != KeyEventKind::Release => self.on_key(key),
                 TermEvent::Resize(..) => term.invalidate(),
@@ -87,10 +101,12 @@ impl App {
 
         let (target, status) = match &self.screen {
             Screen::Targeting { targets, index } => self.targeting_status(game, targets[*index]),
+            Screen::Shoot { targets, selected } => (game.monster(targets[*selected]).map(|m| m.pos), None),
             Screen::ConfirmQuit => (None, Some("Really quit? This run will be lost. (y/n)".to_string())),
             _ => (None, None),
         };
-        ui::draw_play(canvas, game, target, status.as_deref());
+        let flash = self.flash.map(|(pos, _)| pos);
+        ui::draw_play(canvas, game, target, flash, status.as_deref());
 
         match &self.screen {
             Screen::Inventory { selected } => screens::inventory::draw(canvas, game, self.inv_sort, *selected),
@@ -100,6 +116,7 @@ impl App {
                 screens::shop::draw(canvas, game, *kiosk, *selling, self.inv_sort, *selected)
             }
             Screen::Stash { side, selected } => screens::stash::draw(canvas, game, *side, *selected),
+            Screen::Shoot { targets, selected } => screens::shoot::draw(canvas, game, targets, *selected),
             Screen::Help => screens::help::draw(canvas),
             Screen::Ended => screens::ended::draw(canvas, game),
             _ => {}
@@ -145,6 +162,7 @@ impl App {
             Screen::Shop { kiosk, selling, selected } => self.on_shop(key, kiosk, selling, selected),
             Screen::Stash { side, selected } => self.on_stash(key, side, selected),
             Screen::Targeting { targets, index } => self.on_targeting(key, targets, index),
+            Screen::Shoot { targets, selected } => self.on_shoot(key, targets, selected),
             Screen::ConfirmQuit => match key.code {
                 KeyCode::Char('y') | KeyCode::Char('Y') => {
                     self.running = false;
@@ -201,6 +219,7 @@ impl App {
             },
             Command::Wait => game.wait(),
             Command::Fire => return self.begin_targeting(),
+            Command::Shoot => return self.begin_shoot(),
             Command::Reload => game.reload(),
             Command::Pickup => game.pickup(),
             Command::Absorb { to_full } => game.absorb(to_full),
@@ -217,13 +236,8 @@ impl App {
 
     fn begin_targeting(&mut self) -> Screen {
         let Some(game) = self.game.as_mut() else { return Screen::Play };
-        if game.player.gun.is_none() {
-            game.log.info("You have no gun equipped.");
-            return Screen::Play;
-        }
-        let targets = game.targets();
+        let targets = game.shot_targets();
         if targets.is_empty() {
-            game.log.info("No targets in sight.");
             return Screen::Play;
         }
         let index = self.last_target.and_then(|id| targets.iter().position(|t| *t == id)).unwrap_or(0);
@@ -241,14 +255,47 @@ impl App {
                 Screen::Targeting { targets, index: (index + n - 1) % n }
             }
             KeyCode::Char('f') | KeyCode::Enter | KeyCode::Char(' ') => {
-                let id = targets[index];
-                self.last_target = Some(id);
-                if let Some(game) = self.game.as_mut() {
-                    game.fire_at(id);
-                }
+                self.shoot(targets[index]);
                 Screen::Play
             }
             _ => Screen::Targeting { targets, index },
+        }
+    }
+
+    /// `s`: shoot the only creature in range, or ask which one.
+    fn begin_shoot(&mut self) -> Screen {
+        let Some(game) = self.game.as_mut() else { return Screen::Play };
+        let targets = game.shot_targets();
+        match targets.as_slice() {
+            [] => Screen::Play,
+            [only] => {
+                self.shoot(*only);
+                Screen::Play
+            }
+            _ => {
+                // Start on the last creature shot at, so momentum is one keypress away.
+                let selected = self.last_target.and_then(|id| targets.iter().position(|t| *t == id)).unwrap_or(0);
+                Screen::Shoot { targets, selected }
+            }
+        }
+    }
+
+    fn on_shoot(&mut self, key: KeyEvent, targets: Vec<u32>, selected: usize) -> Screen {
+        match key.code {
+            KeyCode::Esc | KeyCode::Char('q') => Screen::Play,
+            KeyCode::Enter | KeyCode::Char('s') => {
+                self.shoot(targets[selected]);
+                Screen::Play
+            }
+            _ => Screen::Shoot { selected: input::list_nav(key, selected, targets.len()), targets },
+        }
+    }
+
+    fn shoot(&mut self, id: u32) {
+        const FLASH: Duration = Duration::from_millis(300);
+        self.last_target = Some(id);
+        if let Some(pos) = self.game.as_mut().and_then(|g| g.fire_at(id)) {
+            self.flash = Some((pos, Instant::now() + FLASH));
         }
     }
 

@@ -52,7 +52,12 @@ fn random_play_never_panics() {
                 }
                 11 => g.pickup(),
                 12 => {
-                    if let Some(t) = g.targets().first() {
+                    let reach = g.player.gun.as_ref().and_then(|gun| gun.reach()).unwrap_or(i32::MAX);
+                    for t in g.targets() {
+                        let dist = g.monster(t).unwrap().pos.distance(g.player.pos);
+                        assert!(dist <= reach, "target at {dist} tiles, gun reaches {reach}");
+                    }
+                    if let Some(t) = g.shot_targets().first() {
                         g.fire_at(*t);
                     }
                 }

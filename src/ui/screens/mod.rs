@@ -5,6 +5,7 @@ pub mod crafting;
 pub mod ended;
 pub mod help;
 pub mod inventory;
+pub mod shoot;
 pub mod shop;
 pub mod stash;
 pub mod title;
@@ -21,6 +22,13 @@ pub fn popup(canvas: &mut Canvas, want_w: u16, want_h: u16, title: &str) -> Area
     canvas.dim();
     canvas.frame(Area::new(x, y, w, h), title, theme::BORDER, theme::POPUP);
     Area::new(x + 2, y + 1, w.saturating_sub(4), h.saturating_sub(2))
+}
+
+/// Draw an undimmed pop-up frame at a fixed spot, leaving the map readable
+/// behind it; returns its inner content area.
+pub fn panel(canvas: &mut Canvas, outer: Area, title: &str) -> Area {
+    canvas.frame(outer, title, theme::BORDER, theme::POPUP);
+    Area::new(outer.x + 2, outer.y + 1, outer.w.saturating_sub(4), outer.h.saturating_sub(2))
 }
 
 /// Footer hint on the last inner row of a pop-up.

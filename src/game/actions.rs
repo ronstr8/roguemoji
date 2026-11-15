@@ -293,13 +293,42 @@ impl Game {
     }
 
     /// Monsters you can see and have a clear line of fire to, nearest first.
-    pub fn targets(&self) -> Vec<u32> {
+    fn in_sight(&self) -> Vec<(u32, i32)> {
         self.visible_monsters()
             .into_iter()
             .filter(|m| m.pos.distance(self.player.pos) <= SIGHT_RADIUS + 4)
             .filter(|m| crate::world::fov::clear_line(&self.map, self.player.pos, m.pos))
-            .map(|m| m.id)
+            .map(|m| (m.id, m.pos.distance(self.player.pos)))
             .collect()
+    }
+
+    /// Monsters you could shoot right now: in sight, in the clear, and within
+    /// the gun's max range for its load. Nearest first.
+    pub fn targets(&self) -> Vec<u32> {
+        let reach = self.player.gun.as_ref().and_then(Gun::reach).unwrap_or(i32::MAX);
+        self.in_sight().into_iter().filter(|(_, d)| *d <= reach).map(|(id, _)| id).collect()
+    }
+
+    /// Targets for a shot the player wants to take. When there are none, or
+    /// the gun can't fire, logs why and returns an empty list.
+    pub fn shot_targets(&mut self) -> Vec<u32> {
+        let Some(gun) = self.player.gun.as_ref() else {
+            self.log.info("You have no gun equipped.");
+            return Vec::new();
+        };
+        if gun.loaded == 0 {
+            self.log.push(format!("*click* The {} is empty. (r to reload)", gun.def().name), Tone::Bad);
+            return Vec::new();
+        }
+        let reach = gun.reach();
+        let targets = self.targets();
+        if targets.is_empty() {
+            match reach {
+                Some(r) if !self.in_sight().is_empty() => self.log.info(format!("Nothing within range ({r} tiles).")),
+                _ => self.log.info("No targets in sight."),
+            }
+        }
+        targets
     }
 
     /// To-hit modifier and defense for a shot at `id`, for the targeting UI.
@@ -320,19 +349,21 @@ impl Game {
             + p.focus()
     }
 
-    pub fn fire_at(&mut self, target_id: u32) {
+    /// Fire at `target_id`. Returns where a creature was struck (graze or
+    /// better), so the UI can flash the impact.
+    pub fn fire_at(&mut self, target_id: u32) -> Option<Pos> {
         let Some(gun) = self.player.gun.clone() else {
             self.log.info("You have no gun equipped.");
-            return;
+            return None;
         };
         let ammo = match gun.ammo {
             Some(a) if gun.loaded > 0 => a,
             _ => {
                 self.log.push(format!("*click* The {} is empty. (r to reload)", gun.def().name), Tone::Bad);
-                return;
+                return None;
             }
         };
-        let Some(target_pos) = self.monster(target_id).map(|m| m.pos) else { return };
+        let target_pos = self.monster(target_id)?.pos;
 
         // The bullet stops at the first creature or wall along its path.
         let mut hit_idx = None;
@@ -353,7 +384,7 @@ impl Game {
         let Some(idx) = hit_idx else {
             self.log.push("Your shot strikes the wall.", Tone::Combat);
             self.pass_time(1);
-            return;
+            return None;
         };
         let (id, name, pos, defense, armor) = {
             let m = &self.monsters[idx];
@@ -388,6 +419,7 @@ impl Game {
         }
         self.reap_monsters();
         self.pass_time(1);
+        (out.tier != HitTier::Miss).then_some(pos)
     }
 
     fn alert_nearby(&mut self, radius: i32) {

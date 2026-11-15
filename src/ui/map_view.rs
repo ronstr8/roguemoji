@@ -8,12 +8,14 @@ use crate::game::Game;
 use crate::geometry::{Pos, line};
 
 pub const PLAYER_GLYPH: &str = "🧑";
+/// Drawn briefly over a creature a shot strikes.
+pub const BANG_GLYPH: &str = "💥";
 
 fn camera(origin: i32, view: i32, size: i32) -> i32 {
     (origin - view / 2).clamp(0, (size - view).max(0))
 }
 
-pub fn draw(canvas: &mut Canvas, area: Area, game: &Game, target: Option<Pos>) {
+pub fn draw(canvas: &mut Canvas, area: Area, game: &Game, target: Option<Pos>, flash: Option<Pos>) {
     canvas.fill(area.x, area.y, area.w, area.h, theme::BG);
     let map = &game.map;
     let view_w = (area.w / 2) as i32;
@@ -44,7 +46,9 @@ pub fn draw(canvas: &mut Canvas, area: Area, game: &Game, target: Option<Pos>) {
             };
             let tile = map.tile(p);
             if map.is_visible(p) {
-                let glyph = if p == me {
+                let glyph = if Some(p) == flash {
+                    Some(BANG_GLYPH)
+                } else if p == me {
                     Some(PLAYER_GLYPH)
                 } else {
                     monsters.get(&p).or_else(|| items.get(&p)).copied().or_else(|| map.feature(p).map(|f| f.glyph()))

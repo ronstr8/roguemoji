@@ -22,11 +22,12 @@ You need a terminal of at least 80×24 with a font that renders emoji as double-
 |---|---|
 | arrows · `hjkl yubn` · numpad | move; bump to attack, harvest 🌿🚗📦, or use an Autovend 🏧 |
 | Space / `.` | wait |
+| `s` | shoot: fires at the only target in range, or lists them nearest first (Enter shoots) |
 | `f` | fire: Tab/←→ cycle targets (shows exact hit %), `f`/Enter shoot |
 | `r` | reload |
 | `g` / `,` / `5` | pick up |
 | `a` / `A` | absorb one crystal / absorb until healed |
-| `s` | cycle stance |
+| `S` | cycle stance |
 | `>` | descend on 🔽 |
 | `i` `c` `m` `?` | inventory · character sheet · crafting · help |
 | `Q` | quit |
@@ -74,9 +75,12 @@ Damage is derived from physics rather than tuned by hand:
    armor. Buckshot hits more easily up close, but its pellets spread with distance.
    Smoothbores are less accurate with slugs, and long guns take a penalty at point-blank
    range.
+5. Past its effective range a gun loses accuracy each tile, and it can't fire at all past
+   its max range: the effective range plus one tile per 400 fps. A snub .38 reaches about
+   5 tiles; a .308 rifle reaches 25.
 
-The inventory screen shows each gun's fps, joules, damage and penetration for every load
-it accepts. Each item in your pack lists what an Autovend would pay for it and its
+The inventory screen shows each gun's fps, joules, damage, penetration and range for
+every load it accepts. Each item in your pack lists what an Autovend would pay for it and its
 weight. Press `s` there to sort by name, weight or value, ascending then descending. The Autovend's
 Sell tab uses the same order, and `s` works there too.
 

@@ -148,6 +148,9 @@ fn load() -> Result<Vec<GunDef>, String> {
     if errors.is_empty() { Ok(defs) } else { Err(errors.join("\n")) }
 }
 
+/// Muzzle velocity worth one tile of range past `effective_range`.
+const FPS_PER_EXTRA_TILE: f64 = 400.0;
+
 /// A firearm instance with its current loaded rounds.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Gun {
@@ -182,6 +185,19 @@ impl Gun {
             LoadType::Slug if !self.def().rifled => base.max(8),
             _ => base,
         }
+    }
+
+    /// Farthest a shot can be taken with a given load. Past effective range
+    /// the bullet drops and drifts; faster rounds shoot flatter, so muzzle
+    /// velocity buys extra tiles: one per `FPS_PER_EXTRA_TILE`.
+    pub fn max_range(&self, ammo: Ammo) -> i32 {
+        let extra = (self.ballistics(ammo).fps / FPS_PER_EXTRA_TILE).round() as i32;
+        self.effective_range(ammo) + extra
+    }
+
+    /// Max range with the chambered load, if the gun has ever been loaded.
+    pub fn reach(&self) -> Option<i32> {
+        self.ammo.map(|a| self.max_range(a))
     }
 
     /// To-hit modifier at a given distance in tiles.
@@ -246,6 +262,22 @@ mod tests {
         let snub = Gun::loaded_with(GunModel::named("snub_revolver_38"), spl, 5);
         let rifle = Gun::loaded_with(GunModel::named("bolt_rifle_308"), w308, 4);
         assert!(snub.hit_modifier(spl, 8) < rifle.hit_modifier(w308, 8));
+    }
+
+    #[test]
+    fn max_range_follows_velocity() {
+        let range = |gun: &str, ammo: &str| {
+            let a = Ammo::named(ammo);
+            let g = Gun::loaded_with(GunModel::named(gun), a, 1);
+            assert!(g.max_range(a) > g.effective_range(a));
+            g.max_range(a)
+        };
+        let snub = range("snub_revolver_38", "38_special");
+        let pistol = range("service_pistol_9mm", "9mm_fmj");
+        let carbine = range("carbine_9mm", "9mm_fmj");
+        let rifle = range("bolt_rifle_308", "308_win_sp");
+        assert!(snub < pistol && pistol < carbine && carbine < rifle, "{snub} {pistol} {carbine} {rifle}");
+        assert!(range("pump_shotgun_12ga", "12ga_buck") < range("pump_shotgun_12ga", "12ga_slug"));
     }
 
     #[test]
