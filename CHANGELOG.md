@@ -7,6 +7,8 @@ version can change rules, controls or data-file formats.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-16
+
 ### Added
 - Release downloads include the stock `data/` folder beside the binary, ready
   to edit: the game reads it at startup, so changes need no rebuild.
@@ -76,7 +78,8 @@ Unicode. Find the Visitor Beacon 📡 on depth 10.
   and to trade at Autovends.
 - Harvesting, crafting, hunger and timed status effects.
 
-[Unreleased]: https://github.com/ronstr8/roguemoji/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/ronstr8/roguemoji/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/ronstr8/roguemoji/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/ronstr8/roguemoji/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/ronstr8/roguemoji/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/ronstr8/roguemoji/releases/tag/v0.1.0
