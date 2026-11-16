@@ -17,6 +17,11 @@ without `.toml` (`feral_dog.toml` → `feral_dog`).
    A drop-in with a new id adds content. One with an existing id replaces it
    (put a `rat.toml` in your mod to rebalance rats).
 
+   Release downloads ship a copy of every stock file in `data/` beside the
+   binary, so you can start modding by editing those. If you update the game,
+   replace that folder along with the binary: an old copy overrides the new
+   version's built-in files.
+
 All files are checked at startup. A typo'd field, an unknown item or a bad value
 stops the game with an error naming the file and line.
 

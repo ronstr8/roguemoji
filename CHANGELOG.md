@@ -7,6 +7,12 @@ version can change rules, controls or data-file formats.
 
 ## [Unreleased]
 
+### Added
+- Release downloads include the stock `data/` folder beside the binary, ready
+  to edit: the game reads it at startup, so changes need no rebuild.
+- `make dist` packages a release tarball, and `make publish` checks the release
+  is ready and creates it on GitHub.
+
 ## [0.3.0] - 2026-11-15
 
 ### Added

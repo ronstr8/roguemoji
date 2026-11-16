@@ -7,9 +7,13 @@ SEED    ?=
 RUNARGS := $(if $(SEED),-- --seed $(SEED),)
 PREFIX  ?= $(HOME)/.local
 MUSL    := x86_64-unknown-linux-musl
+VERSION := $(shell sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+TAG     := v$(VERSION)
+DIST    := $(BIN)-$(VERSION)-x86_64-linux
+REPO_URL := https://github.com/ronstr8/roguemoji
 
 .DEFAULT_GOAL := help
-.PHONY: help build release static run debug test check lint fmt fmt-check doc clean install uninstall ci
+.PHONY: help build release static dist publish run debug test check lint fmt fmt-check doc clean install uninstall ci
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | \
@@ -25,6 +29,26 @@ static: ## Fully static, stripped Linux binary (musl) at target/$(MUSL)/release/
 	rustup target add $(MUSL)
 	RUSTFLAGS="-C strip=symbols" $(CARGO) build --release --target $(MUSL)
 	@ls -lh target/$(MUSL)/release/$(BIN)
+
+dist: static ## Package the static build, README, CHANGELOG and live data/ into dist/
+	rm -rf dist/$(DIST) && mkdir -p dist/$(DIST)
+	cp -f target/$(MUSL)/release/$(BIN) README.md CHANGELOG.md dist/$(DIST)/
+	cp -rf data dist/$(DIST)/data
+	tar -C dist -czf dist/$(DIST).tar.gz $(DIST)
+	cd dist && sha256sum $(DIST).tar.gz > $(DIST).tar.gz.sha256
+	awk -v version=$(VERSION) -f scripts/release-notes.awk CHANGELOG.md > dist/notes-$(TAG).md
+	printf '\nFull changelog: %s/blob/$(TAG)/CHANGELOG.md\n' "$(REPO_URL)" >> dist/notes-$(TAG).md
+	@ls -lh dist/$(DIST).tar.gz
+
+publish: ## Create the GitHub release for the tagged HEAD, with the dist tarball
+	@git diff --quiet HEAD && test -z "$$(git status --porcelain)" || { echo "publish: working tree is not clean"; exit 1; }
+	@test "$$(git describe --exact-match --tags HEAD 2>/dev/null)" = "$(TAG)" || { echo "publish: HEAD is not tagged $(TAG) (Cargo.toml says $(VERSION))"; exit 1; }
+	@git ls-remote --exit-code --tags origin refs/tags/$(TAG) >/dev/null || { echo "publish: $(TAG) is not pushed to origin"; exit 1; }
+	@grep -q '^## \[$(VERSION)\]' CHANGELOG.md || { echo "publish: CHANGELOG.md has no [$(VERSION)] section"; exit 1; }
+	@! gh release view $(TAG) >/dev/null 2>&1 || { echo "publish: $(TAG) is already released"; exit 1; }
+	$(MAKE) ci dist
+	gh release create $(TAG) --verify-tag --title "$(BIN) $(VERSION)" \
+		--notes-file dist/notes-$(TAG).md dist/$(DIST).tar.gz dist/$(DIST).tar.gz.sha256
 
 run: ## Play (optimized). Optional: SEED=n
 	$(CARGO) run --release $(RUNARGS)

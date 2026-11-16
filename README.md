@@ -12,6 +12,7 @@ cargo run --release -- --seed 42   # reproducible world
 cargo run --release -- --version   # print the version
 cargo test                     # unit + soak tests
 make static                    # self-contained Linux binary (musl), no shared-lib deps
+make dist                      # package that binary with docs and data/ into dist/
 ```
 
 You need a terminal of at least 80×24 with a font that renders emoji as double-width
@@ -118,6 +119,20 @@ spare guns and armor in one, then take them out of a lockbox on a deeper level.
 The version lives in `Cargo.toml` and shows on the title screen. Each release is
 tagged `vX.Y.Z`, and [CHANGELOG.md](CHANGELOG.md) lists what changed. Add new
 entries under **Unreleased** as you go.
+
+To cut a release:
+
+1. In CHANGELOG.md, rename **Unreleased** to `[X.Y.Z] - date` and add its compare link.
+2. Set the same version in Cargo.toml, commit, `git tag -a vX.Y.Z`, and push the
+   commit and the tag.
+3. Run `make publish`. It checks that the tree is clean, HEAD carries the tag,
+   the tag is on GitHub and the changelog has the section. Then it runs
+   `make ci`, builds the tarball with `make dist`, and creates the GitHub
+   release with the changelog section as its notes.
+
+Release tarballs include the stock `data/` folder next to the binary. The game
+reads it at startup, so players can edit those files and see the change
+without building anything.
 
 ## Project layout
 
