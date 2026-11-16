@@ -16,6 +16,8 @@ version can change rules, controls or data-file formats.
 ### Changed
 - 20ga #3 Buck carries 470 grains of shot instead of 400, matching real
   loads. Its full-pattern damage rises from about 13.9 to 15.0.
+- Brawn and Brains are abbreviated STR and INT on the title and character
+  screens, instead of BRN and BRA.
 
 ## [0.4.0] - 2026-11-16
 

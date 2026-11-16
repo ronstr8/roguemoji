@@ -46,8 +46,8 @@ impl Attribute {
 
     pub fn abbrev(self) -> &'static str {
         match self {
-            Attribute::Brawn => "BRN",
-            Attribute::Brains => "BRA",
+            Attribute::Brawn => "STR",
+            Attribute::Brains => "INT",
             Attribute::Reflexes => "REF",
             Attribute::Wit => "WIT",
             Attribute::Fortitude => "FOR",
