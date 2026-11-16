@@ -12,6 +12,9 @@ version can change rules, controls or data-file formats.
   to edit: the game reads it at startup, so changes need no rebuild.
 - `make dist` packages a release tarball, and `make publish` checks the release
   is ready and creates it on GitHub.
+- A Windows build: each release includes a `.zip` with `roguemoji.exe` and
+  `data/`. Play it in Windows Terminal; the old console window draws emoji
+  badly. `make windows` cross-compiles it from Linux.
 
 ## [0.3.0] - 2026-11-15
 
