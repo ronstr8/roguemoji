@@ -1,6 +1,6 @@
 //! Visitor lockbox pop-up: shuffle items between the pack and the shared stash.
 
-use super::{footer, popup, scroll_offset};
+use super::{draw_load, footer, popup, scroll_offset};
 use crate::game::{Game, StashSide};
 use crate::items::Item;
 use crate::items::weight::fmt_lb;
@@ -9,14 +9,11 @@ use crate::ui::{Area, theme};
 
 pub fn draw(canvas: &mut Canvas, game: &Game, side: StashSide, selected: usize) {
     let inner = popup(canvas, 100, 30, "🛅 Visitor Lockbox");
-    let bg = theme::POPUP;
     let p = &game.player;
     let col_w = inner.w.saturating_sub(3) / 2;
     let bottom = inner.y + inner.h.saturating_sub(2);
 
-    let burden = p.burden();
-    let load = format!("Carrying {} / {} · {}", fmt_lb(p.carried_weight()), fmt_lb(p.carry_capacity()), burden.name());
-    canvas.text_max(inner.x, inner.y, &load, inner.w, theme::burden(burden), bg);
+    draw_load(canvas, inner.x, inner.y, inner.w, p);
 
     let pack = p.inventory.items();
     let stash = game.stash.items();

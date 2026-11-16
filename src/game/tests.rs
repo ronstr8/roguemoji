@@ -145,6 +145,17 @@ fn burden_tiers() {
 }
 
 #[test]
+fn lighter_limit_is_the_top_of_the_next_level() {
+    let cap = 3001; // odd, so 1.5x rounds
+    assert_eq!(Burden::Light.lighter(cap), None);
+    for b in [Burden::Burdened, Burden::Strained, Burden::Overloaded] {
+        let (lighter, limit) = b.lighter(cap).unwrap();
+        assert_eq!(Burden::of(limit, cap), lighter, "{b:?}");
+        assert_eq!(Burden::of(limit + 1, cap), b, "{b:?}");
+    }
+}
+
+#[test]
 fn heavy_loads_slow_and_then_stop_movement() {
     let mut g = new_game(3);
     g.monsters.clear();

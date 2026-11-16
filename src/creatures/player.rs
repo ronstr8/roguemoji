@@ -43,6 +43,18 @@ impl Burden {
         }
     }
 
+    /// The next lighter level and the most you can carry and still be in it,
+    /// or `None` when already Light.
+    pub fn lighter(self, capacity: u32) -> Option<(Burden, u32)> {
+        let cap = capacity.max(1);
+        match self {
+            Burden::Light => None,
+            Burden::Burdened => Some((Burden::Light, cap)),
+            Burden::Strained => Some((Burden::Burdened, cap * 3 / 2)),
+            Burden::Overloaded => Some((Burden::Strained, cap * 2)),
+        }
+    }
+
     pub fn name(self) -> &'static str {
         match self {
             Burden::Light => "Light",

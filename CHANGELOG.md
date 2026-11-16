@@ -7,6 +7,16 @@ version can change rules, controls or data-file formats.
 
 ## [Unreleased]
 
+### Added
+- The Autovend shows your load and burden under its tabs, and each item's
+  weight: what selling it sheds, or what buying it adds.
+- When you're over Light, the Autovend and Visitor Lockbox say how much to shed
+  to reach the next lighter level, e.g. "shed 4.2 lb to be Light".
+
+### Changed
+- 20ga #3 Buck carries 470 grains of shot instead of 400, matching real
+  loads. Its full-pattern damage rises from about 13.9 to 15.0.
+
 ## [0.4.0] - 2026-11-16
 
 ### Added

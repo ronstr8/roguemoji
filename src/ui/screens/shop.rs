@@ -1,10 +1,11 @@
 //! Autovend kiosk pop-up: buy from its stock, or sell from your pack.
 
 use super::inventory::Sort;
-use super::{footer, paragraph, popup, scroll_offset};
+use super::{draw_load, footer, paragraph, popup, scroll_offset};
 use crate::game::Game;
 use crate::items::Item;
 use crate::items::loot::{sell_price, sell_qty};
+use crate::items::weight::{fmt_lb, unit_weight};
 use crate::ui::canvas::Canvas;
 use crate::ui::theme;
 
@@ -25,6 +26,8 @@ pub fn draw(canvas: &mut Canvas, game: &Game, kiosk: usize, selling: bool, sort:
         canvas.text(x + 3, inner.y, &format!("sort: {}", sort.label()), theme::DIM, bg);
     }
 
+    draw_load(canvas, inner.x, inner.y + 1, inner.w, &game.player);
+
     // Rows: (item, price shown, whether it can be bought/sold right now).
     let rows: Vec<(&Item, Option<u32>, bool)> = if selling {
         let items = game.player.inventory.items();
@@ -38,7 +41,7 @@ pub fn draw(canvas: &mut Canvas, game: &Game, kiosk: usize, selling: bool, sort:
     } else {
         k.stock.iter().map(|(it, price)| (it, Some(*price), game.player.crystals >= *price)).collect()
     };
-    let top = inner.y + 2;
+    let top = inner.y + 3;
     if rows.is_empty() {
         let msg = if selling { "Your pack is empty." } else { "SOLD OUT. HAVE A NICE DAY." };
         canvas.text(inner.x, top, msg, theme::DIM, bg);
@@ -67,8 +70,13 @@ pub fn draw(canvas: &mut Canvas, game: &Game, kiosk: usize, selling: bool, sort:
                 Some(p) => format!("Sells for {p} 💎 each."),
             };
             y = paragraph(canvas, dx, y, dw, bottom, &note, theme::LOOT);
-            y += 1;
         }
+        // What selling it sheds, or buying it adds.
+        let sold = if selling { sell_qty(item) } else { item.qty };
+        let w = fmt_lb(unit_weight(&item.kind) * sold);
+        let wnote = if selling { format!("Selling sheds {w}.") } else { format!("Weighs {w}.") };
+        y = paragraph(canvas, dx, y, dw, bottom, &wnote, theme::DIM);
+        y += 1;
         for line in item.describe() {
             y = paragraph(canvas, dx, y, dw, bottom, &line, theme::TEXT);
         }
@@ -103,6 +111,8 @@ mod tests {
             .collect();
         println!("{}", rows.join("\n"));
         assert!(rows.iter().any(|r| r.contains(" Buy  [Sell]   You carry") && r.contains("sort: value ↓")));
+        assert!(rows.iter().any(|r| r.contains("Carrying ") && r.contains(" lb · Light")));
+        assert!(rows.iter().any(|r| r.contains("Selling sheds ")));
         // Sale prices run high to low down the list.
         let prices: Vec<u32> = rows
             .iter()

@@ -12,6 +12,7 @@ pub mod title;
 
 use super::canvas::Canvas;
 use super::{Area, theme};
+use crate::items::weight::fmt_lb;
 
 /// Draw a centered pop-up frame and return its inner content area.
 pub fn popup(canvas: &mut Canvas, want_w: u16, want_h: u16, title: &str) -> Area {
@@ -35,6 +36,17 @@ pub fn panel(canvas: &mut Canvas, outer: Area, title: &str) -> Area {
 pub fn footer(canvas: &mut Canvas, inner: Area, text: &str) {
     let y = inner.y + inner.h.saturating_sub(1);
     canvas.text_max(inner.x, y, text, inner.w, theme::DIM, theme::POPUP);
+}
+
+/// One line showing what you carry, your burden, and how much to shed to
+/// reach the next lighter level, colored by burden.
+pub fn draw_load(canvas: &mut Canvas, x: u16, y: u16, w: u16, p: &crate::creatures::player::Player) {
+    let (carried, cap, burden) = (p.carried_weight(), p.carry_capacity(), p.burden());
+    let mut line = format!("Carrying {} / {} · {}", fmt_lb(carried), fmt_lb(cap), burden.name());
+    if let Some((lighter, limit)) = burden.lighter(cap) {
+        line += &format!(" · shed {} to be {}", fmt_lb(carried - limit), lighter.name());
+    }
+    canvas.text_max(x, y, &line, w, theme::burden(burden), theme::POPUP);
 }
 
 /// First visible row for a list so that `selected` stays on screen.
