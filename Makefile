@@ -11,6 +11,8 @@ VERSION := $(shell sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
 TAG     := v$(VERSION)
 DIST    := $(BIN)-$(VERSION)-x86_64-linux
 REPO_URL := https://github.com/ronstr8/roguemoji
+# Added to every release's notes, after the changelog section. No single quotes.
+DOWNLOAD_NOTE := **Download:** the tarball runs on any 64-bit x86 Linux and includes the stock `data/` folder beside the binary. Edit those files to mod the game, no rebuild needed (see `data/README.md`). When you upgrade, replace `data/` along with the binary.
 
 .DEFAULT_GOAL := help
 .PHONY: help build release static dist publish run debug test check lint fmt fmt-check doc clean install uninstall ci
@@ -37,6 +39,7 @@ dist: static ## Package the static build, README, CHANGELOG and live data/ into 
 	tar -C dist -czf dist/$(DIST).tar.gz $(DIST)
 	cd dist && sha256sum $(DIST).tar.gz > $(DIST).tar.gz.sha256
 	awk -v version=$(VERSION) -f scripts/release-notes.awk CHANGELOG.md > dist/notes-$(TAG).md
+	printf '\n%s\n' '$(DOWNLOAD_NOTE)' >> dist/notes-$(TAG).md
 	printf '\nFull changelog: %s/blob/$(TAG)/CHANGELOG.md\n' "$(REPO_URL)" >> dist/notes-$(TAG).md
 	@ls -lh dist/$(DIST).tar.gz
 

@@ -4,6 +4,14 @@
 #
 # GitHub keeps every newline in a release body as a line break, so wrapped
 # list items (continuation lines indented two spaces) are joined into one line.
+# Leading and trailing blank lines are dropped.
+
+# Print a finished line, holding blank lines back until more text follows.
+function emit(l) {
+    if (l == "") { blanks++; return }
+    for (; blanks > 0; blanks--) print ""
+    print l
+}
 
 BEGIN {
     heading = "## [" version "]"
@@ -21,13 +29,13 @@ found && /^## \[/ { exit }
 }
 
 {
-    if (have) print line
+    if (have) emit(line)
     line = $0
     have = 1
 }
 
 END {
-    if (have) print line
+    if (have) emit(line)
     if (!found) {
         print "release-notes: no \"" heading "\" section in CHANGELOG.md" > "/dev/stderr"
         exit 1
