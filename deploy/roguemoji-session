@@ -1,0 +1,23 @@
+#!/bin/sh
+# roguemoji-session: the only program a remote player can run.
+#
+# It is the roguemoji account's login shell, sshd's ForceCommand and ttyd's
+# command. Arguments are ignored on purpose: as a login shell it is called as
+# `roguemoji-session -c <whatever the client asked for>`, and the client must
+# not get to choose anything.
+
+GAME_DIR=/opt/roguemoji
+
+# Only the root-owned data/ beside the binary may be loaded, never a directory
+# a player names.
+unset ROGUEMOJI_DATA
+
+# Emoji need a UTF-8 locale; C.UTF-8 exists on every modern distro.
+export LANG=C.UTF-8 LC_ALL=C.UTF-8
+
+case "${TERM:-}" in
+    "" | dumb | unknown) export TERM=xterm-256color ;;
+    *) ;;
+esac
+
+exec "${GAME_DIR}/roguemoji"

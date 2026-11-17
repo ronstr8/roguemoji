@@ -1,0 +1,44 @@
+# /etc/systemd/system/roguemoji-ttyd.service
+#
+# roguemoji in the browser: ttyd starts one game per tab and serves it over a
+# websocket on loopback port 7681, under /play/. A web server in front adds
+# TLS (see ../nginx/roguemoji.conf). Limits below cover all players together.
+
+[Unit]
+Description=roguemoji in the browser (ttyd)
+After=network.target
+
+[Service]
+User=roguemoji
+Group=roguemoji
+ExecStart=/usr/bin/ttyd \
+    --interface lo --port 7681 --base-path /play \
+    --writable --max-clients 40 --check-origin \
+    --terminal-type xterm-256color \
+    --client-option titleFixed=roguemoji \
+    --client-option disableLeaveAlert=true \
+    /opt/roguemoji/roguemoji-session
+Restart=on-failure
+
+# All players share these.
+MemoryMax=1G
+TasksMax=200
+CPUQuota=200%
+
+# The game reads its binary and data/ and writes nothing.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallFilter=@system-service
+
+[Install]
+WantedBy=multi-user.target

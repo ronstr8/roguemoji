@@ -114,6 +114,12 @@ stackable items share one slot.
 **Visitor lockboxes** 🛅 all open onto one shared stash of 20 slots. Leave
 spare guns and armor in one, then take them out of a lockbox on a deeper level.
 
+## Hosting
+
+To let anyone play on your server, over `ssh roguemoji@your.host` or in a
+browser, see [deploy/README.md](deploy/README.md). It has a locked-down sshd
+config, a sandboxed ttyd service and an nginx snippet.
+
 ## Versions
 
 The version lives in `Cargo.toml` and shows on the title screen. Each release is
@@ -145,6 +151,7 @@ data/
   melee/ armor/ packs/   wieldable and wearable gear
   cartridges/ ammo/ guns/  firearms and their ballistics
 build.rs           embeds data/ into the binary
+deploy/            configs for hosting public play over SSH and in the browser
 src/
   main.rs          entry point, content validation, terminal setup
   content.rs       finds and parses data files (built-in + drop-ins)
