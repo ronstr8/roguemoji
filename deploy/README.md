@@ -14,87 +14,65 @@ resources players can use.
 |---|---|---|
 | `roguemoji-session` | `/opt/roguemoji/` | The one program players can run. Clears `ROGUEMOJI_DATA`, sets a UTF-8 locale, and starts the game |
 | `sshd/50-roguemoji.conf` | `/etc/ssh/sshd_config.d/` | Password login for the `roguemoji` account only, which always runs the game. No forwarding or tunnels |
-| `sshd/banner.txt` | `/opt/roguemoji/` | Shown before the password prompt. Tells players the password |
+| `sshd/banner.txt` | `/opt/roguemoji/` | Shown before the password prompt. Tells players the password (`@PASSWORD@` is filled in on install) |
 | `systemd/roguemoji-ttyd.service` | `/etc/systemd/system/` | ttyd on loopback port 7681, sandboxed, with shared memory, task and CPU caps |
 | `systemd/user-slice.conf` | `/etc/systemd/system/user-<UID>.slice.d/50-roguemoji.conf` | The same caps for SSH players |
+| `Makefile`, `scripts/` | | Install all of the above (see Setup) |
 | `nginx/roguemoji.conf` | your site's TLS `server { }` block | Proxies `/roguemoji/play/` and its websocket to ttyd |
 
 ## Setup
 
-Run these as root on the server. They assume Debian or Ubuntu with OpenSSH 8.2
-or newer (for `sshd_config.d`) and nginx.
+On the server, from a checkout of this repository (Debian or Ubuntu, OpenSSH
+8.2 or newer for `sshd_config.d`, and nginx):
 
-1. **Install the game.** Unpack a Linux release (or the output of `make static`)
-   into `/opt/roguemoji`, so that the binary and `data/` sit side by side. Then
-   add this folder's wrapper and banner:
+```sh
+make static                # or skip this and pass TARBALL= below
+make -C deploy install     # or TARBALL=roguemoji-X.Y.Z-x86_64-linux.tar.gz
+make -C deploy check
+```
 
-   ```sh
-   mkdir -p /opt/roguemoji
-   tar -C /opt/roguemoji --strip-components=1 -xzf roguemoji-X.Y.Z-x86_64-linux.tar.gz
-   install -m 755 deploy/roguemoji-session /opt/roguemoji/
-   install -m 644 deploy/sshd/banner.txt /opt/roguemoji/
-   chown -R root:root /opt/roguemoji
-   ```
+`make webplay` at the top level does the first two steps together. The
+recipes use `sudo` unless you run them as root. `make -C deploy` alone lists
+every target. `install` runs these in order:
 
-   Everything there stays owned by root. Players can't change the game data.
+| Target | What it does |
+|---|---|
+| `game` | Puts the binary and `data/` in `/opt/roguemoji`, owned by root, so players can't change the game data |
+| `ensure-user` | Creates the `roguemoji` system account if it's missing. Its home is `/var/lib/roguemoji`, its password is `PASSWORD` (default `roguemoji`), and its login shell is the wrapper, so even `su` lands in the game. It warns if an existing account has a different shell |
+| `sshd` | Installs the wrapper, banner and sshd drop-in, runs `sshd -t`, and reloads sshd only if that passes. Set `SSH_UNIT=sshd` on distros that name the service that way |
+| `slice` | Fills in the account's UID and installs the cap for SSH players |
+| `ttyd` | Installs ttyd with apt if `/usr/bin/ttyd` is missing (`ensure-ttyd`), stops if it's older than 1.7, then installs and starts the service |
 
-2. **Create the account.** Its login shell is the wrapper, so even `su` lands in
-   the game. Set the password the banner prints (`roguemoji` unless you edit it):
+**Config files are installed only where they're missing.** If one already
+exists and differs, it's left alone and reported, since you may have edited it
+on the server. Diff it against this folder, then run with `FORCE=1` to replace
+it; the old file is kept beside it as `.orig`. Unit changes need
+`systemctl restart roguemoji-ttyd`, which ends games in progress.
 
-   ```sh
-   useradd --system --create-home --shell /opt/roguemoji/roguemoji-session roguemoji
-   passwd roguemoji
-   ```
+**After `install`:**
 
-3. **SSH.** Install the config, check it, and reload:
+- `make -C deploy check` shows the sshd settings each account really gets. The
+  roguemoji account should have the `forcecommand` and password login. Root
+  (and you) should keep your usual settings, with no `forcecommand`. Keep your
+  current SSH session open until you've logged in again from a new one.
+- Paste `nginx/roguemoji.conf` into your site's TLS `server { }` block, then
+  run `nginx -t && systemctl reload nginx`. ttyd listens only on loopback, so
+  nginx is the only way in from outside. On Apache, the same proxy is
+  `ProxyPass /roguemoji/play/ http://127.0.0.1:7681/roguemoji/play/ upgrade=websocket`,
+  which needs `mod_proxy_http` and Apache 2.4.47 or newer.
+- With many players, raise sshd's global `MaxStartups` (default `10:30:100`)
+  so that a burst of logins isn't refused.
 
-   ```sh
-   install -m 644 deploy/sshd/50-roguemoji.conf /etc/ssh/sshd_config.d/
-   sshd -t
-   sshd -T -C user=roguemoji,host=x,addr=203.0.113.1 | grep -Ei 'forcecommand|passwordauth|disableforwarding'
-   sshd -T -C user=root,host=x,addr=203.0.113.1 | grep -Ei 'forcecommand|passwordauth'
-   systemctl reload ssh
-   ```
-
-   The two `sshd -T` lines show the settings each account really gets. The
-   roguemoji account should have the `forcecommand` and password login. Root
-   (and you) should keep your usual settings, with no `forcecommand`. Keep your
-   current SSH session open until you've logged in again from a new one.
-
-   With many players, raise sshd's global `MaxStartups` (default `10:30:100`)
-   so that a burst of logins isn't refused.
-
-4. **Cap SSH players.** Copy the slice drop-in and fill in the account's UID:
-
-   ```sh
-   uid=$(id -u roguemoji)
-   mkdir -p /etc/systemd/system/user-$uid.slice.d
-   sed "s/<UID>/$uid/" deploy/systemd/user-slice.conf > /etc/systemd/system/user-$uid.slice.d/50-roguemoji.conf
-   systemctl daemon-reload
-   ```
-
-5. **Browser.** Install ttyd 1.7 or newer (`apt install ttyd`, or a static
-   binary from its releases page; the unit expects `/usr/bin/ttyd`). Then start
-   the service:
-
-   ```sh
-   install -m 644 deploy/systemd/roguemoji-ttyd.service /etc/systemd/system/
-   systemctl daemon-reload
-   systemctl enable --now roguemoji-ttyd
-   ```
-
-   Paste `nginx/roguemoji.conf` into your site's TLS `server { }` block,
-   then run `nginx -t && systemctl reload nginx`. ttyd listens only on
-   loopback, so nginx is the only way in from outside.
-
-   On Apache, the same proxy is `ProxyPass /roguemoji/play/ http://127.0.0.1:7681/roguemoji/play/ upgrade=websocket`,
-   which needs `mod_proxy_http` and Apache 2.4.47 or newer.
+Other targets: `password PASSWORD=...` changes the password and the banner
+together, `status` shows the service and how many games are running, and
+`uninstall` removes the service and config files but keeps the account and
+`/opt/roguemoji`.
 
 ## Updating
 
-Unpack the new release over `/opt/roguemoji`, replacing `data/` too. Running
-games keep the old version until their players quit, and new connections get
-the new one. Nothing needs restarting.
+`make -C deploy game` (after `make static`, or with `TARBALL=`) replaces the
+binary and `data/`. Running games keep what they loaded until their players
+quit, and new connections get the new version. Nothing needs restarting.
 
 ## Notes
 

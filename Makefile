@@ -17,7 +17,7 @@ REPO_URL := https://github.com/ronstr8/roguemoji
 DOWNLOAD_NOTE := **Download:** the `.tar.gz` runs on any 64-bit x86 Linux; the `.zip` runs on 64-bit Windows (play it in Windows Terminal, since the old console window draws emoji badly). Both include the stock `data/` folder beside the binary. Edit those files to mod the game, no rebuild needed (see `data/README.md`). When you upgrade, replace `data/` along with the binary.
 
 .DEFAULT_GOAL := help
-.PHONY: help build release static windows dist publish run debug test check lint fmt fmt-check doc clean install uninstall ci
+.PHONY: help build release static windows dist publish run debug test check lint fmt fmt-check doc clean install uninstall webplay ci
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | \
@@ -93,6 +93,9 @@ ci: fmt-check lint test ## Everything CI would run
 
 install: release ## Install to PREFIX/bin (default ~/.local/bin)
 	install -Dm755 target/release/$(BIN) $(PREFIX)/bin/$(BIN)
+
+webplay: static ## Set up public SSH and browser play on this server (see deploy/README.md)
+	$(MAKE) -C deploy install
 
 uninstall: ## Remove from PREFIX/bin
 	rm -f $(PREFIX)/bin/$(BIN)

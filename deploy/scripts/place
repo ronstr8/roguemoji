@@ -1,0 +1,22 @@
+#!/bin/sh
+# place SRC DEST MODE: install SRC at DEST, as root, if DEST doesn't exist.
+#
+# An existing DEST that differs is left alone, since it may hold local edits
+# made on the server. FORCE=1 replaces it and keeps the old file as DEST.orig
+# (a name sshd and systemd both ignore).
+set -eu
+src=$1 dest=$2 mode=$3
+sudo=${SUDO-sudo}
+
+if [ ! -e "$dest" ]; then
+    $sudo install -D -m "$mode" "$src" "$dest"
+    echo "installed  $dest"
+elif cmp -s "$src" "$dest"; then
+    echo "up to date $dest"
+elif [ "${FORCE:-0}" = 1 ]; then
+    $sudo cp -p "$dest" "$dest.orig"
+    $sudo install -m "$mode" "$src" "$dest"
+    echo "replaced   $dest (old copy in $dest.orig)"
+else
+    echo "left alone $dest: it differs from $src (diff them, or FORCE=1 to replace)" >&2
+fi

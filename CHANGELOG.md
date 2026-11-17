@@ -14,7 +14,8 @@ version can change rules, controls or data-file formats.
   to reach the next lighter level, e.g. "shed 4.2 lb to be Light".
 - `deploy/` holds what you need to host public play: a locked-down sshd config
   for `ssh roguemoji@host`, a sandboxed ttyd service for play in the browser,
-  an nginx snippet, and setup steps.
+  an nginx snippet, and setup steps. `make webplay` builds the game and
+  installs it all, creating the `roguemoji` account if needed.
 
 ### Changed
 - 20ga #3 Buck carries 470 grains of shot instead of 400, matching real

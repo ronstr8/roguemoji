@@ -1,0 +1,36 @@
+#!/bin/sh
+# install-game DEST TARBALL
+# install-game DEST BIN DATA_DIR
+#
+# Installs the game binary and its data/ into DEST, owned by root. data/ is
+# swapped in whole so files removed upstream don't linger. Games already
+# running keep what they loaded at startup.
+set -eu
+dest=$1
+shift
+sudo=${SUDO-sudo}
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+
+if [ $# -eq 1 ]; then
+    tar -C "$tmp" --strip-components=1 -xzf "$1"
+    bin=$tmp/roguemoji data=$tmp/data
+else
+    bin=$1 data=$2
+fi
+[ -x "$bin" ] || { echo "install-game: no game binary at $bin" >&2; exit 1; }
+[ -d "$data" ] || { echo "install-game: no data directory at $data" >&2; exit 1; }
+
+$sudo install -d -m 755 "$dest"
+$sudo install -m 755 "$bin" "$dest/roguemoji.new"
+$sudo mv -f "$dest/roguemoji.new" "$dest/roguemoji"
+
+$sudo rm -rf "$dest/data.new" "$dest/data.old"
+$sudo cp -R "$data" "$dest/data.new"
+$sudo chown -R root:root "$dest/data.new"
+$sudo chmod -R u=rwX,go=rX "$dest/data.new"
+if [ -d "$dest/data" ]; then $sudo mv "$dest/data" "$dest/data.old"; fi
+$sudo mv "$dest/data.new" "$dest/data"
+$sudo rm -rf "$dest/data.old"
+
+echo "installed  $("$dest/roguemoji" --version) in $dest"

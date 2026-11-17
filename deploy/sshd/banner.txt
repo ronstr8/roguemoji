@@ -1,7 +1,7 @@
 
   roguemoji 💥  an emoji roguelike
 
-  The password is: roguemoji
+  The password is: @PASSWORD@
 
   You need a terminal of at least 80x24 that draws emoji double-width.
   Press Q in the game to quit.

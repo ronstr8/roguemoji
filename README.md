@@ -13,6 +13,7 @@ cargo run --release -- --version   # print the version
 cargo test                     # unit + soak tests
 make static                    # self-contained Linux binary (musl), no shared-lib deps
 make dist                      # package that binary with docs and data/ into dist/
+make webplay                   # host public play over SSH and in the browser (deploy/)
 ```
 
 You need a terminal of at least 80×24 with a font that renders emoji as double-width
@@ -118,7 +119,8 @@ spare guns and armor in one, then take them out of a lockbox on a deeper level.
 
 To let anyone play on your server, over `ssh roguemoji@your.host` or in a
 browser, see [deploy/README.md](deploy/README.md). It has a locked-down sshd
-config, a sandboxed ttyd service and an nginx snippet.
+config, a sandboxed ttyd service, an nginx snippet, and a Makefile that
+installs them: `make webplay`.
 
 ## Versions
 
