@@ -3,7 +3,7 @@
 How to let anyone play roguemoji on your server, in two ways:
 
 - **SSH:** `ssh roguemoji@your.host`, with a password printed in the login banner.
-- **Browser:** `https://your.host/play/`, through [ttyd](https://github.com/tsl0922/ttyd)
+- **Browser:** `https://your.host/roguemoji/play/`, through [ttyd](https://github.com/tsl0922/ttyd)
   behind your web server.
 
 Each connection gets its own game in a fresh random world. The game writes no
@@ -17,7 +17,7 @@ resources players can use.
 | `sshd/banner.txt` | `/opt/roguemoji/` | Shown before the password prompt. Tells players the password |
 | `systemd/roguemoji-ttyd.service` | `/etc/systemd/system/` | ttyd on loopback port 7681, sandboxed, with shared memory, task and CPU caps |
 | `systemd/user-slice.conf` | `/etc/systemd/system/user-<UID>.slice.d/50-roguemoji.conf` | The same caps for SSH players |
-| `nginx/roguemoji.conf` | your site's TLS `server { }` block | Proxies `/play/` and its websocket to ttyd |
+| `nginx/roguemoji.conf` | your site's TLS `server { }` block | Proxies `/roguemoji/play/` and its websocket to ttyd |
 
 ## Setup
 
@@ -87,7 +87,7 @@ or newer (for `sshd_config.d`) and nginx.
    then run `nginx -t && systemctl reload nginx`. ttyd listens only on
    loopback, so nginx is the only way in from outside.
 
-   On Apache, the same proxy is `ProxyPass /play/ http://127.0.0.1:7681/play/ upgrade=websocket`,
+   On Apache, the same proxy is `ProxyPass /roguemoji/play/ http://127.0.0.1:7681/roguemoji/play/ upgrade=websocket`,
    which needs `mod_proxy_http` and Apache 2.4.47 or newer.
 
 ## Updating
