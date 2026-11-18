@@ -71,6 +71,7 @@ impl Game {
     }
 
     fn monster_attack(&mut self, i: usize) {
+        self.player.fought = true;
         let def = self.monsters[i].def();
         let name = &def.name;
         let attack = Attack {

@@ -8,8 +8,20 @@ version can change rules, controls or data-file formats.
 ## [Unreleased]
 
 ### Added
+- Rest. Every turn tires you, fighting twice as fast and heavy loads faster
+  (×1.5 Burdened, ×2 Strained). Tired lowers Reflexes; Exhausted lowers
+  Reflexes and Wit. At empty you collapse 💤 and sleep where you stand until
+  you've recovered somewhat, unless something hits you.
+- Press `z` to nap until fully rested. A monster coming into view or any key
+  wakes you. Sleep heals 1 HP every 10 turns; hunger and thirst keep draining.
+- Mods can give needs `fighting` and `burden` drain multipliers; `rest` takes
+  a `sleep` table (`recover`, `wake_at`, `heal_every`).
 - `make -C deploy update` updates a public-play server to the newest release
   (or `RELEASE=x.y.z`), checking the download against its sha256.
+
+### Changed
+- The sidebar's needs get a line of their own (`Fed  ·  Hydrated  ·  Rested`),
+  with crystals on the line below; the character sheet lists one need per line.
 
 ## [0.5.0] - 2026-11-18
 

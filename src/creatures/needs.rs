@@ -1,9 +1,11 @@
-//! Bodily needs that drain every turn: hunger and thirst, loaded from
+//! Bodily needs that drain every turn: hunger, thirst and rest, loaded from
 //! `data/needs/*.toml` (see `data/README.md`).
 //!
-//! A need is a meter from 0 to `max` that falls by `drain` each turn. Its
-//! stages name ranges of the meter and say what being there costs: attribute
-//! modifiers, and HP lost every few turns once it runs dry.
+//! A need is a meter from 0 to `max` that falls by `drain` each turn, faster
+//! in a fight or under a heavy load if its file says so. Its stages name
+//! ranges of the meter and say what being there costs: attribute modifiers,
+//! and HP lost every few turns once it runs dry. A need with `sleep` (rest)
+//! knocks you out at 0 and refills while you sleep instead.
 
 use std::collections::BTreeMap;
 
@@ -20,6 +22,7 @@ pub struct Need(u16);
 /// The needs the game's code refers to by id.
 pub const HUNGER: &str = "hunger";
 pub const THIRST: &str = "thirst";
+pub const REST: &str = "rest";
 
 #[derive(Debug)]
 pub struct NeedDef {
@@ -33,8 +36,27 @@ pub struct NeedDef {
     pub start: i32,
     /// Lost each turn.
     pub drain: i32,
+    /// Drain is multiplied by this on a turn you fight (attack or are attacked).
+    pub fighting: i32,
+    /// Whether drain scales with burden, as movement cost does (×1.5, ×2).
+    pub burden: bool,
+    /// How sleep works, for the need that sleeping restores.
+    pub sleep: Option<SleepDef>,
     /// Highest first; the first stage covers the top of the meter.
     pub stages: Vec<Stage>,
+}
+
+/// Sleep, for the need it restores: you collapse when the meter hits 0.
+#[derive(Clone, Copy, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SleepDef {
+    /// Added to the meter each turn asleep.
+    pub recover: i32,
+    /// After collapsing, you wake once the meter reaches this.
+    pub wake_at: i32,
+    /// Regain 1 HP every this many turns asleep; 0 for none.
+    #[serde(default)]
+    pub heal_every: u32,
 }
 
 /// A named range of a need's meter and what being in it does.
@@ -110,6 +132,23 @@ impl RawUnsafeDrink {
 pub struct Meter {
     pub need: Need,
     pub value: i32,
+    /// Half a point of drain carried over from a turn whose drain was fractional.
+    carry: i32,
+}
+
+/// What made this turn harder on the body than standing still.
+#[derive(Clone, Copy, Debug)]
+pub struct Strain {
+    /// Attacked or was attacked.
+    pub fought: bool,
+    /// The burden's movement cost in half-turns (2 = unburdened).
+    pub burden_halves: u32,
+}
+
+impl Strain {
+    /// A quiet turn under no load.
+    #[cfg(test)]
+    pub const NONE: Strain = Strain { fought: false, burden_halves: 2 };
 }
 
 /// What a change to a meter did.
@@ -124,7 +163,7 @@ pub struct Change {
 impl Meter {
     /// A meter at the need's starting level.
     pub fn new(need: Need) -> Self {
-        Meter { need, value: need.def().start }
+        Meter { need, value: need.def().start, carry: 0 }
     }
 
     pub fn def(&self) -> &'static NeedDef {
@@ -149,9 +188,23 @@ impl Meter {
         Change { message, hurt: None }
     }
 
-    /// One turn passes: drain, and hurt on the stage's schedule.
-    pub fn tick(&mut self, turn: u64) -> Change {
-        let mut change = self.adjust(-self.def().drain);
+    /// A meter at `value`, for setting up a situation.
+    #[cfg(test)]
+    pub fn at(need: Need, value: i32) -> Self {
+        Meter { need, value, carry: 0 }
+    }
+
+    /// One turn passes: drain (scaled by `strain` as the need's file says),
+    /// and hurt on the stage's schedule.
+    pub fn tick(&mut self, turn: u64, strain: Strain) -> Change {
+        let def = self.def();
+        let mut halves = if def.burden { strain.burden_halves as i32 } else { 2 };
+        if strain.fought {
+            halves *= def.fighting;
+        }
+        let owed = def.drain * halves + self.carry;
+        self.carry = owed % 2;
+        let mut change = self.adjust(-owed / 2);
         if let Some(h) = &self.stage().hurts
             && turn.is_multiple_of(u64::from(h.every))
         {
@@ -175,7 +228,17 @@ struct RawNeed {
     max: i32,
     start: i32,
     drain: i32,
+    #[serde(default = "one")]
+    fighting: i32,
+    #[serde(default)]
+    burden: bool,
+    #[serde(default)]
+    sleep: Option<SleepDef>,
     stages: Vec<RawStage>,
+}
+
+fn one() -> i32 {
+    1
 }
 
 #[derive(Deserialize)]
@@ -202,10 +265,25 @@ fn build(id: String, raw: RawNeed) -> Result<NeedDef, Vec<String>> {
     p.check(raw.max > 0, "max must be positive");
     p.check((0..=raw.max).contains(&raw.start), "start must be between 0 and max");
     p.check(raw.drain >= 0, "drain cannot be negative");
+    p.check(raw.fighting >= 1, "fighting must be 1 or more");
+    if let Some(s) = raw.sleep {
+        p.check(s.recover > 0, "sleep.recover must be positive");
+        p.check(s.wake_at > 0 && s.wake_at <= raw.max, "sleep.wake_at must be above 0 and at most max");
+    }
     p.check(!raw.stages.is_empty(), "needs at least one stage");
     let stages: Vec<Stage> = raw.stages.into_iter().map(|s| build_stage(s, &mut p)).collect();
     check_thresholds(&stages, raw.max, &mut p);
-    p.finish(|| NeedDef { id, name: raw.name, max: raw.max, start: raw.start, drain: raw.drain, stages })
+    p.finish(|| NeedDef {
+        id,
+        name: raw.name,
+        max: raw.max,
+        start: raw.start,
+        drain: raw.drain,
+        fighting: raw.fighting,
+        burden: raw.burden,
+        sleep: raw.sleep,
+        stages,
+    })
 }
 
 fn build_stage(raw: RawStage, p: &mut Problems) -> Stage {
@@ -241,7 +319,10 @@ content::registry!(Need, NeedDef, "need", load);
 
 fn load() -> Result<Vec<NeedDef>, String> {
     let defs = content::load_defs("needs", build)?;
-    content::require("needs", |id| defs.iter().any(|d| d.id == id), [HUNGER, THIRST])?;
+    content::require("needs", |id| defs.iter().any(|d| d.id == id), [HUNGER, THIRST, REST])?;
+    if defs.iter().any(|d| d.id == REST && d.sleep.is_none()) {
+        return Err(format!("data/needs/{REST}.toml needs `sleep`: it says how sleeping restores rest"));
+    }
     Ok(defs)
 }
 
@@ -276,6 +357,7 @@ mod tests {
     fn stock_needs_load() {
         load().expect("stock need data is valid");
         assert_eq!(Need::named(THIRST).def().name, "Hydration");
+        assert!(Need::named(REST).def().sleep.is_some());
     }
 
     #[test]
@@ -295,30 +377,61 @@ mod tests {
         assert!(parse(&GOOD.replace("wit", "charisma")).unwrap_err().contains("charisma"));
         assert!(parse(&GOOD.replace("every = 5", "every = 0")).unwrap_err().contains("every"));
         assert!(parse(&GOOD.replace("start = 80", "start = 101")).unwrap_err().contains("start"));
+        assert!(parse(&GOOD.replace("drain = 2", "drain = 2\nfighting = 0")).unwrap_err().contains("fighting"));
+        let sleep = |s: &str| GOOD.replace("drain = 2", &format!("drain = 2\nsleep = {{ {s} }}"));
+        assert!(parse(&sleep("recover = 5, wake_at = 50")).is_ok());
+        assert!(parse(&sleep("recover = 0, wake_at = 50")).unwrap_err().contains("recover"));
+        assert!(parse(&sleep("recover = 5, wake_at = 101")).unwrap_err().contains("wake_at"));
     }
 
     #[test]
     fn thirst_announces_each_lower_stage_once_and_hurts_when_dry() {
         let need = Need::named(THIRST);
         let thirsty = need.def().stages[1].at_most.unwrap();
-        let mut m = Meter { need, value: thirsty + 1 };
+        let mut m = Meter::at(need, thirsty + 1);
         let drain = need.def().drain;
         let first = m.adjust(-drain);
         assert!(first.message.is_some(), "falling into Thirsty is announced");
         assert_eq!(m.adjust(-drain).message, None, "staying there is not");
         m.value = 0;
         let every = m.stage().hurts.as_ref().expect("dry thirst hurts").every;
-        assert!(m.tick(u64::from(every)).hurt.is_some());
-        assert!(m.tick(u64::from(every) + 1).hurt.is_none());
+        assert!(m.tick(u64::from(every), Strain::NONE).hurt.is_some());
+        assert!(m.tick(u64::from(every) + 1, Strain::NONE).hurt.is_none());
         assert_eq!(m.adjust(10).message, None, "rising is never announced");
     }
 
     #[test]
     fn modifiers_apply_only_in_their_stage() {
         let need = Need::named(THIRST);
-        let full = Meter { need, value: need.def().max };
-        let dry = Meter { need, value: 0 };
+        let full = Meter::at(need, need.def().max);
+        let dry = Meter::at(need, 0);
         assert_eq!(full.modifier(Attribute::Brains), 0);
         assert!(dry.modifier(Attribute::Brains) < 0);
+    }
+
+    #[test]
+    fn rest_drains_faster_in_a_fight_and_under_a_load() {
+        let need = Need::named(REST);
+        let lost = |strain: Strain| {
+            let mut m = Meter::at(need, need.def().max);
+            for turn in 1..=10 {
+                m.tick(turn, strain);
+            }
+            need.def().max - m.value
+        };
+        let calm = lost(Strain::NONE);
+        assert!(calm > 0);
+        assert_eq!(lost(Strain { fought: true, ..Strain::NONE }), calm * need.def().fighting);
+        assert_eq!(lost(Strain { burden_halves: 3, ..Strain::NONE }), calm * 3 / 2, "half points carry over");
+    }
+
+    #[test]
+    fn hunger_ignores_fighting_and_burden() {
+        let need = Need::named(HUNGER);
+        let mut calm = Meter::at(need, 500);
+        let mut strained = Meter::at(need, 500);
+        calm.tick(1, Strain::NONE);
+        strained.tick(1, Strain { fought: true, burden_halves: 4 });
+        assert_eq!(calm.value, strained.value);
     }
 }

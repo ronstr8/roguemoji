@@ -31,6 +31,7 @@ You need a terminal of at least 80×24 with a font that renders emoji as double-
 | `g` / `,` / `5` | pick up |
 | `a` / `A` | absorb one crystal / absorb until healed |
 | `d` | drink from water underfoot or next to you |
+| `z` | nap until rested (a monster in view, a hit or any key wakes you) |
 | `S` | cycle stance |
 | `>` | descend on 🔽 |
 | `i` `c` `m` `?` | inventory · character sheet · crafting · help |
@@ -104,6 +105,12 @@ lowers Brains and Wit, and Parched lowers them further and costs HP faster. Bott
 Water is safe. Dirty Water from pumps, and pools you drink from with `d`, quench as
 well but take a Survival check to keep down; boil Dirty Water (`m`) to make it safe.
 
+**Rest** drains every turn too, twice as fast while fighting and faster under a heavy
+load. Tired lowers Reflexes; Exhausted lowers Reflexes and Wit. At empty you collapse
+💤 and sleep where you stand until you've recovered some, unless something hits you.
+Press `z` to nap first: it lasts until you're fully rested, a monster comes into view, or
+you press a key. Sleep heals a little, but hunger and thirst keep draining.
+
 **Harvesting and crafting.** Bump plants, pumps, wrecks, toolboxes, electronics and crates
 to gather components with Survival or Scavenging. Then craft food and drink with timed
 buffs, such as Glowcap Brew (+Brains/Wit), Grilled Meat (+Brawn), Mutant Stew
@@ -157,7 +164,7 @@ data/
   monsters/        one TOML file per monster (see data/README.md)
   components/      one TOML file per crafting component
   consumables/     food, drink and medicine
-  needs/           hunger and thirst: drain rates and stages
+  needs/           hunger, thirst and rest: drain rates, stages and sleep
   recipes/         crafting recipes
   melee/ armor/ packs/   wieldable and wearable gear
   cartridges/ ammo/ guns/  firearms and their ballistics

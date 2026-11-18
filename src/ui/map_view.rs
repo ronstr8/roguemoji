@@ -8,6 +8,8 @@ use crate::game::Game;
 use crate::geometry::{Pos, line};
 
 pub const PLAYER_GLYPH: &str = "🧑";
+/// The player while asleep.
+pub const SLEEP_GLYPH: &str = "💤";
 /// Drawn briefly over a creature a shot strikes.
 pub const BANG_GLYPH: &str = "💥";
 
@@ -49,7 +51,7 @@ pub fn draw(canvas: &mut Canvas, area: Area, game: &Game, target: Option<Pos>, f
                 let glyph = if Some(p) == flash {
                     Some(BANG_GLYPH)
                 } else if p == me {
-                    Some(PLAYER_GLYPH)
+                    Some(if game.player.is_asleep() { SLEEP_GLYPH } else { PLAYER_GLYPH })
                 } else {
                     monsters.get(&p).or_else(|| items.get(&p)).copied().or_else(|| map.feature(p).map(|f| f.glyph()))
                 };

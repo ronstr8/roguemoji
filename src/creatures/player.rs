@@ -1,7 +1,7 @@
 //! The player character: stats, equipment, pack and derived values.
 
 use crate::combat::{Momentum, Stance};
-use crate::creatures::needs::{self, Meter, Need};
+use crate::creatures::needs::{self, Meter, Need, SleepDef};
 use crate::effects::{EffectKind, Effects};
 use crate::geometry::Pos;
 use crate::items::melee::{FISTS, MeleeDef};
@@ -89,6 +89,15 @@ impl Burden {
     }
 }
 
+/// Why the player is asleep, which decides what wakes them.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Sleep {
+    /// Chose to rest (`z`): until fully rested, a monster comes into view, or a key.
+    Nap,
+    /// Dropped from exhaustion: until rest climbs back to the need's `wake_at`.
+    Collapse,
+}
+
 /// A place gear is worn or wielded, in inventory display order.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Slot {
@@ -128,6 +137,11 @@ pub struct Player {
     pub crystals: u32,
     pub hunger: Meter,
     pub thirst: Meter,
+    pub rest: Meter,
+    /// Asleep, and why.
+    pub sleep: Option<Sleep>,
+    /// Attacked or was attacked since the last turn's needs were drained.
+    pub fought: bool,
     pub stance: Stance,
     pub momentum: Momentum,
     pub kills: u32,
@@ -153,6 +167,9 @@ impl Player {
             crystals: 0,
             hunger: Meter::new(Need::named(needs::HUNGER)),
             thirst: Meter::new(Need::named(needs::THIRST)),
+            rest: Meter::new(Need::named(needs::REST)),
+            sleep: None,
+            fought: false,
             stance: Stance::Balanced,
             momentum: Momentum::default(),
             kills: 0,
@@ -260,11 +277,21 @@ impl Player {
     }
 
     /// Every bodily need, in display order.
-    pub fn needs(&self) -> [&Meter; 2] {
-        [&self.hunger, &self.thirst]
+    pub fn needs(&self) -> [&Meter; 3] {
+        [&self.hunger, &self.thirst, &self.rest]
     }
 
-    pub fn needs_mut(&mut self) -> [&mut Meter; 2] {
+    /// The needs that drain every turn, asleep or awake (rest refills in sleep).
+    pub fn waking_needs_mut(&mut self) -> [&mut Meter; 2] {
         [&mut self.hunger, &mut self.thirst]
+    }
+
+    pub fn is_asleep(&self) -> bool {
+        self.sleep.is_some()
+    }
+
+    /// How sleeping restores rest; validated present at startup.
+    pub fn sleep_def(&self) -> SleepDef {
+        self.rest.def().sleep.expect("rest has sleep (checked at load)")
     }
 }

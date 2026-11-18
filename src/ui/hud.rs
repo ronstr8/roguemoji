@@ -4,6 +4,7 @@ use crossterm::style::Color;
 
 use super::canvas::Canvas;
 use super::{Area, theme};
+use crate::creatures::player::Sleep;
 use crate::game::Game;
 use crate::items::weight::fmt_lb;
 use crate::items::{CRYSTAL_GLYPH, GUN_GLYPH};
@@ -42,14 +43,19 @@ pub fn draw_sidebar(canvas: &mut Canvas, area: Area, game: &Game) {
     };
     line(canvas, &mut y, &format!("HP {} {}/{}", bar(p.hp, max_hp, 14), p.hp, max_hp), hp_color);
     let needs_color = if p.needs().iter().any(|m| m.stage().is_warning()) { theme::BAD } else { theme::TEXT };
-    let needs = format!("{} {}  ·  {}  ·  {}", CRYSTAL_GLYPH, p.crystals, p.hunger.label(), p.thirst.label());
-    line(canvas, &mut y, &needs, needs_color);
+    let needs: Vec<&str> = p.needs().iter().map(|m| m.label()).collect();
+    line(canvas, &mut y, &needs.join("  ·  "), needs_color);
+    line(canvas, &mut y, &format!("{} {} crystals", CRYSTAL_GLYPH, p.crystals), theme::TEXT);
     line(canvas, &mut y, &format!("DEF {}  ARMOR {}  Turn {}", p.defense(), p.armor_value(), game.turn), theme::TEXT);
     let burden = p.burden();
     let load = format!("Load {}/{} ({})", fmt_lb(p.carried_weight()), fmt_lb(p.carry_capacity()), burden.name());
     line(canvas, &mut y, &load, theme::burden(burden));
-    let momentum = "▲".repeat(p.momentum.stacks() as usize);
-    line(canvas, &mut y, &format!("Stance {}  {}", p.stance.name(), momentum), theme::WARN);
+    let status = match p.sleep {
+        Some(Sleep::Nap) => "💤 Napping (any key to get up)".to_string(),
+        Some(Sleep::Collapse) => "💤 Out cold".to_string(),
+        None => format!("Stance {}  {}", p.stance.name(), "▲".repeat(p.momentum.stacks() as usize)),
+    };
+    line(canvas, &mut y, &status, theme::WARN);
     y += 1;
 
     let melee = p.melee_def();
@@ -137,11 +143,12 @@ mod tests {
     }
 
     #[test]
-    fn shows_hunger_and_thirst() {
+    fn shows_every_need() {
         let mut g = Game::new(Background::ALL[0].create("Tester".into()), Some(1));
         let rows = sidebar(&g);
         println!("{}", rows.join("\n"));
-        assert!(rows.iter().any(|r| r.contains("💎") && r.contains("Fed  ·  Hydrated")));
+        assert!(rows.iter().any(|r| r.contains("Fed  ·  Hydrated  ·  Rested")));
+        assert!(rows.iter().any(|r| r.contains("💎") && r.contains("crystals")));
         g.player.thirst.value = 0;
         assert!(sidebar(&g).iter().any(|r| r.contains("Parched")));
     }

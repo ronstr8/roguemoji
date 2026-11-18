@@ -18,6 +18,9 @@ use crate::ui::screens;
 use crate::ui::terminal::Terminal;
 use crate::ui::{self, MIN_HEIGHT, MIN_WIDTH};
 
+/// How long each turn of sleep shows on screen.
+const SLEEP_TICK: Duration = Duration::from_millis(40);
+
 const NAMES: &[&str] = &["Ash", "Rook", "Juniper", "Vega", "Sable", "Cass", "Ozzie", "Wren", "Dell", "Marlow"];
 
 enum Screen {
@@ -65,6 +68,11 @@ impl App {
             let mut canvas = Canvas::new(w, h);
             self.draw(&mut canvas);
             term.present(&canvas)?;
+            // Asleep, turns pass on their own; a key press interrupts.
+            if self.sleeping() && !event::poll(SLEEP_TICK)? {
+                self.sleep_tick();
+                continue;
+            }
             // While a flash is up, wait only until it expires, then redraw.
             if let Some((_, until)) = self.flash {
                 let left = until.saturating_duration_since(Instant::now());
@@ -80,6 +88,19 @@ impl App {
             }
         }
         Ok(())
+    }
+
+    /// Whether the player is asleep on the map, so turns should pass by themselves.
+    fn sleeping(&self) -> bool {
+        matches!(self.screen, Screen::Play) && self.game.as_ref().is_some_and(|g| g.player.is_asleep() && !g.is_over())
+    }
+
+    fn sleep_tick(&mut self) {
+        let Some(game) = self.game.as_mut() else { return };
+        game.sleep_turn();
+        if game.is_over() {
+            self.screen = Screen::Ended;
+        }
     }
 
     // ── Drawing ───────────────────────────────────────────────────────────
@@ -183,9 +204,11 @@ impl App {
                 _ => Screen::Ended,
             },
         };
-        // Any action can end the game.
+        // Any action can end the game, or knock you out (back to the map to sleep it off).
         if self.game.as_ref().is_some_and(|g| g.is_over()) && !matches!(self.screen, Screen::Title { .. }) {
             self.screen = Screen::Ended;
+        } else if self.game.as_ref().is_some_and(|g| g.player.is_asleep()) {
+            self.screen = Screen::Play;
         }
     }
 
@@ -210,6 +233,10 @@ impl App {
     }
 
     fn on_play(&mut self, key: KeyEvent) -> Screen {
+        if let Some(game) = self.game.as_mut().filter(|g| g.player.is_asleep()) {
+            game.rouse();
+            return Screen::Play;
+        }
         let Some(cmd) = input::play_command(key) else { return Screen::Play };
         let Some(game) = self.game.as_mut() else { return Screen::Play };
         match cmd {
@@ -225,6 +252,7 @@ impl App {
             Command::Pickup => game.pickup(),
             Command::Absorb { to_full } => game.absorb(to_full),
             Command::Drink => game.drink_here(),
+            Command::Nap => game.nap(),
             Command::Descend => game.descend(),
             Command::Stance => game.cycle_stance(),
             Command::Inventory => return Screen::Inventory { selected: screens::inventory::first_row(game) },

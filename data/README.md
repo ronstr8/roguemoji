@@ -130,15 +130,19 @@ must exist (you can still override them).
 
 ## Needs — `needs/*.toml`
 
-Meters that drain every turn. The game uses `hunger` (filled by `satiety`) and
-`thirst` (filled by `hydration`), so both files must exist; override them to
-retune.
+Meters that drain every turn. The game uses `hunger` (filled by `satiety`),
+`thirst` (filled by `hydration`) and `rest` (filled by sleeping), so all three
+files must exist; override them to retune.
 
 ```toml
 name = "Hydration"           # what the meter shows as, beside its value
 max = 1000                   # the meter when full
 start = 800                  # at the start of a game
 drain = 3                    # lost every turn
+fighting = 1                 # optional, default 1; drain ×this on a turn you
+                             # attack or are attacked
+burden = false               # optional, default false; true scales drain with
+                             # burden like movement: ×1.5 Burdened, ×2 Strained
 
 # Stages name ranges of the meter, highest first. The first is the top and has
 # no at_most; each later one covers from its at_most down to the next stage's.
@@ -159,11 +163,28 @@ hurts = { every = 10, message = "You are dying of thirst!" }   # optional; 1 HP 
 
 A stage with a message, modifiers or `hurts` shows in red on the sidebar.
 
+`rest` also needs a `sleep` table. At 0 rest you collapse and sleep where you
+stand; `z` naps on purpose.
+
+```toml
+sleep = { recover = 10, wake_at = 400, heal_every = 10 }
+# recover:    rest regained each turn asleep
+# wake_at:    after a collapse, you wake once rest reaches this
+# heal_every: optional, default 0 (none); regain 1 HP every this many turns asleep
+```
+
+A nap lasts until rest is full, a monster comes into view, you're hit, or you
+press a key. A collapse lasts until `wake_at` or a hit. Waking from a hit
+stuns you for a turn. Hunger and thirst keep draining while you sleep.
+
 The stock rates come from how long people last: about 3 days without water and
 3 weeks or more without food. The game squeezes that 7× gap to 3× (thirst drains
 3 a turn, hunger 1) so water is a steady concern without crowding out everything
 else. Hunger runs about 800 turns from Stuffed to Hungry; a quart of water lasts
-about 130 turns.
+about 130 turns. Rest drains like hunger (doubled in a fight), about 500 quiet
+turns from a fresh start to Tired. People sleep about 8 hours per 16 awake, but
+recovering that slowly would make a nap hundreds of turns long, so rest refills
+10 a turn: a full nap is about 100 turns.
 
 ## Recipes — `recipes/*.toml`
 

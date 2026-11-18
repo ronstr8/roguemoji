@@ -1,6 +1,8 @@
 //! The passage of time.
 
 use super::{Game, Outcome, Tone};
+use crate::creatures::needs::{Change, Strain};
+use crate::creatures::player::Sleep;
 use crate::effects::{EffectKind, EffectSpec};
 use crate::items::{Component, Item};
 use crate::world::Tile;
@@ -34,26 +36,77 @@ impl Game {
             return;
         }
         self.refresh_fov();
+        let hp_before_monsters = self.player.hp;
         self.monsters_act();
         self.tick_monsters();
         self.reap_monsters();
+        self.check_wake(hp_before_monsters);
     }
 
-    fn tick_player(&mut self) {
+    /// Drain hunger and thirst, and rest unless asleep, where it refills.
+    /// Logs stages entered and hurts; collapses you when rest runs out.
+    fn tick_needs(&mut self) {
         let p = &mut self.player;
-
-        // Hunger and thirst.
+        let strain = Strain { fought: std::mem::take(&mut p.fought), burden_halves: p.burden().move_cost_halves() };
         let turn = self.turn;
-        let changes = p.needs_mut().map(|m| m.tick(turn));
+        let mut changes: Vec<Change> = p.waking_needs_mut().map(|m| m.tick(turn, strain)).into();
+        if p.is_asleep() {
+            let sleep = p.sleep_def();
+            p.rest.adjust(sleep.recover);
+            if sleep.heal_every > 0 && turn.is_multiple_of(u64::from(sleep.heal_every)) {
+                p.heal(1);
+            }
+        } else {
+            changes.push(p.rest.tick(turn, strain));
+        }
         for change in changes {
             if let Some(msg) = change.message {
                 self.log.push(msg, Tone::Bad);
             }
             if let Some(msg) = change.hurt {
-                p.hp -= 1;
+                self.player.hp -= 1;
                 self.log.push(msg, Tone::Bad);
             }
         }
+        if !self.player.is_asleep() && self.player.rest.value == 0 {
+            self.player.sleep = Some(Sleep::Collapse);
+            self.log.push("Exhaustion takes you. You collapse where you stand. 💤", Tone::Bad);
+        }
+    }
+
+    /// Wake the player if something should: being hit, or for a nap, a
+    /// monster in view or full rest; after collapsing, rest back to `wake_at`.
+    fn check_wake(&mut self, hp_before_monsters: i32) {
+        let Some(kind) = self.player.sleep else { return };
+        let p = &self.player;
+        let reason = if p.hp < hp_before_monsters {
+            Some(("Pain jolts you awake!", true))
+        } else if kind == Sleep::Nap && !self.in_sight().is_empty() {
+            Some(("Something moves nearby. You wake.", false))
+        } else if kind == Sleep::Nap && p.rest.value >= p.rest.def().max {
+            Some(("You wake, rested.", false))
+        } else if kind == Sleep::Collapse && p.rest.value >= p.sleep_def().wake_at {
+            Some(("You come to, still worn out.", false))
+        } else {
+            None
+        };
+        if let Some((msg, jolted)) = reason {
+            self.wake(msg, jolted);
+        }
+    }
+
+    /// End sleep. Jolted awake, you're groggy for a turn.
+    pub(super) fn wake(&mut self, msg: &str, jolted: bool) {
+        self.player.sleep = None;
+        if jolted {
+            self.player.effects.add(EffectSpec::new(EffectKind::Stun, 0, 1), "grogginess");
+        }
+        self.log.push(msg, if jolted { Tone::Bad } else { Tone::Info });
+    }
+
+    fn tick_player(&mut self) {
+        self.tick_needs();
+        let p = &mut self.player;
 
         // Toxic terrain.
         if self.map.tile(p.pos) == Tile::Sludge {

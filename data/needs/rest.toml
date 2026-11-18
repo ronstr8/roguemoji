@@ -1,0 +1,29 @@
+# Rest: drains like hunger, but twice as fast in a fight and faster under a
+# load (x1.5 Burdened, x2 Strained, as movement cost). At 0 you collapse and
+# sleep where you stand until it climbs back to wake_at.
+name = "Rest"
+max = 1000
+start = 900
+drain = 1          # per turn: about 500 quiet turns from a full night to Tired
+fighting = 2
+burden = true
+
+# People are awake about 16 hours per 8 asleep, but recovering at that rate
+# would make a nap hundreds of turns long. A full nap here is about 100
+# turns, which costs roughly 3/4 quart of water and some food.
+sleep = { recover = 10, wake_at = 400, heal_every = 10 }
+
+[[stages]]
+name = "Rested"
+
+[[stages]]
+name = "Tired"
+at_most = 400
+message = "You're getting tired."
+modifiers = { reflexes = -1 }
+
+[[stages]]
+name = "Exhausted"
+at_most = 150
+message = "You can barely keep your eyes open. Rest soon (z), or you'll drop."
+modifiers = { reflexes = -2, wit = -1 }

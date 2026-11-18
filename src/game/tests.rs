@@ -45,6 +45,11 @@ fn random_play_never_panics() {
             if g.is_over() {
                 break;
             }
+            // Asleep, turns pass on their own, as in the app.
+            if g.player.is_asleep() {
+                g.sleep_turn();
+                continue;
+            }
             // Keep the tester alive so deep content gets exercised.
             g.player.hp = g.player.max_hp();
             match d.range(0, 19) {
@@ -334,4 +339,104 @@ fn unequipping_moves_gear_into_the_pack() {
     assert!(g.player.inventory.items().contains(&gun), "the gun keeps its loaded rounds");
     g.unequip(Slot::Gun);
     assert_eq!(g.player.inventory.items().iter().filter(|i| **i == gun).count(), 1, "an empty slot gives nothing");
+}
+
+/// Sleep until awake, as the app does, up to `cap` turns. Returns turns slept.
+fn sleep_it_off(g: &mut Game, cap: u32) -> u32 {
+    let mut turns = 0;
+    while g.player.is_asleep() && turns < cap {
+        g.sleep_turn();
+        turns += 1;
+    }
+    turns
+}
+
+/// Put a monster next to the player, where it can see and reach them.
+/// Returns the direction it's in.
+fn monster_beside(g: &mut Game) -> Dir {
+    let mut fresh = new_game(1);
+    let dir = open_step(g);
+    let mut m = fresh.monsters.remove(0);
+    m.pos = g.player.pos.step(dir);
+    g.monsters.push(m);
+    g.refresh_fov();
+    dir
+}
+
+fn logged(g: &Game, text: &str) -> bool {
+    g.log.recent(200).iter().any(|m| m.text.contains(text))
+}
+
+#[test]
+fn running_out_of_rest_knocks_you_out_until_wake_at() {
+    use crate::creatures::player::Sleep;
+    let mut g = quiet_game(7);
+    g.player.rest.value = 1;
+    g.wait();
+    assert_eq!(g.player.sleep, Some(Sleep::Collapse));
+    let slept = sleep_it_off(&mut g, 500);
+    assert!(!g.player.is_asleep(), "woke within {slept} turns");
+    assert!(g.player.rest.value >= g.player.sleep_def().wake_at);
+    assert!(g.player.rest.value < g.player.rest.def().max, "a collapse doesn't leave you fully rested");
+}
+
+#[test]
+fn a_nap_rests_you_fully_and_heals_a_little() {
+    use crate::creatures::player::Sleep;
+    let mut g = quiet_game(8);
+    g.player.rest.value = 500;
+    g.player.hp = g.player.max_hp() - 5;
+    let (hp, thirst) = (g.player.hp, g.player.thirst.value);
+    g.nap();
+    assert_eq!(g.player.sleep, Some(Sleep::Nap));
+    sleep_it_off(&mut g, 500);
+    assert!(!g.player.is_asleep());
+    assert_eq!(g.player.rest.value, g.player.rest.def().max);
+    assert!(g.player.hp > hp, "sleep heals");
+    assert!(g.player.thirst.value < thirst, "time asleep still costs water");
+}
+
+#[test]
+fn naps_need_quiet_and_end_on_a_key_or_a_monster() {
+    let mut g = quiet_game(9);
+    g.player.rest.value = g.player.rest.def().max;
+    g.nap();
+    assert!(!g.player.is_asleep(), "fully rested: no nap");
+    g.player.rest.value = 300;
+    g.nap();
+    g.rouse();
+    assert!(!g.player.is_asleep(), "a key ends a nap");
+
+    g.nap();
+    let _ = monster_beside(&mut g);
+    g.sleep_turn();
+    assert!(!g.player.is_asleep(), "a monster in view ends a nap");
+    g.nap();
+    assert!(!g.player.is_asleep(), "can't nap with a monster in sight");
+}
+
+#[test]
+fn a_hit_wakes_even_a_collapse() {
+    let mut g = quiet_game(10);
+    g.player.rest.value = 1;
+    g.wait();
+    let _ = monster_beside(&mut g);
+    g.rouse();
+    assert!(g.player.is_asleep(), "keys don't wake you from a collapse");
+    sleep_it_off(&mut g, 200);
+    assert!(!g.player.is_asleep());
+    assert!(logged(&g, "Pain jolts you awake!"), "a monster beside you lands a hit long before you'd come to");
+}
+
+#[test]
+fn fighting_tires_you_faster_than_waiting() {
+    let mut g = quiet_game(11);
+    g.player.rest.value = 500;
+    g.wait();
+    let calm = 500 - g.player.rest.value;
+    let dir = monster_beside(&mut g);
+    g.player.rest.value = 500;
+    let _ = g.move_player(dir);
+    let fighting = 500 - g.player.rest.value;
+    assert!(fighting > calm, "fighting -{fighting}, waiting -{calm}");
 }

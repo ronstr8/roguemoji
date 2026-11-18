@@ -6,7 +6,7 @@ use crate::combat::{self, Attack, HitTier};
 use crate::crafting::{Recipe, recipes};
 use crate::creatures::Player;
 use crate::creatures::needs::{Meter, UnsafeDrink};
-use crate::creatures::player::{Burden, Slot};
+use crate::creatures::player::{Burden, Sleep, Slot};
 use crate::effects::{EffectKind, EffectSpec};
 use crate::geometry::{Dir, Pos, line};
 use crate::items::components::UNSAFE_WATER;
@@ -220,6 +220,7 @@ impl Game {
     // ── Combat ────────────────────────────────────────────────────────────
 
     fn melee_attack(&mut self, idx: usize) {
+        self.player.fought = true;
         let w = self.player.melee_def();
         let (id, name, defense, armor) = {
             let m = &self.monsters[idx];
@@ -296,7 +297,7 @@ impl Game {
     }
 
     /// Monsters you can see and have a clear line of fire to, nearest first.
-    fn in_sight(&self) -> Vec<(u32, i32)> {
+    pub(super) fn in_sight(&self) -> Vec<(u32, i32)> {
         self.visible_monsters()
             .into_iter()
             .filter(|m| m.pos.distance(self.player.pos) <= SIGHT_RADIUS + 4)
@@ -367,6 +368,7 @@ impl Game {
             }
         };
         let target_pos = self.monster(target_id)?.pos;
+        self.player.fought = true;
 
         // The bullet stops at the first creature or wall along its path.
         let mut hit_idx = None;
@@ -522,6 +524,36 @@ impl Game {
     fn adjust_need(&mut self, need: fn(&mut Player) -> &mut Meter, delta: i32) {
         if let Some(msg) = need(&mut self.player).adjust(delta).message {
             self.log.push(msg, Tone::Bad);
+        }
+    }
+
+    /// Lie down to sleep until rested. The app then advances turns while
+    /// you sleep; a monster coming into view, being hit or a key wakes you.
+    pub fn nap(&mut self) {
+        let p = &self.player;
+        if p.rest.value >= p.rest.def().max {
+            self.log.info("You're not tired.");
+        } else if !self.in_sight().is_empty() {
+            self.log.push("You can't rest with enemies in sight.", Tone::Bad);
+        } else {
+            self.player.sleep = Some(Sleep::Nap);
+            self.log.info("You lie down to rest. 💤 (any key to get up)");
+        }
+    }
+
+    /// One turn of sleep, for the app to call while the player is asleep.
+    pub fn sleep_turn(&mut self) {
+        if self.player.is_asleep() {
+            self.pass_time(1);
+        }
+    }
+
+    /// A key pressed while asleep: ends a nap, but not a collapse.
+    pub fn rouse(&mut self) {
+        match self.player.sleep {
+            Some(Sleep::Nap) => self.wake("You get up.", false),
+            Some(Sleep::Collapse) => self.log.push("You're out cold.", Tone::Bad),
+            None => {}
         }
     }
 

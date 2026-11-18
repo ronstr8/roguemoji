@@ -66,10 +66,13 @@ pub fn draw(canvas: &mut Canvas, game: &Game) {
     }
     y += 1;
 
-    let derived = [
+    let mut derived = vec![
         format!("Max HP {}  ·  Defense {}  ·  Armor {}", p.max_hp(), p.defense(), p.armor_value()),
         format!("Each 💎 heals {}  ·  Crystals {}", p.crystal_heal(), p.crystals),
-        p.needs().map(need_text).join("  ·  "),
+    ];
+    // One line per need: together they're wider than the sheet.
+    derived.extend(p.needs().map(need_text));
+    derived.extend([
         format!(
             "Carry {} (Brawn {:+} lb{})  ·  Load {} ({})",
             fmt_lb(p.carry_capacity()),
@@ -79,7 +82,7 @@ pub fn draw(canvas: &mut Canvas, game: &Game) {
             p.burden().name()
         ),
         format!("Kills {}  ·  Depth {}  ·  Turn {}", p.kills, game.depth, game.turn),
-    ];
+    ]);
     for line in derived {
         canvas.text_max(x, y, &line, inner.w, theme::TEXT, bg);
         y += 1;
@@ -104,9 +107,9 @@ mod tests {
         draw(&mut canvas, &g);
         let rows = canvas.text_rows();
         println!("{}", rows.join("\n"));
-        assert!(
-            rows.iter().any(|r| r.contains("Satiety 750/1000 (Fed)") && r.contains("Hydration 800/1000 (Hydrated)"))
-        );
+        assert!(rows.iter().any(|r| r.contains("Satiety 750/1000 (Fed)")));
+        assert!(rows.iter().any(|r| r.contains("Hydration 800/1000 (Hydrated)")));
+        assert!(rows.iter().any(|r| r.contains("Rest 900/1000 (Rested)")));
         assert!(rows.iter().any(|r| r.contains("Checks roll 2d10")));
         assert!(rows.iter().any(|r| r.contains("Esc close")));
     }
