@@ -276,6 +276,20 @@ mod tests {
     }
 
     #[test]
+    fn melee_and_armor_details_show_a_stats_block() {
+        let g = game();
+        let items = g.player.inventory.items();
+        for (name, label) in [("Kevlar Vest", "Dodge Penalty  "), ("Crowbar", "Penetration  ")] {
+            let idx = items.iter().position(|i| i.base_name() == name).unwrap();
+            let mut canvas = Canvas::new(120, 40);
+            draw(&mut canvas, &g, Sort::default(), SLOT_ROWS + idx);
+            let rows = canvas.text_rows();
+            assert!(rows.iter().any(|r| r.contains(label)), "{name} shows {label}\n{}", rows.join("\n"));
+            println!("{}", rows.join("\n"));
+        }
+    }
+
+    #[test]
     fn rows_put_equipment_before_the_pack() {
         let g = game();
         let sort = Sort::default();

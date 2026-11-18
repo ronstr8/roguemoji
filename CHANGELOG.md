@@ -16,6 +16,9 @@ version can change rules, controls or data-file formats.
 - Gun details list their stats one per line under the description: Type,
   Barrel, Capacity, Skill, Accuracy, Reload Turns and Weight. Short terminals
   fold them into one wrapped line so the load table still fits.
+- Melee weapons and armor get the same stats block: Skill, Damage,
+  Accuracy, Penetration and Weight for melee; Armor, Dodge Penalty and
+  Weight for armor.
 - The load table's first column is headed "Load" instead of "Name".
 - The Autovend window grows taller on big terminals.
 - The load table names each load by type ("JHP", "Buck ×9") instead of its

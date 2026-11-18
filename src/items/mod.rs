@@ -156,14 +156,6 @@ impl Item {
             ItemKind::Melee(m) => {
                 let d = m.def();
                 out.push(d.desc.to_string());
-                out.push(format!(
-                    "Skill: {} · Damage {}-{} (+Brawn) · Accuracy {:+} · Pen {}",
-                    d.skill.name(),
-                    d.damage.0,
-                    d.damage.1,
-                    d.accuracy,
-                    d.pen
-                ));
                 if !d.special.describe().is_empty() {
                     out.push(d.special.describe().into());
                 }
@@ -183,7 +175,6 @@ impl Item {
             ItemKind::Armor(a) => {
                 let d = a.def();
                 out.push(d.desc.to_string());
-                out.push(format!("Armor {} · Dodge penalty {}", d.armor, d.dodge_penalty));
             }
             ItemKind::Component(c) => {
                 let d = c.def();
@@ -232,16 +223,53 @@ impl Item {
     /// Labeled stats shown one per line under the description, e.g.
     /// `("Barrel", "4.5\" rifled")`. Empty for items without a stats block.
     pub fn stats(&self) -> Vec<(&'static str, String)> {
-        let ItemKind::Gun(g) = &self.kind else { return Vec::new() };
-        let d = g.def();
-        vec![
-            ("Type", format!("{} {}", d.cartridge.name(), d.action.name())),
-            ("Barrel", format!("{}\" {}", d.barrel_in, if d.rifled { "rifled" } else { "smoothbore" })),
-            ("Capacity", d.capacity.to_string()),
-            ("Skill", d.skill.name().to_string()),
-            ("Accuracy", format!("{:+}", d.accuracy)),
-            ("Reload Turns", d.action.reload_turns().to_string()),
-            ("Weight", weight::fmt_lb(self.weight())),
-        ]
+        let mut out = match &self.kind {
+            ItemKind::Gun(g) => {
+                let d = g.def();
+                vec![
+                    ("Type", format!("{} {}", d.cartridge.name(), d.action.name())),
+                    ("Barrel", format!("{}\" {}", d.barrel_in, if d.rifled { "rifled" } else { "smoothbore" })),
+                    ("Capacity", d.capacity.to_string()),
+                    ("Skill", d.skill.name().to_string()),
+                    ("Accuracy", format!("{:+}", d.accuracy)),
+                    ("Reload Turns", d.action.reload_turns().to_string()),
+                ]
+            }
+            ItemKind::Melee(m) => {
+                let d = m.def();
+                vec![
+                    ("Skill", d.skill.name().to_string()),
+                    ("Damage", format!("{}-{} (+Brawn)", d.damage.0, d.damage.1)),
+                    ("Accuracy", format!("{:+}", d.accuracy)),
+                    ("Penetration", d.pen.to_string()),
+                ]
+            }
+            ItemKind::Armor(a) => {
+                let d = a.def();
+                vec![("Armor", d.armor.to_string()), ("Dodge Penalty", d.dodge_penalty.to_string())]
+            }
+            _ => return Vec::new(),
+        };
+        out.push(("Weight", weight::fmt_lb(self.weight())));
+        out
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn labels(item: &Item) -> Vec<&'static str> {
+        item.stats().into_iter().map(|(l, _)| l).collect()
+    }
+
+    #[test]
+    fn melee_and_armor_list_their_stats() {
+        let crowbar = Item::one(ItemKind::Melee(MeleeWeapon::named("crowbar")));
+        assert_eq!(labels(&crowbar), ["Skill", "Damage", "Accuracy", "Penetration", "Weight"]);
+        assert!(crowbar.stats().contains(&("Damage", "2-5 (+Brawn)".into())));
+        let vest = Item::one(ItemKind::Armor(Armor::named("kevlar_vest")));
+        assert_eq!(labels(&vest), ["Armor", "Dodge Penalty", "Weight"]);
+        assert!(vest.describe().iter().all(|l| !l.contains("Weight")), "weight moves to the stats block");
     }
 }
