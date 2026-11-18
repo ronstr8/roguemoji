@@ -4,6 +4,7 @@ use super::{FINAL_DEPTH, Game, Kiosk, MAP_HEIGHT, MAP_WIDTH, Tone};
 use crate::creatures::{Family, Monster, Species};
 use crate::geometry::Pos;
 use crate::items::loot;
+use crate::world::encounter::Encounter;
 use crate::world::generator::{self, Biome};
 use crate::world::{Feature, Harvestable, Tile};
 
@@ -75,6 +76,15 @@ impl Game {
             && let Some(p) = take_isolated(&mut open, &self.map)
         {
             self.map.set_feature(p, Feature::Lockbox);
+        }
+
+        // Encounters: scenes to walk into, and now and then a place to return to.
+        let encounters: Vec<(Encounter, u32)> =
+            Encounter::all().map(|e| (e, e.def().chance.weight_at(depth))).collect();
+        for _ in 0..2 + self.dice.range(0, 1) {
+            let Some(e) = self.dice.weighted(&encounters) else { break };
+            let Some(p) = take_isolated(&mut open, &self.map) else { break };
+            self.map.set_feature(p, Feature::Encounter(e));
         }
 
         // Loot, favoring building interiors in the ruins.

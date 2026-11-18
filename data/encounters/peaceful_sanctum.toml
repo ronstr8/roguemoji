@@ -1,0 +1,8 @@
+# Stays put: bump it as often as you like. Each bump takes a turn, and turns
+# cost food and water.
+name = "Peaceful Sanctum"
+glyph = "🧘"
+text = "You sit in the stillness a while."
+chance = { weight = 1 }
+stays = true
+needs = { hope = 25 }

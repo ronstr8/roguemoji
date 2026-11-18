@@ -1,0 +1,10 @@
+name = "Visitor Echo"
+glyph = "👀"
+text = """
+The air goes thin and bright. For a moment you feel it: the vast, patient \
+attention of the Visitors, turned on you and finding nothing worth taking. \
+Then it's gone, and you have never felt so small.
+"""
+chance = { weight = 1, per_depth = 1, min_depth = 4 }
+needs = { hope = -250 }
+resist = { attribute = "willpower", target = 13, text = "You hold on to your own name until the feeling passes." }

@@ -1,0 +1,10 @@
+name = "Witness Horrors"
+glyph = "😱"
+text = """
+Something happened here, and it didn't happen quickly. You see enough to \
+understand it, and then more than that. Whatever crawled out of the dark \
+after the Visitors left, it learned to enjoy this.
+"""
+chance = { weight = 2, per_depth = 1 }
+needs = { hope = -300 }
+resist = { attribute = "willpower", target = 11, text = "You look away in time, and keep walking." }

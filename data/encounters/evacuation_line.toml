@@ -1,0 +1,10 @@
+name = "Evacuation Line"
+glyph = "🧳"
+text = """
+Suitcases in a neat row along the curb, a hundred or more, each tagged with \
+a name and a bus number. They waited here for buses that never came. \
+Eventually they stopped waiting. The suitcases didn't.
+"""
+chance = { weight = 2 }
+needs = { hope = -180 }
+resist = { attribute = "willpower", target = 9, text = "You read a few names aloud, and that's something." }

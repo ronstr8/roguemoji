@@ -138,6 +138,7 @@ pub struct Player {
     pub hunger: Meter,
     pub thirst: Meter,
     pub rest: Meter,
+    pub hope: Meter,
     /// Asleep, and why.
     pub sleep: Option<Sleep>,
     /// Attacked or was attacked since the last turn's needs were drained.
@@ -168,6 +169,7 @@ impl Player {
             hunger: Meter::new(Need::named(needs::HUNGER)),
             thirst: Meter::new(Need::named(needs::THIRST)),
             rest: Meter::new(Need::named(needs::REST)),
+            hope: Meter::new(Need::named(needs::HOPE)),
             sleep: None,
             fought: false,
             stance: Stance::Balanced,
@@ -277,13 +279,18 @@ impl Player {
     }
 
     /// Every bodily need, in display order.
-    pub fn needs(&self) -> [&Meter; 3] {
-        [&self.hunger, &self.thirst, &self.rest]
+    pub fn needs(&self) -> [&Meter; 4] {
+        [&self.hunger, &self.thirst, &self.rest, &self.hope]
     }
 
     /// The needs that drain every turn, asleep or awake (rest refills in sleep).
-    pub fn waking_needs_mut(&mut self) -> [&mut Meter; 2] {
-        [&mut self.hunger, &mut self.thirst]
+    pub fn waking_needs_mut(&mut self) -> [&mut Meter; 3] {
+        [&mut self.hunger, &mut self.thirst, &mut self.hope]
+    }
+
+    /// The meter for a need, by handle.
+    pub fn meter_mut(&mut self, need: Need) -> Option<&mut Meter> {
+        [&mut self.hunger, &mut self.thirst, &mut self.rest, &mut self.hope].into_iter().find(|m| m.need == need)
     }
 
     pub fn is_asleep(&self) -> bool {

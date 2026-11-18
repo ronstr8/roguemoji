@@ -1,0 +1,24 @@
+# Hope: your will to keep going. It wears down slowly on its own, the way
+# isolation does, and swings with encounters: kindness restores it, horror
+# erodes it, quiet places mend it. It hits the mind, not the body: Willpower
+# powers dread checks and crystal healing, so despair makes 💎 heal less and
+# terror land more often. It never costs HP.
+name = "Hope"
+max = 2000
+start = 1500
+drain = 1          # per turn: about 700 lonely turns from a fresh start to Downcast
+
+[[stages]]
+name = "Hopeful"
+
+[[stages]]
+name = "Downcast"
+at_most = 800
+message = "The wasteland feels emptier than it did. You're losing heart."
+modifiers = { willpower = -1 }
+
+[[stages]]
+name = "Despairing"
+at_most = 200
+message = "What's the point of any of it? Despair settles over you."
+modifiers = { willpower = -2, wit = -1 }

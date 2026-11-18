@@ -1,0 +1,158 @@
+//! Encounters: things happening on the map that you walk into, loaded from
+//! `data/encounters/*.toml` (see `data/README.md`).
+//!
+//! Most are one-off scenes: stepping in shows their text, changes your needs
+//! (Hope, mostly) and may hand you items, and then they're gone. Ones that
+//! `stay` are places you bump again and again, like a quiet sanctum.
+
+use std::collections::BTreeMap;
+
+use serde::Deserialize;
+
+use crate::content::{self, Loot, Problems};
+use crate::creatures::needs::Need;
+use crate::items::{Component, Consumable, Item};
+use crate::stats::Attribute;
+
+/// A handle to a loaded encounter: an index into the encounter table.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct Encounter(u16);
+
+#[derive(Debug)]
+pub struct EncounterDef {
+    /// The file name without `.toml`, e.g. `friendly_stranger`.
+    pub id: String,
+    pub name: String,
+    pub glyph: String,
+    /// The scene, shown in a pop-up (or the log, for one that stays).
+    pub text: String,
+    /// How often it turns up, by depth.
+    pub chance: Loot,
+    /// Stays on the map and is bumped rather than walked into; its text goes
+    /// to the log instead of a pop-up.
+    pub stays: bool,
+    /// Changes to needs, e.g. Hope +200.
+    pub needs: Vec<(Need, i32)>,
+    pub gives: Vec<Item>,
+    pub resist: Option<Resist>,
+}
+
+/// A check that softens a bad encounter: on success, losses are halved.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Resist {
+    pub attribute: Attribute,
+    pub target: i32,
+    /// Shown when the check succeeds.
+    pub text: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RawEncounter {
+    name: String,
+    glyph: String,
+    text: String,
+    #[serde(default)]
+    chance: Loot,
+    #[serde(default)]
+    stays: bool,
+    #[serde(default)]
+    needs: BTreeMap<String, i32>,
+    #[serde(default)]
+    gives: BTreeMap<String, u32>,
+    #[serde(default)]
+    resist: Option<Resist>,
+}
+
+/// An item an encounter can give: any consumable or component, by id.
+fn gift(id: &str, qty: u32) -> Option<Item> {
+    Consumable::lookup(id)
+        .map(|c| Item::food(c, qty))
+        .or_else(|| Component::lookup(id).map(|c| Item::component(c, qty)))
+}
+
+fn build(id: String, raw: RawEncounter) -> Result<EncounterDef, Vec<String>> {
+    let mut p = Problems::default();
+    p.check(!raw.name.trim().is_empty(), "name is empty");
+    p.check(!raw.glyph.trim().is_empty(), "glyph is empty");
+    p.check(!raw.text.trim().is_empty(), "text is empty");
+    let mut needs = Vec::new();
+    for (need, n) in raw.needs {
+        match Need::lookup(&need) {
+            Some(handle) => needs.push((handle, n)),
+            None => p.check(false, format!("needs: `{need}` is not in data/needs/")),
+        }
+    }
+    let mut gives = Vec::new();
+    for (item, qty) in raw.gives {
+        p.check(qty > 0, format!("gives: `{item}` needs a quantity of 1 or more"));
+        match gift(&item, qty) {
+            Some(i) => gives.push(i),
+            None => p.check(false, format!("gives: `{item}` is not a consumable or component")),
+        }
+    }
+    p.check(!needs.is_empty() || !gives.is_empty(), "does nothing: give it `needs` or `gives`");
+    p.finish(|| EncounterDef {
+        id,
+        name: raw.name,
+        glyph: raw.glyph,
+        text: raw.text.trim().to_string(),
+        chance: raw.chance,
+        stays: raw.stays,
+        needs,
+        gives,
+        resist: raw.resist,
+    })
+}
+
+content::registry!(Encounter, EncounterDef, "encounter", load);
+
+fn load() -> Result<Vec<EncounterDef>, String> {
+    content::load_defs("encounters", build)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn parse(text: &str) -> Result<EncounterDef, String> {
+        let raw: RawEncounter = toml::from_str(text).map_err(|e| e.to_string())?;
+        build("t".into(), raw).map_err(|e| e.join("; "))
+    }
+
+    const GOOD: &str = r#"
+        name = "Kind Soul"
+        glyph = "🤝"
+        text = "Someone shares a meal."
+        chance = { weight = 2 }
+        needs = { hope = 150, hunger = 100 }
+        gives = { bottled_water = 1, rags = 2 }
+        resist = { attribute = "willpower", target = 10, text = "x" }
+    "#;
+
+    #[test]
+    fn stock_encounters_load() {
+        load().expect("stock encounter data is valid");
+        assert!(Encounter::all().any(|e| e.def().stays), "there's at least one place to return to");
+    }
+
+    #[test]
+    fn parses_needs_and_gifts() {
+        let d = parse(GOOD).unwrap();
+        assert_eq!(d.needs.len(), 2);
+        assert_eq!(d.gives.iter().map(|i| i.qty).sum::<u32>(), 3);
+        assert!(!d.stays);
+        assert_eq!(d.resist.unwrap().attribute, Attribute::Willpower);
+    }
+
+    #[test]
+    fn rejects_bad_content() {
+        assert!(parse(&GOOD.replace("hope = 150", "joy = 150")).unwrap_err().contains("joy"));
+        assert!(parse(&GOOD.replace("bottled_water", "gold_bar")).unwrap_err().contains("gold_bar"));
+        assert!(parse(&GOOD.replace("rags = 2", "rags = 0")).unwrap_err().contains("quantity"));
+        assert!(parse(&GOOD.replace("\"willpower\"", "\"luck\"")).is_err());
+        let empty = "name = \"x\"\nglyph = \"x\"\ntext = \"x\"\n";
+        assert!(parse(empty).unwrap_err().contains("does nothing"));
+    }
+}

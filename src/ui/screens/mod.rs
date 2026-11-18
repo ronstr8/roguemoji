@@ -2,6 +2,7 @@
 
 pub mod character;
 pub mod crafting;
+pub mod encounter;
 pub mod ended;
 pub mod help;
 pub mod inventory;

@@ -1,0 +1,9 @@
+name = "Campfire Circle"
+glyph = "🔥"
+text = """
+Four travelers share a fire and a pot of something that might be rabbit. \
+Nobody asks your name. Someone hums a song you half remember, and for an \
+hour the sky is just the sky.
+"""
+chance = { weight = 3 }
+needs = { hope = 300, hunger = 200 }

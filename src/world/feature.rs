@@ -1,6 +1,7 @@
 //! Map features: harvestable nodes, Autovend kiosks, Visitor lockboxes,
-//! stairs, and the Beacon.
+//! encounters, stairs, and the Beacon.
 
+use super::encounter::Encounter;
 use crate::stats::Skill;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -126,6 +127,8 @@ pub enum Feature {
     Kiosk(usize),
     /// A Visitor lockbox. Every lockbox opens onto the same shared stash.
     Lockbox,
+    /// Something happening here: walk in (or bump, if it stays) to engage.
+    Encounter(Encounter),
     Stairs,
     Beacon,
 }
@@ -140,13 +143,19 @@ impl Feature {
             Feature::Harvest { kind, .. } => kind.def().glyph,
             Feature::Kiosk(_) => "🏧",
             Feature::Lockbox => "🛅",
+            Feature::Encounter(e) => e.def().glyph.as_str(),
             Feature::Stairs => "🔽",
             Feature::Beacon => "📡",
         }
     }
 
-    /// Harvest nodes, kiosks and lockboxes are bumped, not walked over.
+    /// Harvest nodes, kiosks, lockboxes and encounters that stay are bumped,
+    /// not walked over.
     pub fn blocks(&self) -> bool {
-        matches!(self, Feature::Harvest { .. } | Feature::Kiosk(_) | Feature::Lockbox)
+        match self {
+            Feature::Harvest { .. } | Feature::Kiosk(_) | Feature::Lockbox => true,
+            Feature::Encounter(e) => e.def().stays,
+            Feature::Stairs | Feature::Beacon => false,
+        }
     }
 }

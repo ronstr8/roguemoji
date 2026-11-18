@@ -31,6 +31,8 @@ const LINES: &[(&str, &str)] = &[
     ("", "water and pools can make you sick. Boil dirty water (m) to make it safe."),
     ("REST", "Every turn tires you, fighting twice as fast, heavy loads faster. Tired and Exhausted"),
     ("", "slow you; at empty you collapse and sleep where you stand. Sleep heals a little."),
+    ("HOPE", "Fades with time. Walk into encounters 🤝 😱: kindness restores it, horror erodes it."),
+    ("", "Places like 🧘 stay; bump them again. Despair lowers Willpower: crystals heal less."),
     ("LOAD", "Carry 45 lb + 6 per Brawn point over 5, plus a worn pack 🎒. Over that you're Burdened"),
     ("", "(slower, -1 DEF); over 1.5× Strained (half speed, -3 DEF); over 2× you can't move."),
     ("🛅", "Visitor lockboxes share one stash: leave gear in one, take it out of any other."),

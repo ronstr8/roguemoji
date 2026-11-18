@@ -24,6 +24,8 @@ pub enum Event {
     None,
     OpenShop(usize),
     OpenStash,
+    /// Walked into an encounter; its report is in `Game::last_encounter`.
+    OpenEncounter,
 }
 
 /// Where an item moves when shuffling between pack and lockbox.
@@ -58,6 +60,10 @@ impl Game {
                 return Event::None;
             }
             Some(Feature::Kiosk(k)) => return Event::OpenShop(k),
+            Some(Feature::Encounter(e)) if e.def().stays => {
+                self.encounter(target, e);
+                return Event::None;
+            }
             Some(Feature::Lockbox) => {
                 self.log
                     .push("The lockbox irises open. Its contents are the same as every other one's.", Tone::Special);
@@ -74,6 +80,11 @@ impl Game {
             return Event::None;
         }
         self.player.pos = target;
+        // A one-off encounter happens as you step in, then it's gone.
+        let event = match self.map.feature(target).copied() {
+            Some(Feature::Encounter(e)) if self.encounter(target, e) => Event::OpenEncounter,
+            _ => Event::None,
+        };
         self.describe_floor();
         if self.map.feature(target) == Some(&Feature::Beacon) {
             self.log.push("You lay your hand on the Beacon. It sings, and the sky answers.", Tone::Special);
@@ -84,7 +95,7 @@ impl Game {
         let halves = self.player.move_debt + burden.move_cost_halves();
         self.player.move_debt = halves % 2;
         self.pass_time(halves / 2);
-        Event::None
+        event
     }
 
     fn describe_floor(&mut self) {

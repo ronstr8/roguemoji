@@ -1,5 +1,6 @@
 //! The physical world: terrain, features, visibility and generation.
 
+pub mod encounter;
 pub mod feature;
 pub mod fov;
 pub mod generator;

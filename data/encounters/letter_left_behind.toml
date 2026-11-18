@@ -1,0 +1,9 @@
+name = "Letter Left Behind"
+glyph = "💌"
+text = """
+A letter weighted under a stone, addressed TO WHOEVER FINDS THIS. It's from a \
+boy who wants you to know he's going north to find his sister, that he isn't \
+scared, and that you shouldn't be either.
+"""
+chance = { weight = 2 }
+needs = { hope = 120 }

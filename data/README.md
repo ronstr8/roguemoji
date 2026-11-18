@@ -131,8 +131,8 @@ must exist (you can still override them).
 ## Needs — `needs/*.toml`
 
 Meters that drain every turn. The game uses `hunger` (filled by `satiety`),
-`thirst` (filled by `hydration`) and `rest` (filled by sleeping), so all three
-files must exist; override them to retune.
+`thirst` (filled by `hydration`), `rest` (filled by sleeping) and `hope`
+(moved by encounters), so all four files must exist; override them to retune.
 
 ```toml
 name = "Hydration"           # what the meter shows as, beside its value
@@ -180,11 +180,40 @@ stuns you for a turn. Hunger and thirst keep draining while you sleep.
 The stock rates come from how long people last: about 3 days without water and
 3 weeks or more without food. The game squeezes that 7× gap to 3× (thirst drains
 3 a turn, hunger 1) so water is a steady concern without crowding out everything
-else. Hunger runs about 800 turns from Stuffed to Hungry; a quart of water lasts
+else. Hope drains 1 a turn out of 2000, the slowest of the four: about 700
+turns from a fresh start to Downcast with no encounters. Hunger runs about 800 turns from Stuffed to Hungry; a quart of water lasts
 about 130 turns. Rest drains like hunger (doubled in a fight), about 500 quiet
 turns from a fresh start to Tired. People sleep about 8 hours per 16 awake, but
 recovering that slowly would make a nap hundreds of turns long, so rest refills
 10 a turn: a full nap is about 100 turns.
+
+## Encounters — `encounters/*.toml`
+
+Scenes on the map. Walking into one shows its text in a pop-up, changes your
+needs and may give you items, and then it's gone. One that `stays` is a place
+instead: you bump it, it logs its text, and you can come back as often as you
+like (each bump takes a turn).
+
+```toml
+name = "Friendly Stranger"
+glyph = "🤝"                 # pick an emoji without a variation selector (no ️)
+                             # so it stays two columns wide on the map
+text = """
+A woman with a three-legged dog waves you over to her fire...
+"""
+chance = { weight = 4 }      # how often it's placed, by depth; same fields as
+                             # gear `loot` (weight, per_depth, min_depth).
+                             # Absent = never placed
+stays = false                # optional, default false; see above
+needs = { hope = 250 }       # need id = change; any of hunger, thirst, rest, hope
+gives = { bottled_water = 1 }    # optional; consumable or component id = how many
+
+# Optional: a check that softens a bad encounter. On success, losses are halved.
+resist = { attribute = "willpower", target = 11, text = "You look away in time." }
+```
+
+An encounter needs `needs` or `gives`, or it would do nothing. Each level
+places two or three, picked by `chance` at that depth.
 
 ## Recipes — `recipes/*.toml`
 

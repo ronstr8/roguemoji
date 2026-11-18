@@ -1,0 +1,6 @@
+name = "Memorial Candles"
+glyph = "🪔"
+text = "You light a candle among the others and say a name."
+chance = { weight = 1, min_depth = 2 }
+stays = true
+needs = { hope = 15 }

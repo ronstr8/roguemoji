@@ -16,12 +16,20 @@ version can change rules, controls or data-file formats.
   wakes you. Sleep heals 1 HP every 10 turns; hunger and thirst keep draining.
 - Mods can give needs `fighting` and `burden` drain multipliers; `rest` takes
   a `sleep` table (`recover`, `wake_at`, `heal_every`).
+- Hope, a fourth need, for your will to keep going. It fades slowly on its own.
+  Downcast lowers Willpower; Despairing lowers it further, and Wit too, so
+  crystals heal less and dread lands more often. It never costs HP.
+- Encounters: scenes on the map you walk into. A pop-up tells the story, then
+  they change your needs and sometimes hand you items. Ten to start: kindness
+  (🤝 🔥 🌻 📻 💌), horrors you can steel yourself against with Willpower
+  (😱 🧳 👀), and places that stay for you to return to (🧘 🪔).
+- Mods can add encounters in `data/encounters/`.
 - `make -C deploy update` updates a public-play server to the newest release
   (or `RELEASE=x.y.z`), checking the download against its sha256.
 
 ### Changed
-- The sidebar's needs get a line of their own (`Fed  ·  Hydrated  ·  Rested`),
-  with crystals on the line below; the character sheet lists one need per line.
+- The sidebar shows needs two to a line (`Fed  ·  Hydrated`, `Rested  ·
+  Hopeful`), with crystals below; the character sheet lists one need per line.
 
 ## [0.5.0] - 2026-11-18
 

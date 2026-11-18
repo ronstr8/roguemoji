@@ -1,4 +1,4 @@
-//! Bodily needs that drain every turn: hunger, thirst and rest, loaded from
+//! Needs that drain every turn: hunger, thirst, rest and hope, loaded from
 //! `data/needs/*.toml` (see `data/README.md`).
 //!
 //! A need is a meter from 0 to `max` that falls by `drain` each turn, faster
@@ -23,6 +23,7 @@ pub struct Need(u16);
 pub const HUNGER: &str = "hunger";
 pub const THIRST: &str = "thirst";
 pub const REST: &str = "rest";
+pub const HOPE: &str = "hope";
 
 #[derive(Debug)]
 pub struct NeedDef {
@@ -319,7 +320,7 @@ content::registry!(Need, NeedDef, "need", load);
 
 fn load() -> Result<Vec<NeedDef>, String> {
     let defs = content::load_defs("needs", build)?;
-    content::require("needs", |id| defs.iter().any(|d| d.id == id), [HUNGER, THIRST, REST])?;
+    content::require("needs", |id| defs.iter().any(|d| d.id == id), [HUNGER, THIRST, REST, HOPE])?;
     if defs.iter().any(|d| d.id == REST && d.sleep.is_none()) {
         return Err(format!("data/needs/{REST}.toml needs `sleep`: it says how sleeping restores rest"));
     }

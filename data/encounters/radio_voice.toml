@@ -1,0 +1,9 @@
+name = "Voice on the Radio"
+glyph = "📻"
+text = """
+A wind-up radio crackles on a windowsill. A tired voice reads names: people \
+who made it to the settlement at the dam, people looking for each other. \
+You don't know any of them. You listen to the whole list anyway.
+"""
+chance = { weight = 2, min_depth = 2 }
+needs = { hope = 200 }

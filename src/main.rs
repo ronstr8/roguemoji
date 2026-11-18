@@ -38,6 +38,7 @@ fn main() -> io::Result<()> {
         .and_then(|_| crafting::init())
         .and_then(|_| creatures::species::init())
         .and_then(|_| creatures::needs::init())
+        .and_then(|_| world::encounter::init())
     {
         eprintln!("roguemoji: bad content data:\n{e}");
         std::process::exit(1);

@@ -42,9 +42,12 @@ pub fn draw_sidebar(canvas: &mut Canvas, area: Area, game: &Game) {
         _ => theme::BAD,
     };
     line(canvas, &mut y, &format!("HP {} {}/{}", bar(p.hp, max_hp, 14), p.hp, max_hp), hp_color);
-    let needs_color = if p.needs().iter().any(|m| m.stage().is_warning()) { theme::BAD } else { theme::TEXT };
-    let needs: Vec<&str> = p.needs().iter().map(|m| m.label()).collect();
-    line(canvas, &mut y, &needs.join("  ·  "), needs_color);
+    // Two needs per line: all four don't fit the sidebar.
+    for pair in p.needs().chunks(2) {
+        let color = if pair.iter().any(|m| m.stage().is_warning()) { theme::BAD } else { theme::TEXT };
+        let labels: Vec<&str> = pair.iter().map(|m| m.label()).collect();
+        line(canvas, &mut y, &labels.join("  ·  "), color);
+    }
     line(canvas, &mut y, &format!("{} {} crystals", CRYSTAL_GLYPH, p.crystals), theme::TEXT);
     line(canvas, &mut y, &format!("DEF {}  ARMOR {}  Turn {}", p.defense(), p.armor_value(), game.turn), theme::TEXT);
     let burden = p.burden();
@@ -147,7 +150,8 @@ mod tests {
         let mut g = Game::new(Background::ALL[0].create("Tester".into()), Some(1));
         let rows = sidebar(&g);
         println!("{}", rows.join("\n"));
-        assert!(rows.iter().any(|r| r.contains("Fed  ·  Hydrated  ·  Rested")));
+        assert!(rows.iter().any(|r| r.contains("Fed  ·  Hydrated")));
+        assert!(rows.iter().any(|r| r.contains("Rested  ·  Hopeful")));
         assert!(rows.iter().any(|r| r.contains("💎") && r.contains("crystals")));
         g.player.thirst.value = 0;
         assert!(sidebar(&g).iter().any(|r| r.contains("Parched")));

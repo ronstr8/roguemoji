@@ -440,3 +440,89 @@ fn fighting_tires_you_faster_than_waiting() {
     let fighting = 500 - g.player.rest.value;
     assert!(fighting > calm, "fighting -{fighting}, waiting -{calm}");
 }
+
+/// Put an encounter on the open cell next to the player; returns its direction.
+fn encounter_beside(g: &mut Game, id: &str) -> Dir {
+    use crate::world::encounter::Encounter;
+    let dir = open_step(g);
+    g.map.set_feature(g.player.pos.step(dir), Feature::Encounter(Encounter::named(id)));
+    dir
+}
+
+#[test]
+fn walking_into_an_encounter_runs_it_once() {
+    let mut g = quiet_game(12);
+    g.player.hope.value = 1000;
+    let dir = encounter_beside(&mut g, "friendly_stranger");
+    let target = g.player.pos.step(dir);
+    assert_eq!(g.move_player(dir), Event::OpenEncounter);
+    assert_eq!(g.player.pos, target, "you step into it");
+    assert!(g.map.feature(target).is_none(), "and it's gone");
+    assert!(g.player.hope.value > 1000);
+    let report = g.last_encounter.as_ref().expect("a report for the pop-up");
+    assert!(!report.gifts.is_empty());
+    let water = &report.gifts[0];
+    assert!(g.player.inventory.items().iter().any(|i| i.kind == water.kind), "the gift is in your pack");
+}
+
+#[test]
+fn a_sanctum_stays_and_is_bumped() {
+    let mut g = quiet_game(13);
+    g.player.hope.value = 1000;
+    let dir = encounter_beside(&mut g, "peaceful_sanctum");
+    let (pos, turn) = (g.player.pos, g.turn);
+    assert_eq!(g.move_player(dir), Event::None, "no pop-up, just the log");
+    assert_eq!(g.player.pos, pos, "bumped, not entered");
+    assert!(g.map.feature(pos.step(dir)).is_some(), "still there");
+    assert_eq!(g.turn, turn + 1, "sitting a while takes a turn");
+    // Net of a turn's drain, it still helps.
+    assert!(g.player.hope.value > 1000);
+}
+
+#[test]
+fn resisting_a_horror_halves_the_loss() {
+    use crate::stats::Attribute;
+    use crate::world::encounter::Encounter;
+    let full = Encounter::named("witness_horrors").def().needs[0].1;
+    let mut seen = (false, false);
+    for seed in 0..40 {
+        let mut g = quiet_game(seed);
+        let push = if seed % 2 == 0 { 10 } else { -10 };
+        g.player.effects.add(EffectSpec::new(EffectKind::Boost(Attribute::Willpower), push, 100), "test");
+        let dir = encounter_beside(&mut g, "witness_horrors");
+        let _ = g.move_player(dir);
+        let report = g.last_encounter.as_ref().unwrap();
+        let delta = report.changes[0].1;
+        if report.resisted() {
+            assert_eq!(delta, full / 2);
+            seen.0 = true;
+        } else {
+            assert_eq!(delta, full);
+            seen.1 = true;
+        }
+    }
+    assert_eq!(seen, (true, true), "both outcomes happen");
+}
+
+#[test]
+fn despair_saps_willpower_and_crystal_healing() {
+    let mut g = quiet_game(14);
+    let (will, heal) = (g.player.attr(crate::stats::Attribute::Willpower), g.player.crystal_heal());
+    g.player.hope.value = 0;
+    assert!(g.player.attr(crate::stats::Attribute::Willpower) < will);
+    assert!(g.player.crystal_heal() <= heal);
+    let hp = g.player.hp;
+    g.pass_time(50);
+    assert_eq!(g.player.hp, hp, "despair never costs HP");
+}
+
+#[test]
+fn levels_have_encounters() {
+    let mut g = new_game(15);
+    let mut total = 0;
+    for depth in 1..=FINAL_DEPTH {
+        g.enter_level(depth);
+        total += g.map.cells().filter(|p| matches!(g.map.feature(*p), Some(Feature::Encounter(_)))).count();
+    }
+    assert!(total >= FINAL_DEPTH as usize * 2, "{total} encounters over {FINAL_DEPTH} levels");
+}

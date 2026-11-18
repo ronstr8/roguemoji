@@ -1,0 +1,11 @@
+name = "Friendly Stranger"
+glyph = "🤝"
+text = """
+A woman with a three-legged dog waves you over to her fire. She doesn't ask \
+where you're headed. She tells you about the orchard her family kept before \
+the Visitors, then presses a sealed bottle into your hands and won't take \
+anything for it. "Somebody did the same for me," she says.
+"""
+chance = { weight = 4 }
+needs = { hope = 250 }
+gives = { bottled_water = 1 }

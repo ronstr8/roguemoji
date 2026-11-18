@@ -111,6 +111,14 @@ load. Tired lowers Reflexes; Exhausted lowers Reflexes and Wit. At empty you col
 Press `z` to nap first: it lasts until you're fully rested, a monster comes into view, or
 you press a key. Sleep heals a little, but hunger and thirst keep draining.
 
+**Hope** wears down slowly on its own and swings with **encounters**: things happening
+on the map that you walk into. A 🤝 Friendly Stranger or a 🔥 Campfire Circle restores
+it, and sometimes hands you something. Horrors like 😱 Witness Horrors erode it, unless
+a Willpower check halves the blow. Places like the 🧘 Peaceful Sanctum stay put and
+restore a little each time you bump them. Downcast lowers Willpower; Despairing lowers
+it further, and Wit too. Willpower powers crystal healing and resisting dread, so
+despair makes 💎 heal less and terror land more often. It never costs HP.
+
 **Harvesting and crafting.** Bump plants, pumps, wrecks, toolboxes, electronics and crates
 to gather components with Survival or Scavenging. Then craft food and drink with timed
 buffs, such as Glowcap Brew (+Brains/Wit), Grilled Meat (+Brawn), Mutant Stew
@@ -164,7 +172,8 @@ data/
   monsters/        one TOML file per monster (see data/README.md)
   components/      one TOML file per crafting component
   consumables/     food, drink and medicine
-  needs/           hunger, thirst and rest: drain rates, stages and sleep
+  needs/           hunger, thirst, rest and hope: drain rates, stages and sleep
+  encounters/      scenes and places on the map, and what they do
   recipes/         crafting recipes
   melee/ armor/ packs/   wieldable and wearable gear
   cartridges/ ammo/ guns/  firearms and their ballistics

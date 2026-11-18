@@ -6,9 +6,11 @@
 //! * `turn`    — the passage of time: effects, hunger, monster turns
 //! * `ai`      — monster decision-making and attacks
 //! * `actions` — everything the player can do
+//! * `encounters` — walking into an encounter
 
 mod actions;
 mod ai;
+mod encounters;
 mod level;
 pub mod log;
 #[cfg(test)]
@@ -16,6 +18,7 @@ mod tests;
 mod turn;
 
 pub use actions::{Event, StashSide};
+pub use encounters::EncounterReport;
 pub use log::{Log, Tone};
 
 use crate::creatures::player::Burden;
@@ -61,6 +64,8 @@ pub struct Game {
     pub outcome: Option<Outcome>,
     /// Items left in the Visitor lockbox network, reachable from any lockbox.
     pub stash: Inventory,
+    /// The encounter just walked into, for its pop-up.
+    pub last_encounter: Option<EncounterReport>,
     /// Burden as of the last check, to announce changes.
     last_burden: Burden,
     dice: Dice,
@@ -82,6 +87,7 @@ impl Game {
             log: Log::default(),
             outcome: None,
             stash: Inventory::with_slots(STASH_SLOTS),
+            last_encounter: None,
             last_burden: Burden::Light,
             dice,
             next_id: 1,
