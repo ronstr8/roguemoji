@@ -42,16 +42,16 @@ pub fn footer(canvas: &mut Canvas, inner: Area, text: &str) {
 /// reach the next lighter level, colored by burden.
 pub fn draw_load(canvas: &mut Canvas, x: u16, y: u16, w: u16, p: &crate::creatures::player::Player) {
     let (carried, cap, burden) = (p.carried_weight(), p.carry_capacity(), p.burden());
-    let mut line = format!("Carrying {} / {} · {}", fmt_lb(carried), fmt_lb(cap), burden.name());
+    let mut line = format!("Carrying {} / {} ({})", fmt_lb(carried), fmt_lb(cap), burden.name());
     if let Some((lighter, limit)) = burden.lighter(cap) {
         line += &format!(" · shed {} to be {}", fmt_lb(carried - limit), lighter.name());
     }
     canvas.text_max(x, y, &line, w, theme::burden(burden), theme::POPUP);
 }
 
-/// A need's meter as text, e.g. `Hydration 800/1000 · Hydrated`.
+/// A need's meter as text, e.g. `Hydration 800/1000 (Hydrated)`.
 pub fn need_text(m: &crate::creatures::needs::Meter) -> String {
-    format!("{} {}/{} · {}", m.def().name, m.value, m.def().max, m.label())
+    format!("{} {}/{} ({})", m.def().name, m.value, m.def().max, m.label())
 }
 
 /// First visible row for a list so that `selected` stays on screen.

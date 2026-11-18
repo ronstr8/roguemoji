@@ -46,7 +46,7 @@ pub fn draw_sidebar(canvas: &mut Canvas, area: Area, game: &Game) {
     line(canvas, &mut y, &needs, needs_color);
     line(canvas, &mut y, &format!("DEF {}  ARMOR {}  Turn {}", p.defense(), p.armor_value(), game.turn), theme::TEXT);
     let burden = p.burden();
-    let load = format!("Load {}/{} {}", fmt_lb(p.carried_weight()), fmt_lb(p.carry_capacity()), burden.name());
+    let load = format!("Load {}/{} ({})", fmt_lb(p.carried_weight()), fmt_lb(p.carry_capacity()), burden.name());
     line(canvas, &mut y, &load, theme::burden(burden));
     let momentum = "▲".repeat(p.momentum.stacks() as usize);
     line(canvas, &mut y, &format!("Stance {}  {}", p.stance.name(), momentum), theme::WARN);

@@ -109,7 +109,7 @@ mod tests {
         let rows = canvas.text_rows();
         println!("{}", rows.join("\n"));
         assert!(rows.iter().any(|r| r.contains(" Buy  [Sell]   You carry") && r.contains("sort: value ↓")));
-        assert!(rows.iter().any(|r| r.contains("Carrying ") && r.contains(" lb · Light")));
+        assert!(rows.iter().any(|r| r.contains("Carrying ") && r.contains(" lb (Light)")));
         assert!(rows.iter().any(|r| r.contains("Selling sheds ")));
         // Sale prices run high to low down the list.
         let prices: Vec<u32> = rows

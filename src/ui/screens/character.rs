@@ -71,7 +71,7 @@ pub fn draw(canvas: &mut Canvas, game: &Game) {
         format!("Each 💎 heals {}  ·  Crystals {}", p.crystal_heal(), p.crystals),
         p.needs().map(need_text).join("  ·  "),
         format!(
-            "Carry {} (Brawn {:+} lb{})  ·  Load {}  ·  {}",
+            "Carry {} (Brawn {:+} lb{})  ·  Load {} ({})",
             fmt_lb(p.carry_capacity()),
             bonus(p.attr(Attribute::Brawn)) * CAPACITY_PER_BRAWN / 100,
             p.pack.map_or(String::new(), |k| format!(", pack +{}", fmt_lb(k.def().capacity))),
@@ -105,7 +105,7 @@ mod tests {
         let rows = canvas.text_rows();
         println!("{}", rows.join("\n"));
         assert!(
-            rows.iter().any(|r| r.contains("Satiety 750/1000 · Fed") && r.contains("Hydration 800/1000 · Hydrated"))
+            rows.iter().any(|r| r.contains("Satiety 750/1000 (Fed)") && r.contains("Hydration 800/1000 (Hydrated)"))
         );
         assert!(rows.iter().any(|r| r.contains("Checks roll 2d10")));
         assert!(rows.iter().any(|r| r.contains("Esc close")));

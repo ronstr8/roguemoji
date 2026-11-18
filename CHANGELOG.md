@@ -40,6 +40,8 @@ version can change rules, controls or data-file formats.
 - `satiety` is optional in consumable files, defaulting to 0.
 - The character sheet shows Satiety and Hydration out of 1000 with their
   current stage, replacing the old Satiety line.
+- Burden and need stages sit in parentheses after their numbers, e.g.
+  `Load 9.1 lb / 39.0 lb (Light)` and `Satiety 750/1000 (Fed)`.
 
 ## [0.4.0] - 2026-11-16
 

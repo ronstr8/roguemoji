@@ -148,7 +148,7 @@ pub fn draw(canvas: &mut Canvas, game: &Game, sort: Sort, selected: usize) {
         y += 1;
     }
     let burden = p.burden();
-    let load = format!("Load {} / {} · {}", fmt_lb(p.carried_weight()), fmt_lb(p.carry_capacity()), burden.name());
+    let load = format!("Load {} / {} ({})", fmt_lb(p.carried_weight()), fmt_lb(p.carry_capacity()), burden.name());
     canvas.text_max(x, y, &load, list_w, theme::burden(burden), theme::POPUP);
     y += 1;
     for m in p.needs() {
@@ -319,7 +319,7 @@ mod tests {
         let listed = rows.iter().filter(|r| r.contains(&format!("🔫 {name}")) && r.contains(" lb")).count();
         assert_eq!(listed, 1, "the equipped gun is listed with its weight");
         assert!(rows.iter().any(|r| r.contains("· equipped")), "the gun's details show on the right");
-        assert!(rows.iter().any(|r| r.contains("Satiety 750/1000 · Fed")));
-        assert!(rows.iter().any(|r| r.contains("Hydration 800/1000 · Hydrated")));
+        assert!(rows.iter().any(|r| r.contains("Satiety 750/1000 (Fed)")));
+        assert!(rows.iter().any(|r| r.contains("Hydration 800/1000 (Hydrated)")));
     }
 }
