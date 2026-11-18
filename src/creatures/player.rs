@@ -5,7 +5,7 @@ use crate::creatures::needs::{self, Meter, Need};
 use crate::effects::{EffectKind, Effects};
 use crate::geometry::Pos;
 use crate::items::melee::{FISTS, MeleeDef};
-use crate::items::{Armor, Gun, Inventory, MeleeWeapon, Pack, weight};
+use crate::items::{Armor, Gun, Inventory, Item, ItemKind, MeleeWeapon, Pack, weight};
 use crate::stats::attributes::{self, MAX_SCORE, MIN_SCORE};
 use crate::stats::skills::{self, SkillBreakdown};
 use crate::stats::{Attribute, Attributes, Skill, SkillSet};
@@ -85,6 +85,28 @@ impl Burden {
             Burden::Burdened => "Your load slows you: moving takes longer and dodging is harder.",
             Burden::Strained => "You stagger under the load: every step is a slog and you can barely dodge.",
             Burden::Overloaded => "You can't move under this load. Drop something!",
+        }
+    }
+}
+
+/// A place gear is worn or wielded, in inventory display order.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Slot {
+    Melee,
+    Gun,
+    Armor,
+    Pack,
+}
+
+impl Slot {
+    pub const ALL: [Slot; 4] = [Slot::Melee, Slot::Gun, Slot::Armor, Slot::Pack];
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Slot::Melee => "melee",
+            Slot::Gun => "gun",
+            Slot::Armor => "armor",
+            Slot::Pack => "pack",
         }
     }
 }
@@ -213,6 +235,28 @@ impl Player {
 
     pub fn is_dead(&self) -> bool {
         self.hp <= 0
+    }
+
+    /// What's in an equipment slot, as an item (a gun with its loaded rounds).
+    pub fn equipped(&self, slot: Slot) -> Option<Item> {
+        match slot {
+            Slot::Melee => self.melee.map(|m| Item::one(ItemKind::Melee(m))),
+            Slot::Gun => self.gun.clone().map(Item::gun),
+            Slot::Armor => self.armor.map(|a| Item::one(ItemKind::Armor(a))),
+            Slot::Pack => self.pack.map(|p| Item::one(ItemKind::Pack(p))),
+        }
+    }
+
+    /// Empty an equipment slot, returning what was in it.
+    pub fn unequip(&mut self, slot: Slot) -> Option<Item> {
+        let item = self.equipped(slot)?;
+        match slot {
+            Slot::Melee => self.melee = None,
+            Slot::Gun => self.gun = None,
+            Slot::Armor => self.armor = None,
+            Slot::Pack => self.pack = None,
+        }
+        Some(item)
     }
 
     /// Every bodily need, in display order.

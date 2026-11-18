@@ -7,6 +7,7 @@ use crossterm::event::{self, Event as TermEvent, KeyCode, KeyEvent, KeyEventKind
 
 use crate::crafting::recipes;
 use crate::creatures::Background;
+use crate::creatures::player::Slot;
 use crate::dice::Dice;
 use crate::game::{Event, Game, StashSide};
 use crate::geometry::Pos;
@@ -226,7 +227,7 @@ impl App {
             Command::Drink => game.drink_here(),
             Command::Descend => game.descend(),
             Command::Stance => game.cycle_stance(),
-            Command::Inventory => return Screen::Inventory { selected: 0 },
+            Command::Inventory => return Screen::Inventory { selected: screens::inventory::first_row(game) },
             Command::Character => return Screen::Character,
             Command::Crafting => return Screen::Crafting { selected: 0 },
             Command::Help => return Screen::Help,
@@ -301,36 +302,41 @@ impl App {
     }
 
     fn on_inventory(&mut self, key: KeyEvent, selected: usize) -> Screen {
+        use screens::inventory::{Row, SLOT_ROWS, row_at, row_count};
         let sort = self.inv_sort;
         let Some(game) = self.game.as_mut() else { return Screen::Play };
-        let len = game.player.inventory.len();
-        let clamp = |s: usize, len: usize| s.min(len.saturating_sub(1));
-        // `selected` is a row on screen; the pack itself stays in pickup order.
-        let item = sort.order(game.player.inventory.items(), game.depth).get(selected).copied();
+        let row = row_at(game, sort, selected);
         match key.code {
             KeyCode::Esc | KeyCode::Char('i') | KeyCode::Char('q') => return Screen::Play,
-            KeyCode::Enter | KeyCode::Char('e') => {
-                if let Some(idx) = item {
-                    game.use_item(idx);
-                }
-            }
+            KeyCode::Enter | KeyCode::Char('e') => match row {
+                Some(Row::Pack(idx)) => game.use_item(idx),
+                Some(Row::Slot(slot)) => game.unequip(slot),
+                None => {}
+            },
             KeyCode::Char('d') => {
-                if let Some(idx) = item {
+                if let Some(Row::Pack(idx)) = row {
                     game.drop_item(idx);
                 }
             }
             KeyCode::Char('s') => {
-                let selected = self.inv_sort.advance(game.player.inventory.items(), game.depth, selected);
+                let items = game.player.inventory.items();
+                let selected = match selected.checked_sub(SLOT_ROWS) {
+                    Some(i) => SLOT_ROWS + self.inv_sort.advance(items, game.depth, i),
+                    None => {
+                        self.inv_sort = self.inv_sort.next();
+                        selected
+                    }
+                };
                 return Screen::Inventory { selected };
             }
-            KeyCode::Char('w') => game.unequip_melee(),
+            KeyCode::Char('w') => game.unequip(Slot::Melee),
             KeyCode::Up | KeyCode::Down | KeyCode::PageUp | KeyCode::PageDown => {
-                return Screen::Inventory { selected: input::list_nav(key, selected, len) };
+                return Screen::Inventory { selected: input::list_nav(key, selected, row_count(game)) };
             }
             KeyCode::Char(c) if c.is_ascii_lowercase() => {
                 let idx = (c as u8 - b'a') as usize;
-                if idx < len {
-                    return Screen::Inventory { selected: idx };
+                if idx < game.player.inventory.len() {
+                    return Screen::Inventory { selected: SLOT_ROWS + idx };
                 }
             }
             _ => {}
@@ -338,7 +344,7 @@ impl App {
         if game.is_over() {
             return Screen::Ended;
         }
-        Screen::Inventory { selected: clamp(selected, game.player.inventory.len()) }
+        Screen::Inventory { selected: selected.min(row_count(game) - 1) }
     }
 
     fn on_crafting(&mut self, key: KeyEvent, selected: usize) -> Screen {

@@ -1,6 +1,6 @@
 //! Character sheet pop-up: attributes, skills and derived values.
 
-use super::{footer, paragraph, popup};
+use super::{footer, need_text, paragraph, popup};
 use crate::creatures::player::CAPACITY_PER_BRAWN;
 use crate::game::Game;
 use crate::items::weight::fmt_lb;
@@ -69,7 +69,7 @@ pub fn draw(canvas: &mut Canvas, game: &Game) {
     let derived = [
         format!("Max HP {}  ·  Defense {}  ·  Armor {}", p.max_hp(), p.defense(), p.armor_value()),
         format!("Each 💎 heals {}  ·  Crystals {}", p.crystal_heal(), p.crystals),
-        p.needs().map(|m| format!("{} {}/{} · {}", m.def().name, m.value, m.def().max, m.label())).join("  ·  "),
+        p.needs().map(need_text).join("  ·  "),
         format!(
             "Carry {} (Brawn {:+} lb{})  ·  Load {}  ·  {}",
             fmt_lb(p.carry_capacity()),

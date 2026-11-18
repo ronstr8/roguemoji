@@ -1,12 +1,14 @@
 //! Inventory pop-up: equipped gear, the pack, and item details.
 
-use super::{footer, paragraph, popup, scroll_offset};
+use super::{footer, need_text, paragraph, popup, scroll_offset};
+use crate::creatures::Player;
+use crate::creatures::player::Slot;
 use crate::game::Game;
+use crate::items::Item;
 use crate::items::loot::sale_value;
 use crate::items::weight::fmt_lb;
-use crate::items::{GUN_GLYPH, Item};
 use crate::ui::canvas::Canvas;
-use crate::ui::theme;
+use crate::ui::{Area, theme};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 enum SortKey {
@@ -75,33 +77,86 @@ impl Sort {
     }
 }
 
+/// Rows above the pack list: one per equipment slot.
+pub const SLOT_ROWS: usize = Slot::ALL.len();
+
+/// What a row of the inventory list holds.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Row {
+    Slot(Slot),
+    /// An index into the pack (which stays in pickup order).
+    Pack(usize),
+}
+
+/// The row at `selected`: equipment slots first, then the pack in `sort` order.
+pub fn row_at(game: &Game, sort: Sort, selected: usize) -> Option<Row> {
+    match selected.checked_sub(SLOT_ROWS) {
+        None => Some(Row::Slot(Slot::ALL[selected])),
+        Some(i) => sort.order(game.player.inventory.items(), game.depth).get(i).map(|&idx| Row::Pack(idx)),
+    }
+}
+
+pub fn row_count(game: &Game) -> usize {
+    SLOT_ROWS + game.player.inventory.len()
+}
+
+/// Where the cursor starts: the first pack item, or the top if the pack is empty.
+pub fn first_row(game: &Game) -> usize {
+    if game.player.inventory.is_empty() { 0 } else { SLOT_ROWS }
+}
+
+/// List columns, right-aligned: value then weight.
+const WT_W: u16 = 9;
+const VAL_W: u16 = 6;
+
+/// One list row at `at`: a label, then the item's sale value and weight if there is one.
+fn draw_row(canvas: &mut Canvas, at: Area, label: &str, item: Option<&Item>, depth: u32, on: bool) {
+    let (x, y, w) = (at.x, at.y, at.w);
+    let bg = if on { theme::SELECTED } else { theme::POPUP };
+    canvas.fill(x, y, w, 1, bg);
+    let color = if item.is_some() { theme::TEXT } else { theme::DIM };
+    canvas.text_max(x, y, label, w.saturating_sub(WT_W + VAL_W + 1), color, bg);
+    let Some(item) = item else { return };
+    let right = |s: &str, end: u16| end.saturating_sub(crate::ui::canvas::text_width(s) as u16);
+    let value = sale_value(item, depth).map_or("—".to_string(), |v| format!("{v}💎"));
+    canvas.text(right(&value, x + w - WT_W), y, &value, theme::LOOT, bg);
+    let wt = fmt_lb(item.weight());
+    canvas.text(right(&wt, x + w), y, &wt, theme::DIM, bg);
+}
+
+/// The equipped list's label for a slot, e.g. ` 🔫 Service Pistol [15/15]`.
+fn slot_label(p: &Player, slot: Slot) -> String {
+    match (slot, p.equipped(slot)) {
+        (_, Some(item)) => format!(" {} {}", item.glyph(), item.display_name()),
+        (Slot::Melee, None) => format!(" {} {}", p.melee_def().glyph, p.melee_def().name),
+        (_, None) => format!(" — no {}", slot.name()),
+    }
+}
+
 pub fn draw(canvas: &mut Canvas, game: &Game, sort: Sort, selected: usize) {
-    let inner = popup(canvas, 104, 32, "Inventory");
+    let inner = popup(canvas, 104, 34, "Inventory");
     let p = &game.player;
-    let list_w = 46.min(inner.w / 2);
+    let list_w = 50.min(inner.w / 2);
     let (x, mut y) = (inner.x, inner.y);
     let bottom = inner.y + inner.h.saturating_sub(2);
 
     canvas.text(x, y, "Equipped", theme::TITLE, theme::POPUP);
     y += 1;
-    let melee = p.melee_def();
-    canvas.text_max(x, y, &format!(" {} {}", melee.glyph, melee.name), list_w, theme::TEXT, theme::POPUP);
-    y += 1;
-    let gun = p.gun.as_ref().map_or("—".to_string(), |g| format!("{} [{}]", g.def().name, g.status()));
-    canvas.text_max(x, y, &format!(" {GUN_GLYPH} {gun}"), list_w, theme::TEXT, theme::POPUP);
-    y += 1;
-    let armor = p.armor.map_or(("  ", "—"), |a| (a.def().glyph.as_str(), a.def().name.as_str()));
-    canvas.text_max(x, y, &format!(" {} {}", armor.0, armor.1), list_w, theme::TEXT, theme::POPUP);
-    y += 1;
-    let pack = p.pack.map_or(("  ", "— (no pack)".to_string()), |k| {
-        (k.def().glyph.as_str(), format!("{} (+{})", k.def().name, fmt_lb(k.def().capacity)))
-    });
-    canvas.text_max(x, y, &format!(" {} {}", pack.0, pack.1), list_w, theme::TEXT, theme::POPUP);
-    y += 1;
+    for (i, slot) in Slot::ALL.into_iter().enumerate() {
+        let item = p.equipped(slot);
+        draw_row(canvas, Area::new(x, y, list_w, 1), &slot_label(p, slot), item.as_ref(), game.depth, i == selected);
+        y += 1;
+    }
     let burden = p.burden();
     let load = format!("Load {} / {} · {}", fmt_lb(p.carried_weight()), fmt_lb(p.carry_capacity()), burden.name());
     canvas.text_max(x, y, &load, list_w, theme::burden(burden), theme::POPUP);
-    y += 2;
+    y += 1;
+    for m in p.needs() {
+        let color = if m.stage().is_warning() { theme::BAD } else { theme::TEXT };
+        canvas.text_max(x, y, &need_text(m), list_w, color, theme::POPUP);
+        y += 1;
+    }
+    y += 1;
 
     let items = p.inventory.items();
     let order = sort.order(items, game.depth);
@@ -114,48 +169,54 @@ pub fn draw(canvas: &mut Canvas, game: &Game, sort: Sort, selected: usize) {
         canvas.text(x, y, " (empty)", theme::DIM, theme::POPUP);
     }
     let visible = bottom.saturating_sub(y) as usize;
-    let offset = scroll_offset(selected, visible);
-    // Right-hand columns: value then weight, each right-aligned.
-    const WT_W: u16 = 9;
-    const VAL_W: u16 = 6;
+    let pack_selected = selected.checked_sub(SLOT_ROWS);
+    let offset = scroll_offset(pack_selected.unwrap_or(0), visible);
     for (i, &idx) in order.iter().enumerate().skip(offset).take(visible) {
         let item = &items[idx];
         let letter = (b'a' + i as u8) as char;
-        let bg = if i == selected { theme::SELECTED } else { theme::POPUP };
-        canvas.fill(x, y, list_w, 1, bg);
-        let name_w = list_w.saturating_sub(WT_W + VAL_W + 1);
-        let text = format!("{letter}) {} {}", item.glyph(), item.display_name());
-        canvas.text_max(x, y, &text, name_w, theme::TEXT, bg);
-        let value = sale_value(item, game.depth).map_or("—".to_string(), |v| format!("{v}💎"));
-        let right = |s: &str, end: u16| end.saturating_sub(crate::ui::canvas::text_width(s) as u16);
-        let val_end = x + list_w - WT_W;
-        canvas.text(right(&value, val_end), y, &value, theme::LOOT, bg);
-        let wt = fmt_lb(item.weight());
-        canvas.text(right(&wt, x + list_w), y, &wt, theme::DIM, bg);
+        let label = format!("{letter}) {} {}", item.glyph(), item.display_name());
+        draw_row(canvas, Area::new(x, y, list_w, 1), &label, Some(item), game.depth, pack_selected == Some(i));
         y += 1;
     }
 
-    // Detail panel.
     let dx = inner.x + list_w + 3;
     let dw = inner.w.saturating_sub(list_w + 3);
-    if let Some(item) = order.get(selected).map(|&i| &items[i]) {
-        let mut dy = inner.y;
-        canvas.text_max(dx, dy, &format!("{} {}", item.glyph(), item.display_name()), dw, theme::TITLE, theme::POPUP);
-        dy += 1;
-        canvas.text_max(dx, dy, item.category(), dw, theme::DIM, theme::POPUP);
-        dy += 1;
-        let worth = match sale_value(item, game.depth) {
-            Some(v) => format!("An Autovend would pay {v} 💎 for it."),
-            None => "No Autovend will buy it.".to_string(),
-        };
-        canvas.text_max(dx, dy, &worth, dw, theme::LOOT, theme::POPUP);
-        dy += 2;
-        for line in item.describe() {
-            dy = paragraph(canvas, dx, dy, dw, bottom, &line, theme::TEXT);
-        }
-    }
+    draw_detail(canvas, Area::new(dx, inner.y, dw, bottom.saturating_sub(inner.y)), game, row_at(game, sort, selected));
 
-    footer(canvas, inner, "a-z/↑↓ select · Enter use/equip · d drop · w stow melee · s sort · Esc close");
+    footer(canvas, inner, "a-z/↑↓ select · Enter use/equip/unequip · d drop · w stow melee · s sort · Esc close");
+}
+
+/// The right-hand panel: everything about the selected item.
+fn draw_detail(canvas: &mut Canvas, area: Area, game: &Game, row: Option<Row>) {
+    let (item, equipped) = match row {
+        Some(Row::Slot(slot)) => (game.player.equipped(slot), true),
+        Some(Row::Pack(idx)) => (game.player.inventory.get(idx).cloned(), false),
+        None => (None, false),
+    };
+    let (dx, dw, bottom) = (area.x, area.w, area.y + area.h);
+    let mut dy = area.y;
+    let Some(item) = item else {
+        if let Some(Row::Slot(slot)) = row {
+            let text = if slot == Slot::Melee { "You fight bare-handed." } else { "Nothing equipped." };
+            canvas.text_max(dx, dy, &format!("No {} equipped", slot.name()), dw, theme::TITLE, theme::POPUP);
+            canvas.text_max(dx, dy + 2, text, dw, theme::DIM, theme::POPUP);
+        }
+        return;
+    };
+    canvas.text_max(dx, dy, &format!("{} {}", item.glyph(), item.display_name()), dw, theme::TITLE, theme::POPUP);
+    dy += 1;
+    let category = if equipped { format!("{} · equipped", item.category()) } else { item.category().to_string() };
+    canvas.text_max(dx, dy, &category, dw, theme::DIM, theme::POPUP);
+    dy += 1;
+    let worth = match sale_value(&item, game.depth) {
+        Some(v) => format!("An Autovend would pay {v} 💎 for it."),
+        None => "No Autovend will buy it.".to_string(),
+    };
+    canvas.text_max(dx, dy, &worth, dw, theme::LOOT, theme::POPUP);
+    dy += 2;
+    for line in item.describe() {
+        dy = paragraph(canvas, dx, dy, dw, bottom, &line, theme::TEXT);
+    }
 }
 
 #[cfg(test)]
@@ -233,5 +294,32 @@ mod tests {
         let title = rows.iter().find(|r| r.contains("Pack (")).unwrap();
         assert!(title.contains(" lb  sort: value ↓"), "{title}");
         assert!(rows.iter().any(|r| r.contains("Crowbar") && r.contains("—")));
+    }
+
+    #[test]
+    fn rows_put_equipment_before_the_pack() {
+        let g = game();
+        let sort = Sort::default();
+        assert_eq!(row_at(&g, sort, 0), Some(Row::Slot(Slot::Melee)));
+        assert_eq!(row_at(&g, sort, SLOT_ROWS - 1), Some(Row::Slot(Slot::Pack)));
+        assert_eq!(row_at(&g, sort, SLOT_ROWS), Some(Row::Pack(0)));
+        assert_eq!(row_at(&g, sort, row_count(&g)), None);
+        assert_eq!(first_row(&g), SLOT_ROWS);
+    }
+
+    #[test]
+    fn renders_equipped_gear_needs_and_its_details() {
+        let g = game();
+        let gun = g.player.gun.clone().expect("this background starts with a gun");
+        let mut canvas = Canvas::new(120, 40);
+        draw(&mut canvas, &g, Sort::default(), 1);
+        let rows = canvas.text_rows();
+        println!("{}", rows.join("\n"));
+        let name = &gun.def().name;
+        let listed = rows.iter().filter(|r| r.contains(&format!("🔫 {name}")) && r.contains(" lb")).count();
+        assert_eq!(listed, 1, "the equipped gun is listed with its weight");
+        assert!(rows.iter().any(|r| r.contains("· equipped")), "the gun's details show on the right");
+        assert!(rows.iter().any(|r| r.contains("Satiety 750/1000 · Fed")));
+        assert!(rows.iter().any(|r| r.contains("Hydration 800/1000 · Hydrated")));
     }
 }

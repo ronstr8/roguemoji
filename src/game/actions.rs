@@ -6,7 +6,7 @@ use crate::combat::{self, Attack, HitTier};
 use crate::crafting::{Recipe, recipes};
 use crate::creatures::Player;
 use crate::creatures::needs::{Meter, UnsafeDrink};
-use crate::creatures::player::Burden;
+use crate::creatures::player::{Burden, Slot};
 use crate::effects::{EffectKind, EffectSpec};
 use crate::geometry::{Dir, Pos, line};
 use crate::items::components::UNSAFE_WATER;
@@ -574,11 +574,12 @@ impl Game {
         self.pass_time(1);
     }
 
-    pub fn unequip_melee(&mut self) {
-        if let Some(m) = self.player.melee.take() {
-            self.give_player(Item::one(ItemKind::Melee(m)));
-            self.log.info(format!("You stow the {} and raise your fists.", m.def().name));
-        }
+    /// Move what's in an equipment slot into the pack.
+    pub fn unequip(&mut self, slot: Slot) {
+        let Some(item) = self.player.unequip(slot) else { return };
+        let fists = if slot == Slot::Melee { " and raise your fists" } else { "" };
+        self.log.info(format!("You stow the {}{fists}.", item.base_name()));
+        self.give_player(item);
     }
 
     pub fn drop_item(&mut self, idx: usize) {

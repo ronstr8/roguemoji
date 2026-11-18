@@ -49,6 +49,11 @@ pub fn draw_load(canvas: &mut Canvas, x: u16, y: u16, w: u16, p: &crate::creatur
     canvas.text_max(x, y, &line, w, theme::burden(burden), theme::POPUP);
 }
 
+/// A need's meter as text, e.g. `Hydration 800/1000 · Hydrated`.
+pub fn need_text(m: &crate::creatures::needs::Meter) -> String {
+    format!("{} {}/{} · {}", m.def().name, m.value, m.def().max, m.label())
+}
+
 /// First visible row for a list so that `selected` stays on screen.
 pub fn scroll_offset(selected: usize, visible: usize) -> usize {
     if visible == 0 { 0 } else { selected.saturating_sub(visible - 1) }

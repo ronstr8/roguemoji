@@ -23,6 +23,11 @@ version can change rules, controls or data-file formats.
   from your pack. Either takes a Survival check, or you get sick.
 - Boiled Water: craft it from Dirty Water to drink it safely.
 - Drinks quench thirst: water, tea, broth, juice and soda. Moonshine dries you out.
+- The inventory shows your Satiety and Hydration, so you can watch them rise as
+  you eat and drink.
+- Equipped gear is selectable in the inventory: its stats show in the detail
+  panel beside its value and weight, for comparing with what's in your pack.
+  Enter on an equipped item stows it in the pack.
 - Mods can retune hunger and thirst in `data/needs/`, give consumables
   `hydration`, and make components drinkable with `drink`.
 

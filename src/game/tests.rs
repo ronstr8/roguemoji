@@ -323,3 +323,15 @@ fn drinking_needs_water_nearby_and_sometimes_sickens() {
     }
     assert!(sick > 0 && sick < 40, "{sick} of 40 drinks made you sick");
 }
+
+#[test]
+fn unequipping_moves_gear_into_the_pack() {
+    use crate::creatures::player::Slot;
+    let mut g = quiet_game(6);
+    let gun = g.player.equipped(Slot::Gun).expect("starts with a gun");
+    g.unequip(Slot::Gun);
+    assert!(g.player.gun.is_none());
+    assert!(g.player.inventory.items().contains(&gun), "the gun keeps its loaded rounds");
+    g.unequip(Slot::Gun);
+    assert_eq!(g.player.inventory.items().iter().filter(|i| **i == gun).count(), 1, "an empty slot gives nothing");
+}
