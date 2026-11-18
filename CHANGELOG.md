@@ -7,6 +7,8 @@ version can change rules, controls or data-file formats.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-18
+
 ### Added
 - Rest. Every turn tires you, fighting twice as fast and heavy loads faster
   (×1.5 Burdened, ×2 Strained). Tired lowers Reflexes; Exhausted lowers
@@ -148,7 +150,8 @@ Unicode. Find the Visitor Beacon 📡 on depth 10.
   and to trade at Autovends.
 - Harvesting, crafting, hunger and timed status effects.
 
-[Unreleased]: https://github.com/ronstr8/roguemoji/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/ronstr8/roguemoji/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/ronstr8/roguemoji/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/ronstr8/roguemoji/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/ronstr8/roguemoji/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/ronstr8/roguemoji/compare/v0.2.0...v0.3.0
