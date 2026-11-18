@@ -7,6 +7,10 @@ version can change rules, controls or data-file formats.
 
 ## [Unreleased]
 
+### Added
+
+- Cartridge files take an optional `short` name for tight tables.
+
 ### Changed
 
 - Gun details list their stats one per line under the description: Type,
@@ -14,11 +18,18 @@ version can change rules, controls or data-file formats.
   fold them into one wrapped line so the load table still fits.
 - The load table's first column is headed "Load" instead of "Name".
 - The Autovend window grows taller on big terminals.
+- The load table names each load by type ("JHP", "Buck ×9") instead of its
+  full label, since the gun's cartridge is already in its stats. Loads of
+  another cartridge the gun can fire show that cartridge (".38 Spl"). The
+  weight column is now "Gr" in plain grains, so names fit on an 80-column
+  terminal.
 
 ### Fixed
 
 - The sidebar colors each need by its own stage. A fine need is no longer
   shown red because the need beside it is ("Fed · Thirsty").
+- Things lighter than a tenth of a pound show two decimals ("0.01 lb")
+  instead of reading as weightless.
 
 ## [0.6.0] - 2026-11-18
 

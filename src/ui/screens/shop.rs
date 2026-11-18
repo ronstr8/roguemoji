@@ -132,7 +132,7 @@ mod tests {
         let rows = canvas.text_rows();
         println!("{}", rows.join("\n"));
         for load in gun.loads() {
-            assert!(rows.iter().any(|r| r.contains(load.ammo.name())), "{} is listed", load.ammo.name());
+            assert!(rows.iter().any(|r| r.contains(&load.name)), "{} is listed", load.name);
         }
         assert!(rows.iter().any(|r| r.contains("Rng in tiles: effective-max")), "the legend fits");
         assert!(!rows.iter().any(|r| r.contains("▸ 12ga")), "an empty gun has nothing chambered");
@@ -151,8 +151,9 @@ mod tests {
         let rows = canvas.text_rows();
         println!("{}", rows.join("\n"));
         assert!(rows.iter().any(|r| r.contains("Type 12 gauge")), "stats fold into a paragraph");
-        let listed = rows.iter().filter(|r| r.contains("gr ") && r.contains("12ga")).count();
-        assert_eq!(listed, gun.loads().len(), "every load has a row");
+        for load in gun.loads() {
+            assert!(rows.iter().any(|r| r.contains(&load.name)), "{} is listed in full", load.name);
+        }
         assert!(rows.iter().any(|r| r.contains("Rng in tiles")), "the legend fits");
     }
 }

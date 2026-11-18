@@ -312,10 +312,10 @@ mod tests {
             assert!(rows.iter().any(|r| r.contains(&format!("{label}  "))), "stat line {label}");
         }
         let header = rows.iter().find(|r| r.contains("Load") && r.contains("FPS")).expect("load table header");
-        for col in ["Wt", "Rng", "DMG", "Pen"] {
+        for col in ["Gr", "Rng", "DMG", "Pen"] {
             assert!(header.contains(col), "{header}");
         }
-        let loaded = gun.ammo.expect("starts loaded").name();
+        let loaded = gun.loads().into_iter().find(|l| l.loaded).expect("starts loaded").name;
         assert!(rows.iter().any(|r| r.contains(&format!("▸ {loaded}"))), "the chambered load is marked");
         assert!(rows.iter().any(|r| r.contains("Satiety 750/1000 (Fed)")));
         assert!(rows.iter().any(|r| r.contains("Hydration 800/1000 (Hydrated)")));

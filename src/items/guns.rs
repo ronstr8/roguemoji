@@ -160,9 +160,12 @@ pub struct Gun {
 }
 
 /// How one load performs from a particular gun: a row of its ballistics table.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct LoadStats {
     pub ammo: Ammo,
+    /// What the load table calls it: the load type for the gun's own
+    /// cartridge (`JHP`, `Buck ×9`), or the cartridge for one it also fires.
+    pub name: String,
     /// Total projectile weight (all pellets for shot).
     pub grains: f64,
     /// Muzzle velocity from this gun's barrel.
@@ -259,6 +262,7 @@ impl Gun {
                 let p = self.ballistics(ammo);
                 LoadStats {
                     ammo,
+                    name: self.load_name(ammo),
                     grains: ammo.def().grains,
                     fps: p.fps,
                     damage: p.base_damage,
@@ -269,6 +273,19 @@ impl Gun {
                 }
             })
             .collect()
+    }
+
+    /// A short name for `ammo` in this gun's load table. The gun's own
+    /// cartridge is already named in its stats, so only the load type shows.
+    fn load_name(&self, ammo: Ammo) -> String {
+        let d = ammo.def();
+        if d.cartridge != self.def().cartridge {
+            return d.cartridge.def().short.clone();
+        }
+        match d.projectiles {
+            1 => d.load.abbrev().to_string(),
+            n => format!("{} ×{n}", d.load.abbrev()),
+        }
     }
 
     pub fn status(&self) -> String {
@@ -285,6 +302,17 @@ impl Gun {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn load_table_names_skip_what_the_gun_already_says() {
+        let name_of = |gun: &str, ammo: &str| {
+            let g = Gun::loaded_with(GunModel::named(gun), Ammo::lookup(ammo).unwrap(), 0);
+            g.loads().into_iter().find(|l| l.ammo == Ammo::lookup(ammo).unwrap()).unwrap().name
+        };
+        assert_eq!(name_of("service_pistol_9mm", "9mm_jhp"), "JHP", "own cartridge: just the load type");
+        assert_eq!(name_of("pump_shotgun_12ga", "12ga_buck"), "Buck ×9", "shot counts its pellets");
+        assert_eq!(name_of("revolver_357", "38_special"), ".38 Spl", "a foreign cartridge is named");
+    }
 
     #[test]
     fn stock_guns_load() {

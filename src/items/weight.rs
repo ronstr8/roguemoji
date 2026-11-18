@@ -3,9 +3,12 @@
 
 use super::{Ammo, Armor, Component, Consumable, Gun, GunModel, ItemKind, MeleeWeapon, Pack};
 
-/// Format a weight in hundredths of a pound as e.g. `12.5 lb`.
+/// Format a weight in hundredths of a pound as e.g. `12.5 lb`. Anything
+/// lighter than a tenth of a pound gets a second decimal, so it doesn't
+/// read as weightless.
 pub fn fmt_lb(w: u32) -> String {
-    format!("{:.1} lb", w as f64 / 100.0)
+    let lb = w as f64 / 100.0;
+    if (1..10).contains(&w) { format!("{lb:.2} lb") } else { format!("{lb:.1} lb") }
 }
 
 /// Weight of a single unit of `kind`. A gun's loaded rounds count too.
@@ -54,4 +57,18 @@ pub fn consumable(c: Consumable) -> u32 {
 
 pub fn pack(x: Pack) -> u32 {
     x.def().weight
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn light_things_keep_a_visible_weight() {
+        assert_eq!(fmt_lb(1), "0.01 lb", "a single .22 round isn't weightless");
+        assert_eq!(fmt_lb(9), "0.09 lb");
+        assert_eq!(fmt_lb(0), "0.0 lb");
+        assert_eq!(fmt_lb(10), "0.1 lb");
+        assert_eq!(fmt_lb(1250), "12.5 lb");
+    }
 }

@@ -93,7 +93,7 @@ pub fn item_details(canvas: &mut Canvas, area: Area, item: &Item) -> u16 {
     if !stats.is_empty() {
         let rest = Area::new(x, y + 1, w, bottom.saturating_sub(y + 1));
         // Short panes get the stats as one wrapped line so the load table still fits.
-        y = if rest.h as usize >= stats.len() + load_table_height(&loads) {
+        y = if rest.h as usize >= stats.len() + load_table_height(&loads, w) {
             stat_block(canvas, rest, &stats)
         } else {
             let joined: Vec<String> = stats.iter().map(|(l, v)| format!("{l} {v}")).collect();
@@ -106,9 +106,9 @@ pub fn item_details(canvas: &mut Canvas, area: Area, item: &Item) -> u16 {
     y
 }
 
-/// Rows the load table needs, with the blank line above it: header, loads, legend.
-fn load_table_height(loads: &[LoadStats]) -> usize {
-    if loads.is_empty() { 0 } else { loads.len() + 3 }
+/// Rows the load table needs at width `w`: a blank line, header, loads, legend.
+fn load_table_height(loads: &[LoadStats], w: u16) -> usize {
+    if loads.is_empty() { 0 } else { loads.len() + 2 + super::canvas::wrap(LOAD_LEGEND, w as usize).len() }
 }
 
 /// One `Label  value` per line, labels dim and padded to a shared column.
@@ -127,19 +127,19 @@ fn stat_block(canvas: &mut Canvas, area: Area, stats: &[(&str, String)]) -> u16 
 }
 
 /// The load table's right-aligned columns after the name: header and width.
-const LOAD_COLUMNS: [(&str, u16); 5] = [("Wt", 6), ("FPS", 5), ("Rng", 6), ("DMG", 5), ("Pen", 4)];
+const LOAD_COLUMNS: [(&str, u16); 5] = [("Gr", 4), ("FPS", 5), ("Rng", 6), ("DMG", 5), ("Pen", 4)];
 
 /// One row per load, the chambered one marked: weight in grains, muzzle
 /// velocity, effective-max range in tiles, expected damage and penetration.
 fn load_table(canvas: &mut Canvas, area: Area, loads: &[LoadStats]) -> u16 {
-    let header = ["Load", "Wt", "FPS", "Rng", "DMG", "Pen"].map(String::from);
+    let header = ["Load", "Gr", "FPS", "Rng", "DMG", "Pen"].map(String::from);
     let mut y = area.y;
     let bottom = area.y + area.h;
     for (cells, fg) in std::iter::once((header, theme::DIM)).chain(loads.iter().map(|l| {
         let mark = if l.loaded { "▸ " } else { "  " };
         let cells = [
-            format!("{mark}{}", l.ammo.name()),
-            format!("{:.0}gr", l.grains),
+            format!("{mark}{}", l.name),
+            format!("{:.0}", l.grains),
             format!("{:.0}", l.fps),
             format!("{}-{}", l.effective_range, l.max_range),
             format!("{:.1}", l.damage),

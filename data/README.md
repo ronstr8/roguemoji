@@ -363,6 +363,7 @@ from the bullet's muzzle energy, which depends on the gun's barrel length:
 
 ```toml
 name = ".357 Magnum"
+short = ".357 Mag"           # optional; a compact name for tight tables (defaults to name)
 round_weight = 0.03          # pounds per round
 also_fires = ["38_special"]  # optional; other cartridges this chamber can safely fire
 ```

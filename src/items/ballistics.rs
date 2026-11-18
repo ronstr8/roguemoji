@@ -29,6 +29,8 @@ pub struct CartridgeDef {
     /// The file name without `.toml`, e.g. `9mm`.
     pub id: String,
     pub name: String,
+    /// A compact name for tight tables, e.g. `.38 Spl`. Defaults to `name`.
+    pub short: String,
     /// Weight of one round, in hundredths of a pound.
     pub round_weight: u32,
     /// Other cartridges a chamber for this one can safely fire.
@@ -39,6 +41,8 @@ pub struct CartridgeDef {
 #[serde(deny_unknown_fields)]
 struct RawCartridge {
     name: String,
+    #[serde(default)]
+    short: Option<String>,
     /// Pounds per round.
     round_weight: f64,
     #[serde(default)]
@@ -48,9 +52,21 @@ struct RawCartridge {
 fn build_cartridge(id: String, raw: RawCartridge) -> Result<(CartridgeDef, Vec<String>), Vec<String>> {
     let mut p = Problems::default();
     p.check(!raw.name.trim().is_empty(), "name is empty");
+    p.check(raw.short.as_ref().is_none_or(|s| !s.trim().is_empty()), "short is empty; leave it out to use name");
     p.check(raw.round_weight >= 0.0 && raw.round_weight.is_finite(), "round_weight must be zero or more pounds");
     let weight = (raw.round_weight * 100.0).round() as u32;
-    p.finish(|| (CartridgeDef { id, name: raw.name, round_weight: weight, also_fires: Vec::new() }, raw.also_fires))
+    p.finish(|| {
+        (
+            CartridgeDef {
+                id,
+                short: raw.short.unwrap_or_else(|| raw.name.clone()),
+                name: raw.name,
+                round_weight: weight,
+                also_fires: Vec::new(),
+            },
+            raw.also_fires,
+        )
+    })
 }
 
 fn load_cartridges() -> Result<Vec<CartridgeDef>, String> {
