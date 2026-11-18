@@ -12,9 +12,10 @@ pub mod title;
 
 use super::canvas::Canvas;
 use super::{Area, theme};
-use crate::items::Item;
+use crate::items::guns::LoadStats;
 use crate::items::loot::sale_value;
 use crate::items::weight::fmt_lb;
+use crate::items::{Item, ItemKind};
 
 /// Draw a centered pop-up frame and return its inner content area.
 pub fn popup(canvas: &mut Canvas, want_w: u16, want_h: u16, title: &str) -> Area {
@@ -73,6 +74,64 @@ pub fn item_row(canvas: &mut Canvas, at: Area, label: &str, item: Option<&Item>,
     canvas.text(right(&value, x + w - WT_W), y, &value, theme::LOOT, bg);
     let wt = fmt_lb(item.weight());
     canvas.text(right(&wt, x + w), y, &wt, theme::DIM, bg);
+}
+
+/// An item's description, then for a gun a table of the loads it fires.
+/// Returns the next free row.
+pub fn item_details(canvas: &mut Canvas, area: Area, item: &Item) -> u16 {
+    let (x, w, bottom) = (area.x, area.w, area.y + area.h);
+    let mut y = area.y;
+    for line in item.describe() {
+        y = paragraph(canvas, x, y, w, bottom, &line, theme::TEXT);
+    }
+    if let ItemKind::Gun(g) = &item.kind {
+        y = load_table(canvas, Area::new(x, y + 1, w, bottom.saturating_sub(y + 1)), &g.loads());
+    }
+    y
+}
+
+/// The load table's right-aligned columns after the name: header and width.
+const LOAD_COLUMNS: [(&str, u16); 5] = [("Wt", 6), ("FPS", 5), ("Rng", 6), ("DMG", 5), ("Pen", 4)];
+
+/// One row per load, the chambered one marked: weight in grains, muzzle
+/// velocity, effective-max range in tiles, expected damage and penetration.
+fn load_table(canvas: &mut Canvas, area: Area, loads: &[LoadStats]) -> u16 {
+    let header = ["Name", "Wt", "FPS", "Rng", "DMG", "Pen"].map(String::from);
+    let mut y = area.y;
+    let bottom = area.y + area.h;
+    for (cells, fg) in std::iter::once((header, theme::DIM)).chain(loads.iter().map(|l| {
+        let mark = if l.loaded { "▸ " } else { "  " };
+        let cells = [
+            format!("{mark}{}", l.ammo.name()),
+            format!("{:.0}gr", l.grains),
+            format!("{:.0}", l.fps),
+            format!("{}-{}", l.effective_range, l.max_range),
+            format!("{:.1}", l.damage),
+            format!("{:+}", l.pen),
+        ];
+        (cells, if l.loaded { theme::GOOD } else { theme::TEXT })
+    })) {
+        if y >= bottom {
+            break;
+        }
+        table_row(canvas, Area::new(area.x, y, area.w, 1), &cells, fg);
+        y += 1;
+    }
+    paragraph(canvas, area.x, y, area.w, bottom, LOAD_LEGEND, theme::DIM)
+}
+
+const LOAD_LEGEND: &str = "Rng in tiles: effective-max · ▸ loaded";
+
+/// The name fills what the fixed columns leave; the rest right-align.
+fn table_row(canvas: &mut Canvas, at: Area, cells: &[String; 6], fg: crossterm::style::Color) {
+    let fixed: u16 = LOAD_COLUMNS.iter().map(|(_, w)| w).sum();
+    canvas.text_max(at.x, at.y, &cells[0], at.w.saturating_sub(fixed), fg, theme::POPUP);
+    let mut end = at.x + at.w.saturating_sub(fixed);
+    for (cell, (_, w)) in cells[1..].iter().zip(LOAD_COLUMNS) {
+        end += w;
+        let x = end.saturating_sub(super::canvas::text_width(cell) as u16);
+        canvas.text(x, at.y, cell, fg, theme::POPUP);
+    }
 }
 
 /// First visible row for a list so that `selected` stays on screen.

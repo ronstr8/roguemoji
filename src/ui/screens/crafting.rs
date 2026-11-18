@@ -1,12 +1,12 @@
 //! Crafting pop-up: recipe list, ingredients on hand, odds of success.
 
-use super::{footer, paragraph, popup, scroll_offset};
+use super::{footer, item_details, paragraph, popup, scroll_offset};
 use crate::crafting::recipes;
 use crate::game::Game;
 use crate::stats::Skill;
 use crate::stats::check::success_chance;
 use crate::ui::canvas::Canvas;
-use crate::ui::theme;
+use crate::ui::{Area, theme};
 
 pub fn draw(canvas: &mut Canvas, game: &Game, selected: usize) {
     let inner = popup(canvas, 100, 30, "Crafting");
@@ -58,9 +58,7 @@ pub fn draw(canvas: &mut Canvas, game: &Game, selected: usize) {
         bg,
     );
     y += 2;
-    for line in r.output.item().describe() {
-        y = paragraph(canvas, dx, y, dw, bottom, &line, theme::TEXT);
-    }
+    y = item_details(canvas, Area::new(dx, y, dw, bottom.saturating_sub(y)), &r.output.item());
     y += 1;
     paragraph(
         canvas,

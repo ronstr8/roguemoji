@@ -83,10 +83,11 @@ Damage is derived from physics rather than tuned by hand:
    its max range: the effective range plus one tile per 400 fps. A snub .38 reaches about
    5 tiles; a .308 rifle reaches 25.
 
-The inventory screen shows each gun's fps, joules, damage, penetration and range for
-every load it accepts. Each item in your pack lists what an Autovend would pay for it and its
-weight. Press `s` there to sort by name, weight or value, ascending then descending. The Autovend's
-Sell tab uses the same order, and `s` works there too.
+The inventory screen shows a table for each gun with every load it accepts: bullet weight,
+muzzle velocity, range, damage and penetration, with the loaded one marked ▸. Each item in your
+pack lists what an Autovend would pay for it and its weight. Press `s` there to sort by name,
+weight or value, ascending then descending. The Autovend's Sell tab and the Visitor Lockbox use
+the same order, and `s` works there too.
 
 **Melee weapons** come in three kinds:
 - scavenged tools: knife, hammer, crowbar, wrench, bat, machete, shovel, fire axe

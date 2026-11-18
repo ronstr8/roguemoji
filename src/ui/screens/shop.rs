@@ -1,13 +1,13 @@
 //! Autovend kiosk pop-up: buy from its stock, or sell from your pack.
 
 use super::inventory::Sort;
-use super::{draw_load, footer, paragraph, popup, scroll_offset};
+use super::{draw_load, footer, item_details, paragraph, popup, scroll_offset};
 use crate::game::Game;
 use crate::items::Item;
 use crate::items::loot::{sell_price, sell_qty};
 use crate::items::weight::{fmt_lb, unit_weight};
 use crate::ui::canvas::Canvas;
-use crate::ui::theme;
+use crate::ui::{Area, theme};
 
 pub fn draw(canvas: &mut Canvas, game: &Game, kiosk: usize, selling: bool, sort: Sort, selected: usize) {
     let inner = popup(canvas, 96, 24, "🏧 Autovend");
@@ -77,9 +77,7 @@ pub fn draw(canvas: &mut Canvas, game: &Game, kiosk: usize, selling: bool, sort:
         let wnote = if selling { format!("Selling sheds {w}.") } else { format!("Weighs {w}.") };
         y = paragraph(canvas, dx, y, dw, bottom, &wnote, theme::DIM);
         y += 1;
-        for line in item.describe() {
-            y = paragraph(canvas, dx, y, dw, bottom, &line, theme::TEXT);
-        }
+        item_details(canvas, Area::new(dx, y, dw, bottom.saturating_sub(y)), item);
     }
     let help = if selling {
         "↑↓ select · Enter sell · s sort · Tab buy · Esc leave"
@@ -117,5 +115,23 @@ mod tests {
             .filter_map(|r| r.split('│').nth(1)?.trim_start().split_once('💎')?.0.trim().parse().ok())
             .collect();
         assert!(prices.len() >= 2 && prices.windows(2).all(|w| w[0] >= w[1]), "{prices:?}");
+    }
+
+    #[test]
+    fn a_shotgun_for_sale_shows_every_load_in_its_table() {
+        use crate::items::{Ammo, Gun, GunModel};
+        let mut g = Game::new(Background::ALL[0].create("Tester".into()), Some(1));
+        let buck = Ammo::lookup("12ga_buck").unwrap();
+        let gun = Gun::loaded_with(GunModel::named("pump_shotgun_12ga"), buck, 0);
+        g.kiosks = vec![Kiosk { stock: vec![(Item::gun(gun.clone()), 30)] }];
+        let mut canvas = Canvas::new(100, 26);
+        draw(&mut canvas, &g, 0, false, Sort::default(), 0);
+        let rows = canvas.text_rows();
+        println!("{}", rows.join("\n"));
+        for load in gun.loads() {
+            assert!(rows.iter().any(|r| r.contains(load.ammo.name())), "{} is listed", load.ammo.name());
+        }
+        assert!(rows.iter().any(|r| r.contains("Rng in tiles: effective-max")), "the legend fits");
+        assert!(!rows.iter().any(|r| r.contains("▸ 12ga")), "an empty gun has nothing chambered");
     }
 }

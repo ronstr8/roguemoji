@@ -156,34 +156,20 @@ impl Item {
                 let d = g.def();
                 out.push(d.desc.to_string());
                 out.push(format!(
-                    "{} {} · {}\" barrel · {} · cap {}",
+                    "{} {} · {}\" {} · holds {}",
                     d.cartridge.name(),
                     d.action.name(),
                     d.barrel_in,
                     if d.rifled { "rifled" } else { "smoothbore" },
                     d.capacity
                 ));
+                let turns = d.action.reload_turns();
                 out.push(format!(
-                    "Skill: {} · Accuracy {:+} · Effective range {} · Reload {} turn(s)",
+                    "{} · Accuracy {:+} · Reload {turns} turn{}",
                     d.skill.name(),
                     d.accuracy,
-                    d.effective_range,
-                    d.action.reload_turns()
+                    if turns == 1 { "" } else { "s" }
                 ));
-                for ammo in Ammo::all().filter(|a| g.accepts(*a)) {
-                    let p = g.ballistics(ammo);
-                    // Two lines per load: the detail pane is narrow.
-                    out.push(format!("  {}", ammo.name()));
-                    out.push(format!(
-                        "    {:.0} fps  {:.0} J  dmg ~{:.1}  pen {:+}  range {}-{}",
-                        p.fps,
-                        p.joules,
-                        p.base_damage,
-                        p.pen,
-                        g.effective_range(ammo),
-                        g.max_range(ammo)
-                    ));
-                }
             }
             ItemKind::Melee(m) => {
                 let d = m.def();

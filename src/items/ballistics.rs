@@ -245,7 +245,6 @@ impl Ammo {
 #[derive(Clone, Copy, Debug)]
 pub struct BallisticProfile {
     pub fps: f64,
-    pub joules: f64,
     /// Expected damage if every projectile hits.
     pub base_damage: f64,
     pub pen: i32,
@@ -281,7 +280,6 @@ pub fn profile(ammo: Ammo, barrel_in: f64) -> BallisticProfile {
     };
     BallisticProfile {
         fps,
-        joules,
         base_damage: joules.sqrt() / DAMAGE_SCALE * def.load.damage_mult(),
         pen: velocity_pen + def.load.pen_mod(),
         projectiles: def.projectiles,

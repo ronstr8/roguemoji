@@ -1,6 +1,6 @@
 //! Inventory pop-up: equipped gear, the pack, and item details.
 
-use super::{footer, item_row, need_text, paragraph, popup, scroll_offset};
+use super::{footer, item_details, item_row, need_text, popup, scroll_offset};
 use crate::creatures::Player;
 use crate::creatures::player::Slot;
 use crate::game::Game;
@@ -195,9 +195,7 @@ fn draw_detail(canvas: &mut Canvas, area: Area, game: &Game, row: Option<Row>) {
     };
     canvas.text_max(dx, dy, &worth, dw, theme::LOOT, theme::POPUP);
     dy += 2;
-    for line in item.describe() {
-        dy = paragraph(canvas, dx, dy, dw, bottom, &line, theme::TEXT);
-    }
+    item_details(canvas, Area::new(dx, dy, dw, bottom.saturating_sub(dy)), &item);
 }
 
 #[cfg(test)]
@@ -300,6 +298,12 @@ mod tests {
         let listed = rows.iter().filter(|r| r.contains(&format!("🔫 {name}")) && r.contains(" lb")).count();
         assert_eq!(listed, 1, "the equipped gun is listed with its weight");
         assert!(rows.iter().any(|r| r.contains("· equipped")), "the gun's details show on the right");
+        let header = rows.iter().find(|r| r.contains("Name") && r.contains("FPS")).expect("load table header");
+        for col in ["Wt", "Rng", "DMG", "Pen"] {
+            assert!(header.contains(col), "{header}");
+        }
+        let loaded = gun.ammo.expect("starts loaded").name();
+        assert!(rows.iter().any(|r| r.contains(&format!("▸ {loaded}"))), "the chambered load is marked");
         assert!(rows.iter().any(|r| r.contains("Satiety 750/1000 (Fed)")));
         assert!(rows.iter().any(|r| r.contains("Hydration 800/1000 (Hydrated)")));
     }

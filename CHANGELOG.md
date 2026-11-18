@@ -38,6 +38,10 @@ version can change rules, controls or data-file formats.
   loads. Its full-pattern damage rises from about 13.9 to 15.0.
 - Brawn and Brains are abbreviated STR and INT on the title and character
   screens, instead of BRN and BRA.
+- A gun's loads show as a table (Name, Wt, FPS, Rng, DMG, Pen) instead of
+  lines that wrapped into each other, with the loaded one marked ▸. Muzzle
+  energy in joules is no longer listed; damage is derived from it.
+- Gun descriptions are shorter, so they wrap cleanly in the detail panel.
 - Bottled Water quenches thirst instead of filling you up (no more satiety).
 - `satiety` is optional in consumable files, defaulting to 0.
 - The character sheet shows Satiety and Hydration out of 1000 with their

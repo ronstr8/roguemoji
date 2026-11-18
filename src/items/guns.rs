@@ -159,6 +159,23 @@ pub struct Gun {
     pub ammo: Option<Ammo>,
 }
 
+/// How one load performs from a particular gun: a row of its ballistics table.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct LoadStats {
+    pub ammo: Ammo,
+    /// Total projectile weight (all pellets for shot).
+    pub grains: f64,
+    /// Muzzle velocity from this gun's barrel.
+    pub fps: f64,
+    /// Expected damage if every projectile hits.
+    pub damage: f64,
+    pub pen: i32,
+    pub effective_range: i32,
+    pub max_range: i32,
+    /// Whether this is the load in the gun now.
+    pub loaded: bool,
+}
+
 impl Gun {
     pub fn loaded_with(model: GunModel, ammo: Ammo, rounds: u32) -> Self {
         Self { model, loaded: rounds.min(model.def().capacity), ammo: Some(ammo) }
@@ -232,6 +249,26 @@ impl Gun {
             return 1.0;
         }
         (1.0 - (distance - 2).max(0) as f64 * 0.14).clamp(0.2, 1.0)
+    }
+
+    /// Every load this gun can fire, with how it performs from this barrel.
+    pub fn loads(&self) -> Vec<LoadStats> {
+        Ammo::all()
+            .filter(|a| self.accepts(*a))
+            .map(|ammo| {
+                let p = self.ballistics(ammo);
+                LoadStats {
+                    ammo,
+                    grains: ammo.def().grains,
+                    fps: p.fps,
+                    damage: p.base_damage,
+                    pen: p.pen,
+                    effective_range: self.effective_range(ammo),
+                    max_range: self.max_range(ammo),
+                    loaded: self.loaded > 0 && self.ammo == Some(ammo),
+                }
+            })
+            .collect()
     }
 
     pub fn status(&self) -> String {
