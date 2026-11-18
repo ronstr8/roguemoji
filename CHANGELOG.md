@@ -30,6 +30,8 @@ version can change rules, controls or data-file formats.
 ### Changed
 - The sidebar shows needs two to a line (`Fed  ·  Hydrated`, `Rested  ·
   Hopeful`), with crystals below; the character sheet lists one need per line.
+- Help scrolls when the terminal is too short to show it all (↑↓ or j/k,
+  PgUp/PgDn, Home/End); the footer shows which lines you're seeing. `?` closes it.
 
 ## [0.5.0] - 2026-11-18
 

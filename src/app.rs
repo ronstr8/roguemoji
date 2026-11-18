@@ -24,16 +24,38 @@ const SLEEP_TICK: Duration = Duration::from_millis(40);
 const NAMES: &[&str] = &["Ash", "Rook", "Juniper", "Vega", "Sable", "Cass", "Ozzie", "Wren", "Dell", "Marlow"];
 
 enum Screen {
-    Title { selected: usize },
+    Title {
+        selected: usize,
+    },
     Play,
-    Inventory { selected: usize },
+    Inventory {
+        selected: usize,
+    },
     Character,
-    Crafting { selected: usize },
-    Shop { kiosk: usize, selling: bool, selected: usize },
-    Stash { side: StashSide, selected: usize },
-    Targeting { targets: Vec<u32>, index: usize },
-    Shoot { targets: Vec<u32>, selected: usize },
-    Help,
+    Crafting {
+        selected: usize,
+    },
+    Shop {
+        kiosk: usize,
+        selling: bool,
+        selected: usize,
+    },
+    Stash {
+        side: StashSide,
+        selected: usize,
+    },
+    Targeting {
+        targets: Vec<u32>,
+        index: usize,
+    },
+    Shoot {
+        targets: Vec<u32>,
+        selected: usize,
+    },
+    /// The first help line shown.
+    Help {
+        scroll: usize,
+    },
     Encounter,
     ConfirmQuit,
     Ended,
@@ -140,7 +162,7 @@ impl App {
             }
             Screen::Stash { side, selected } => screens::stash::draw(canvas, game, *side, self.inv_sort, *selected),
             Screen::Shoot { targets, selected } => screens::shoot::draw(canvas, game, targets, *selected),
-            Screen::Help => screens::help::draw(canvas),
+            Screen::Help { scroll } => screens::help::draw(canvas, *scroll),
             Screen::Encounter => screens::encounter::draw(canvas, game),
             Screen::Ended => screens::ended::draw(canvas, game),
             _ => {}
@@ -171,38 +193,42 @@ impl App {
 
     fn on_key(&mut self, key: KeyEvent) {
         let screen = std::mem::replace(&mut self.screen, Screen::Play);
-        self.screen =
-            match screen {
-                Screen::Title { selected } => self.on_title(key, selected),
-                Screen::Play => self.on_play(key),
-                Screen::Inventory { selected } => self.on_inventory(key, selected),
-                Screen::Character | Screen::Help | Screen::Encounter => {
-                    if input::is_cancel(key) || input::is_confirm(key) { Screen::Play } else { screen_restore(&screen) }
+        self.screen = match screen {
+            Screen::Title { selected } => self.on_title(key, selected),
+            Screen::Play => self.on_play(key),
+            Screen::Inventory { selected } => self.on_inventory(key, selected),
+            Screen::Help { scroll } => self.on_help(key, scroll),
+            Screen::Character | Screen::Encounter => {
+                if input::is_cancel(key) || input::is_confirm(key) {
+                    Screen::Play
+                } else {
+                    screen_restore(&screen)
                 }
-                Screen::Crafting { selected } => self.on_crafting(key, selected),
-                Screen::Shop { kiosk, selling, selected } => self.on_shop(key, kiosk, selling, selected),
-                Screen::Stash { side, selected } => self.on_stash(key, side, selected),
-                Screen::Targeting { targets, index } => self.on_targeting(key, targets, index),
-                Screen::Shoot { targets, selected } => self.on_shoot(key, targets, selected),
-                Screen::ConfirmQuit => match key.code {
-                    KeyCode::Char('y') | KeyCode::Char('Y') => {
-                        self.running = false;
-                        Screen::Play
-                    }
-                    _ => Screen::Play,
-                },
-                Screen::Ended => match key.code {
-                    KeyCode::Enter => {
-                        self.game = None;
-                        Screen::Title { selected: 0 }
-                    }
-                    KeyCode::Char('q') | KeyCode::Char('Q') | KeyCode::Esc => {
-                        self.running = false;
-                        Screen::Ended
-                    }
-                    _ => Screen::Ended,
-                },
-            };
+            }
+            Screen::Crafting { selected } => self.on_crafting(key, selected),
+            Screen::Shop { kiosk, selling, selected } => self.on_shop(key, kiosk, selling, selected),
+            Screen::Stash { side, selected } => self.on_stash(key, side, selected),
+            Screen::Targeting { targets, index } => self.on_targeting(key, targets, index),
+            Screen::Shoot { targets, selected } => self.on_shoot(key, targets, selected),
+            Screen::ConfirmQuit => match key.code {
+                KeyCode::Char('y') | KeyCode::Char('Y') => {
+                    self.running = false;
+                    Screen::Play
+                }
+                _ => Screen::Play,
+            },
+            Screen::Ended => match key.code {
+                KeyCode::Enter => {
+                    self.game = None;
+                    Screen::Title { selected: 0 }
+                }
+                KeyCode::Char('q') | KeyCode::Char('Q') | KeyCode::Esc => {
+                    self.running = false;
+                    Screen::Ended
+                }
+                _ => Screen::Ended,
+            },
+        };
         // Any action can end the game, or knock you out (back to the map to sleep it off).
         if self.game.as_ref().is_some_and(|g| g.is_over()) && !matches!(self.screen, Screen::Title { .. }) {
             self.screen = Screen::Ended;
@@ -258,7 +284,7 @@ impl App {
             Command::Inventory => return Screen::Inventory { selected: screens::inventory::first_row(game) },
             Command::Character => return Screen::Character,
             Command::Crafting => return Screen::Crafting { selected: 0 },
-            Command::Help => return Screen::Help,
+            Command::Help => return Screen::Help { scroll: 0 },
             Command::Quit => return Screen::ConfirmQuit,
         }
         Screen::Play
@@ -375,6 +401,14 @@ impl App {
         Screen::Inventory { selected: selected.min(row_count(game) - 1) }
     }
 
+    fn on_help(&mut self, key: KeyEvent, scroll: usize) -> Screen {
+        if input::is_cancel(key) || input::is_confirm(key) || key.code == KeyCode::Char('?') {
+            return Screen::Play;
+        }
+        let (_, height) = Terminal::size();
+        Screen::Help { scroll: screens::help::scroll(key, scroll, screens::help::max_scroll(height)) }
+    }
+
     fn on_crafting(&mut self, key: KeyEvent, selected: usize) -> Screen {
         let Some(game) = self.game.as_mut() else { return Screen::Play };
         if input::is_cancel(key) || key.code == KeyCode::Char('m') {
@@ -464,8 +498,7 @@ impl App {
 
 fn screen_restore(screen: &Screen) -> Screen {
     match screen {
-        Screen::Character => Screen::Character,
         Screen::Encounter => Screen::Encounter,
-        _ => Screen::Help,
+        _ => Screen::Character,
     }
 }
