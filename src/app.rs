@@ -116,7 +116,7 @@ impl App {
             Screen::Shop { kiosk, selling, selected } => {
                 screens::shop::draw(canvas, game, *kiosk, *selling, self.inv_sort, *selected)
             }
-            Screen::Stash { side, selected } => screens::stash::draw(canvas, game, *side, *selected),
+            Screen::Stash { side, selected } => screens::stash::draw(canvas, game, *side, self.inv_sort, *selected),
             Screen::Shoot { targets, selected } => screens::shoot::draw(canvas, game, targets, *selected),
             Screen::Help => screens::help::draw(canvas),
             Screen::Ended => screens::ended::draw(canvas, game),
@@ -394,14 +394,18 @@ impl App {
     }
 
     fn on_stash(&mut self, key: KeyEvent, side: StashSide, selected: usize) -> Screen {
+        let sort = self.inv_sort;
         let Some(game) = self.game.as_mut() else { return Screen::Play };
         if input::is_cancel(key) {
             return Screen::Play;
         }
-        let len_of = |game: &Game, side: StashSide| match side {
-            StashSide::Pack => game.player.inventory.len(),
-            StashSide::Lockbox => game.stash.len(),
-        };
+        fn items_of(game: &Game, side: StashSide) -> &[crate::items::Item] {
+            match side {
+                StashSide::Pack => game.player.inventory.items(),
+                StashSide::Lockbox => game.stash.items(),
+            }
+        }
+        let len_of = |game: &Game, side: StashSide| items_of(game, side).len();
         match key.code {
             KeyCode::Tab | KeyCode::BackTab | KeyCode::Left | KeyCode::Right => {
                 let other = match side {
@@ -412,13 +416,18 @@ impl App {
                 Screen::Stash { side: other, selected }
             }
             KeyCode::Enter | KeyCode::Char(' ') => {
-                if selected < len_of(game, side) {
-                    game.stash_transfer(side, selected);
+                // Rows follow the sort; the pack and stash keep pickup order.
+                if let Some(&idx) = sort.order(items_of(game, side), game.depth).get(selected) {
+                    game.stash_transfer(side, idx);
                 }
                 if game.is_over() {
                     return Screen::Ended;
                 }
                 Screen::Stash { side, selected: selected.min(len_of(game, side).saturating_sub(1)) }
+            }
+            KeyCode::Char('s') => {
+                let selected = self.inv_sort.advance(items_of(game, side), game.depth, selected);
+                Screen::Stash { side, selected }
             }
             _ => Screen::Stash { side, selected: input::list_nav(key, selected, len_of(game, side)) },
         }

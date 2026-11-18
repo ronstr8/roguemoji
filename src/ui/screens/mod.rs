@@ -12,6 +12,8 @@ pub mod title;
 
 use super::canvas::Canvas;
 use super::{Area, theme};
+use crate::items::Item;
+use crate::items::loot::sale_value;
 use crate::items::weight::fmt_lb;
 
 /// Draw a centered pop-up frame and return its inner content area.
@@ -52,6 +54,25 @@ pub fn draw_load(canvas: &mut Canvas, x: u16, y: u16, w: u16, p: &crate::creatur
 /// A need's meter as text, e.g. `Hydration 800/1000 (Hydrated)`.
 pub fn need_text(m: &crate::creatures::needs::Meter) -> String {
     format!("{} {}/{} ({})", m.def().name, m.value, m.def().max, m.label())
+}
+
+/// List columns, right-aligned: value then weight.
+const WT_W: u16 = 9;
+const VAL_W: u16 = 6;
+
+/// One item-list row at `at`: a label, then the item's sale value and weight if there is one.
+pub fn item_row(canvas: &mut Canvas, at: Area, label: &str, item: Option<&Item>, depth: u32, on: bool) {
+    let (x, y, w) = (at.x, at.y, at.w);
+    let bg = if on { theme::SELECTED } else { theme::POPUP };
+    canvas.fill(x, y, w, 1, bg);
+    let color = if item.is_some() { theme::TEXT } else { theme::DIM };
+    canvas.text_max(x, y, label, w.saturating_sub(WT_W + VAL_W + 1), color, bg);
+    let Some(item) = item else { return };
+    let right = |s: &str, end: u16| end.saturating_sub(crate::ui::canvas::text_width(s) as u16);
+    let value = sale_value(item, depth).map_or("—".to_string(), |v| format!("{v}💎"));
+    canvas.text(right(&value, x + w - WT_W), y, &value, theme::LOOT, bg);
+    let wt = fmt_lb(item.weight());
+    canvas.text(right(&wt, x + w), y, &wt, theme::DIM, bg);
 }
 
 /// First visible row for a list so that `selected` stays on screen.

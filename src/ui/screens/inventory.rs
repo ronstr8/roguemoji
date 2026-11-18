@@ -1,6 +1,6 @@
 //! Inventory pop-up: equipped gear, the pack, and item details.
 
-use super::{footer, need_text, paragraph, popup, scroll_offset};
+use super::{footer, item_row, need_text, paragraph, popup, scroll_offset};
 use crate::creatures::Player;
 use crate::creatures::player::Slot;
 use crate::game::Game;
@@ -105,25 +105,6 @@ pub fn first_row(game: &Game) -> usize {
     if game.player.inventory.is_empty() { 0 } else { SLOT_ROWS }
 }
 
-/// List columns, right-aligned: value then weight.
-const WT_W: u16 = 9;
-const VAL_W: u16 = 6;
-
-/// One list row at `at`: a label, then the item's sale value and weight if there is one.
-fn draw_row(canvas: &mut Canvas, at: Area, label: &str, item: Option<&Item>, depth: u32, on: bool) {
-    let (x, y, w) = (at.x, at.y, at.w);
-    let bg = if on { theme::SELECTED } else { theme::POPUP };
-    canvas.fill(x, y, w, 1, bg);
-    let color = if item.is_some() { theme::TEXT } else { theme::DIM };
-    canvas.text_max(x, y, label, w.saturating_sub(WT_W + VAL_W + 1), color, bg);
-    let Some(item) = item else { return };
-    let right = |s: &str, end: u16| end.saturating_sub(crate::ui::canvas::text_width(s) as u16);
-    let value = sale_value(item, depth).map_or("—".to_string(), |v| format!("{v}💎"));
-    canvas.text(right(&value, x + w - WT_W), y, &value, theme::LOOT, bg);
-    let wt = fmt_lb(item.weight());
-    canvas.text(right(&wt, x + w), y, &wt, theme::DIM, bg);
-}
-
 /// The equipped list's label for a slot, e.g. ` 🔫 Service Pistol [15/15]`.
 fn slot_label(p: &Player, slot: Slot) -> String {
     match (slot, p.equipped(slot)) {
@@ -144,7 +125,7 @@ pub fn draw(canvas: &mut Canvas, game: &Game, sort: Sort, selected: usize) {
     y += 1;
     for (i, slot) in Slot::ALL.into_iter().enumerate() {
         let item = p.equipped(slot);
-        draw_row(canvas, Area::new(x, y, list_w, 1), &slot_label(p, slot), item.as_ref(), game.depth, i == selected);
+        item_row(canvas, Area::new(x, y, list_w, 1), &slot_label(p, slot), item.as_ref(), game.depth, i == selected);
         y += 1;
     }
     let burden = p.burden();
@@ -175,7 +156,7 @@ pub fn draw(canvas: &mut Canvas, game: &Game, sort: Sort, selected: usize) {
         let item = &items[idx];
         let letter = (b'a' + i as u8) as char;
         let label = format!("{letter}) {} {}", item.glyph(), item.display_name());
-        draw_row(canvas, Area::new(x, y, list_w, 1), &label, Some(item), game.depth, pack_selected == Some(i));
+        item_row(canvas, Area::new(x, y, list_w, 1), &label, Some(item), game.depth, pack_selected == Some(i));
         y += 1;
     }
 

@@ -28,6 +28,8 @@ version can change rules, controls or data-file formats.
 - Equipped gear is selectable in the inventory: its stats show in the detail
   panel beside its value and weight, for comparing with what's in your pack.
   Enter on an equipped item stows it in the pack.
+- The Visitor Lockbox sorts both columns with `s` (name, weight or value, the
+  same order as the inventory) and shows each item's value beside its weight.
 - Mods can retune hunger and thirst in `data/needs/`, give consumables
   `hydration`, and make components drinkable with `drink`.
 
