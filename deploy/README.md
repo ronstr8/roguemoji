@@ -73,8 +73,11 @@ together, `status` shows the service and how many games are running, and
 
 ## Updating
 
-`make -C deploy game` (after `make static`, or with `TARBALL=`) replaces the
-binary and `data/`. Running games keep what they loaded until their players
+`make -C deploy update` downloads the newest release from GitHub, checks it
+against its `.sha256`, and installs it. Add `RELEASE=0.5.0` to pick a version
+instead, to roll back for instance. `make -C deploy game` installs from a
+`make static` build or a tarball you already have (`TARBALL=`). Both replace
+the binary and `data/`. Running games keep what they loaded until their players
 quit, and new connections get the new version. Nothing needs restarting.
 
 ## Notes

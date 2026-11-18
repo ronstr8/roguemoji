@@ -1,0 +1,28 @@
+#!/bin/sh
+# fetch-release REPO VERSION DIR: download a release's Linux tarball into DIR,
+# check it against its .sha256, and print its path.
+#
+# VERSION is a number like 0.5.0, or `latest` for the newest release (read
+# from where GitHub's /releases/latest redirects, so no API token or jq).
+set -eu
+repo=$1 version=$2 dir=$3
+base=https://github.com/$repo/releases
+
+if [ "$version" = latest ]; then
+    tag=$(curl -fsSLI -o /dev/null -w '%{url_effective}' "$base/latest")
+    version=${tag##*/v}
+    case $version in
+        [0-9]*) ;;
+        *) echo "fetch-release: couldn't find the latest release of $repo" >&2; exit 1 ;;
+    esac
+fi
+
+name=roguemoji-$version-x86_64-linux.tar.gz
+mkdir -p "$dir"
+cd "$dir"
+for file in "$name" "$name.sha256"; do
+    curl -fsSLO "$base/download/v$version/$file" ||
+        { echo "fetch-release: couldn't download $file; is there a v$version release at $base?" >&2; exit 1; }
+done
+sha256sum -c "$name.sha256" >&2
+echo "$dir/$name"

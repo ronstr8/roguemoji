@@ -19,13 +19,16 @@ SSH_UNIT   ?= ssh
 TARBALL    ?=
 GAME_BIN   ?= ../target/x86_64-unknown-linux-musl/release/roguemoji
 GAME_DATA  ?= ../data
+# Where `make update` downloads releases from, and which one: a version or `latest`.
+REPO       := ronstr8/roguemoji
+RELEASE    ?= latest
 BUILD      := build
 
 SUDO := $(if $(filter 0,$(shell id -u)),,sudo)
 export SUDO FORCE TTYD
 
 .DEFAULT_GOAL := help
-.PHONY: help install game session banner ensure-user sshd slice ensure-ttyd ttyd password check status uninstall clean
+.PHONY: help install game update session banner ensure-user sshd slice ensure-ttyd ttyd password check status uninstall clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | \
@@ -39,6 +42,9 @@ install: game ensure-user sshd slice ttyd ## Everything: game, account, sshd, ca
 
 game: ## Install or update the game in /opt/roguemoji (TARBALL=..., or the make static build)
 	scripts/install-game $(OPT) $(if $(TARBALL),$(TARBALL),$(GAME_BIN) $(GAME_DATA))
+
+update: ## Download a release (RELEASE=x.y.z, default latest), check its sha256, and install it
+	@tarball=$$(scripts/fetch-release $(REPO) $(RELEASE) $(BUILD)) && scripts/install-game $(OPT) "$$tarball"
 
 session: ## Install the wrapper that is the only thing players can run
 	scripts/place roguemoji-session $(SESSION) 755

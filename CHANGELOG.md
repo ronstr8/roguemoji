@@ -7,6 +7,10 @@ version can change rules, controls or data-file formats.
 
 ## [Unreleased]
 
+### Added
+- `make -C deploy update` updates a public-play server to the newest release
+  (or `RELEASE=x.y.z`), checking the download against its sha256.
+
 ## [0.5.0] - 2026-11-18
 
 ### Added
