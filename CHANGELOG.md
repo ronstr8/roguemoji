@@ -7,6 +7,11 @@ version can change rules, controls or data-file formats.
 
 ## [Unreleased]
 
+### Fixed
+
+- The sidebar colors each need by its own stage. A fine need is no longer
+  shown red because the need beside it is ("Fed · Thirsty").
+
 ## [0.6.0] - 2026-11-18
 
 ### Added

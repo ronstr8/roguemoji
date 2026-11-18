@@ -43,10 +43,20 @@ pub fn draw_sidebar(canvas: &mut Canvas, area: Area, game: &Game) {
     };
     line(canvas, &mut y, &format!("HP {} {}/{}", bar(p.hp, max_hp, 14), p.hp, max_hp), hp_color);
     // Two needs per line: all four don't fit the sidebar.
+    // Each label takes its own stage's color, so one bad need doesn't paint its neighbor.
     for pair in p.needs().chunks(2) {
-        let color = if pair.iter().any(|m| m.stage().is_warning()) { theme::BAD } else { theme::TEXT };
-        let labels: Vec<&str> = pair.iter().map(|m| m.label()).collect();
-        line(canvas, &mut y, &labels.join("  ·  "), color);
+        if y >= bottom {
+            break;
+        }
+        let mut col = 0;
+        for (i, m) in pair.iter().enumerate() {
+            if i > 0 {
+                col += canvas.text_max(x + col, y, "  ·  ", max.saturating_sub(col), theme::TEXT, bg);
+            }
+            let color = if m.stage().is_warning() { theme::BAD } else { theme::TEXT };
+            col += canvas.text_max(x + col, y, m.label(), max.saturating_sub(col), color, bg);
+        }
+        y += 1;
     }
     line(canvas, &mut y, &format!("{} {} crystals", CRYSTAL_GLYPH, p.crystals), theme::TEXT);
     line(canvas, &mut y, &format!("DEF {}  ARMOR {}  Turn {}", p.defense(), p.armor_value(), game.turn), theme::TEXT);
@@ -155,5 +165,21 @@ mod tests {
         assert!(rows.iter().any(|r| r.contains("💎") && r.contains("crystals")));
         g.player.thirst.value = 0;
         assert!(sidebar(&g).iter().any(|r| r.contains("Parched")));
+    }
+
+    #[test]
+    fn each_need_is_colored_by_its_own_stage() {
+        let mut g = Game::new(Background::ALL[0].create("Tester".into()), Some(1));
+        g.player.thirst.value = 0;
+        let mut canvas = Canvas::new(40, 40);
+        draw_sidebar(&mut canvas, Area::new(0, 0, 38, 40), &g);
+        let rows = canvas.text_rows();
+        let y = rows.iter().position(|r| r.contains("Fed  ·  Parched")).expect("needs line");
+        let color_of = |word: &str| {
+            let col = rows[y][..rows[y].find(word).unwrap()].chars().count();
+            canvas.row(y as u16)[col].fg
+        };
+        assert_eq!(color_of("Fed"), theme::TEXT, "a fine need stays plain beside a bad one");
+        assert_eq!(color_of("Parched"), theme::BAD);
     }
 }
