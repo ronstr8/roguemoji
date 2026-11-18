@@ -10,7 +10,7 @@ use crate::ui::canvas::Canvas;
 use crate::ui::{Area, theme};
 
 pub fn draw(canvas: &mut Canvas, game: &Game, kiosk: usize, selling: bool, sort: Sort, selected: usize) {
-    let inner = popup(canvas, 96, 24, "🏧 Autovend");
+    let inner = popup(canvas, 96, 32, "🏧 Autovend");
     let bg = theme::POPUP;
     let Some(k) = game.kiosks.get(kiosk) else { return };
     let list_w = 46.min(inner.w / 2);
@@ -75,8 +75,11 @@ pub fn draw(canvas: &mut Canvas, game: &Game, kiosk: usize, selling: bool, sort:
         let sold = if selling { sell_qty(item) } else { item.qty };
         let w = fmt_lb(unit_weight(&item.kind) * sold);
         let wnote = if selling { format!("Selling sheds {w}.") } else { format!("Weighs {w}.") };
-        y = paragraph(canvas, dx, y, dw, bottom, &wnote, theme::DIM);
-        y += 1;
+        // A bought item's stats block already lists its weight.
+        if selling || item.stats().is_empty() {
+            y = paragraph(canvas, dx, y, dw, bottom, &wnote, theme::DIM);
+            y += 1;
+        }
         item_details(canvas, Area::new(dx, y, dw, bottom.saturating_sub(y)), item);
     }
     let help = if selling {
@@ -133,5 +136,23 @@ mod tests {
         }
         assert!(rows.iter().any(|r| r.contains("Rng in tiles: effective-max")), "the legend fits");
         assert!(!rows.iter().any(|r| r.contains("▸ 12ga")), "an empty gun has nothing chambered");
+        assert!(rows.iter().any(|r| r.contains("Reload Turns  3")), "a roomy pane lists stats one per line");
+    }
+
+    #[test]
+    fn the_smallest_terminal_still_fits_the_load_table() {
+        use crate::items::{Ammo, Gun, GunModel};
+        use crate::ui::{MIN_HEIGHT, MIN_WIDTH};
+        let mut g = Game::new(Background::ALL[0].create("Tester".into()), Some(1));
+        let gun = Gun::loaded_with(GunModel::named("pump_shotgun_12ga"), Ammo::lookup("12ga_buck").unwrap(), 0);
+        g.kiosks = vec![Kiosk { stock: vec![(Item::gun(gun.clone()), 30)] }];
+        let mut canvas = Canvas::new(MIN_WIDTH, MIN_HEIGHT);
+        draw(&mut canvas, &g, 0, false, Sort::default(), 0);
+        let rows = canvas.text_rows();
+        println!("{}", rows.join("\n"));
+        assert!(rows.iter().any(|r| r.contains("Type 12 gauge")), "stats fold into a paragraph");
+        let listed = rows.iter().filter(|r| r.contains("gr ") && r.contains("12ga")).count();
+        assert_eq!(listed, gun.loads().len(), "every load has a row");
+        assert!(rows.iter().any(|r| r.contains("Rng in tiles")), "the legend fits");
     }
 }

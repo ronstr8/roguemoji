@@ -298,7 +298,20 @@ mod tests {
         let listed = rows.iter().filter(|r| r.contains(&format!("🔫 {name}")) && r.contains(" lb")).count();
         assert_eq!(listed, 1, "the equipped gun is listed with its weight");
         assert!(rows.iter().any(|r| r.contains("· equipped")), "the gun's details show on the right");
-        let header = rows.iter().find(|r| r.contains("Name") && r.contains("FPS")).expect("load table header");
+        let value_col = |label: &str, value: &str| {
+            let row = rows.iter().find(|r| r.contains(label) && r.contains(value)).unwrap_or_else(|| panic!("{label}"));
+            // Measured from the label: emoji earlier in the row are two columns wide.
+            let from = row.find(label).unwrap();
+            row[from..from + row[from..].find(value).unwrap()].chars().count()
+        };
+        let d = gun.def();
+        let col = value_col("Type", d.cartridge.name());
+        assert_eq!(value_col("Reload Turns", &d.action.reload_turns().to_string()), col, "values share a column");
+        assert_eq!(value_col("Capacity", &d.capacity.to_string()), col);
+        for label in ["Barrel", "Skill", "Accuracy", "Weight"] {
+            assert!(rows.iter().any(|r| r.contains(&format!("{label}  "))), "stat line {label}");
+        }
+        let header = rows.iter().find(|r| r.contains("Load") && r.contains("FPS")).expect("load table header");
         for col in ["Wt", "Rng", "DMG", "Pen"] {
             assert!(header.contains(col), "{header}");
         }

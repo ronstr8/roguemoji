@@ -7,6 +7,14 @@ version can change rules, controls or data-file formats.
 
 ## [Unreleased]
 
+### Changed
+
+- Gun details list their stats one per line under the description: Type,
+  Barrel, Capacity, Skill, Accuracy, Reload Turns and Weight. Short terminals
+  fold them into one wrapped line so the load table still fits.
+- The load table's first column is headed "Load" instead of "Name".
+- The Autovend window grows taller on big terminals.
+
 ### Fixed
 
 - The sidebar colors each need by its own stage. A fine need is no longer

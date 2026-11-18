@@ -85,8 +85,43 @@ pub fn item_details(canvas: &mut Canvas, area: Area, item: &Item) -> u16 {
     for line in item.describe() {
         y = paragraph(canvas, x, y, w, bottom, &line, theme::TEXT);
     }
-    if let ItemKind::Gun(g) = &item.kind {
-        y = load_table(canvas, Area::new(x, y + 1, w, bottom.saturating_sub(y + 1)), &g.loads());
+    let loads = match &item.kind {
+        ItemKind::Gun(g) => g.loads(),
+        _ => Vec::new(),
+    };
+    let stats = item.stats();
+    if !stats.is_empty() {
+        let rest = Area::new(x, y + 1, w, bottom.saturating_sub(y + 1));
+        // Short panes get the stats as one wrapped line so the load table still fits.
+        y = if rest.h as usize >= stats.len() + load_table_height(&loads) {
+            stat_block(canvas, rest, &stats)
+        } else {
+            let joined: Vec<String> = stats.iter().map(|(l, v)| format!("{l} {v}")).collect();
+            paragraph(canvas, x, rest.y, w, bottom, &joined.join(" · "), theme::TEXT)
+        };
+    }
+    if !loads.is_empty() {
+        y = load_table(canvas, Area::new(x, y + 1, w, bottom.saturating_sub(y + 1)), &loads);
+    }
+    y
+}
+
+/// Rows the load table needs, with the blank line above it: header, loads, legend.
+fn load_table_height(loads: &[LoadStats]) -> usize {
+    if loads.is_empty() { 0 } else { loads.len() + 3 }
+}
+
+/// One `Label  value` per line, labels dim and padded to a shared column.
+fn stat_block(canvas: &mut Canvas, area: Area, stats: &[(&str, String)]) -> u16 {
+    let label_w = stats.iter().map(|(l, _)| super::canvas::text_width(l)).max().unwrap_or(0) as u16 + 2;
+    let mut y = area.y;
+    for (label, value) in stats {
+        if y >= area.y + area.h {
+            break;
+        }
+        canvas.text_max(area.x, y, label, area.w, theme::DIM, theme::POPUP);
+        canvas.text_max(area.x + label_w, y, value, area.w.saturating_sub(label_w), theme::TEXT, theme::POPUP);
+        y += 1;
     }
     y
 }
@@ -97,7 +132,7 @@ const LOAD_COLUMNS: [(&str, u16); 5] = [("Wt", 6), ("FPS", 5), ("Rng", 6), ("DMG
 /// One row per load, the chambered one marked: weight in grains, muzzle
 /// velocity, effective-max range in tiles, expected damage and penetration.
 fn load_table(canvas: &mut Canvas, area: Area, loads: &[LoadStats]) -> u16 {
-    let header = ["Name", "Wt", "FPS", "Rng", "DMG", "Pen"].map(String::from);
+    let header = ["Load", "Wt", "FPS", "Rng", "DMG", "Pen"].map(String::from);
     let mut y = area.y;
     let bottom = area.y + area.h;
     for (cells, fg) in std::iter::once((header, theme::DIM)).chain(loads.iter().map(|l| {

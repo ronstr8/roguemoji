@@ -152,25 +152,7 @@ impl Item {
             ItemKind::Crystals => {
                 out.push("Something dies, something crystallizes. Absorb to heal; spend at Autovends.".into());
             }
-            ItemKind::Gun(g) => {
-                let d = g.def();
-                out.push(d.desc.to_string());
-                out.push(format!(
-                    "{} {} · {}\" {} · holds {}",
-                    d.cartridge.name(),
-                    d.action.name(),
-                    d.barrel_in,
-                    if d.rifled { "rifled" } else { "smoothbore" },
-                    d.capacity
-                ));
-                let turns = d.action.reload_turns();
-                out.push(format!(
-                    "{} · Accuracy {:+} · Reload {turns} turn{}",
-                    d.skill.name(),
-                    d.accuracy,
-                    if turns == 1 { "" } else { "s" }
-                ));
-            }
+            ItemKind::Gun(g) => out.push(g.def().desc.to_string()),
             ItemKind::Melee(m) => {
                 let d = m.def();
                 out.push(d.desc.to_string());
@@ -240,7 +222,26 @@ impl Item {
                 out.push(format!("Carry capacity +{}", weight::fmt_lb(d.capacity)));
             }
         }
-        out.push(self.weight_line());
+        // Items with a stats block list their weight there instead.
+        if self.stats().is_empty() {
+            out.push(self.weight_line());
+        }
         out
+    }
+
+    /// Labeled stats shown one per line under the description, e.g.
+    /// `("Barrel", "4.5\" rifled")`. Empty for items without a stats block.
+    pub fn stats(&self) -> Vec<(&'static str, String)> {
+        let ItemKind::Gun(g) = &self.kind else { return Vec::new() };
+        let d = g.def();
+        vec![
+            ("Type", format!("{} {}", d.cartridge.name(), d.action.name())),
+            ("Barrel", format!("{}\" {}", d.barrel_in, if d.rifled { "rifled" } else { "smoothbore" })),
+            ("Capacity", d.capacity.to_string()),
+            ("Skill", d.skill.name().to_string()),
+            ("Accuracy", format!("{:+}", d.accuracy)),
+            ("Reload Turns", d.action.reload_turns().to_string()),
+            ("Weight", weight::fmt_lb(self.weight())),
+        ]
     }
 }
