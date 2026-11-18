@@ -119,7 +119,7 @@ spare guns and armor in one, then take them out of a lockbox on a deeper level.
 
 To let anyone play on your server, over `ssh roguemoji@your.host` or in a
 browser, see [deploy/README.md](deploy/README.md). It has a locked-down sshd
-config, a sandboxed ttyd service, an nginx snippet, and a Makefile that
+config, a sandboxed ttyd service, nginx and Apache snippets, and a Makefile that
 installs them: `make webplay`.
 
 ## Versions

@@ -33,6 +33,7 @@ help: ## Show this help
 install: game ensure-user sshd slice ttyd ## Everything: game, account, sshd, caps and the ttyd service
 	@echo
 	@echo "Done. Add nginx/roguemoji.conf to your site's TLS server block, then: nginx -t && systemctl reload nginx"
+	@echo "  (On Apache: add apache/roguemoji.conf to the TLS VirtualHost, then: apachectl configtest && systemctl reload apache2)"
 	@echo "Check the sshd settings each account gets with: make check"
 
 game: ## Install or update the game in /opt/roguemoji (TARBALL=..., or the make static build)

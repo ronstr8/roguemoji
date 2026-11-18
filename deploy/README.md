@@ -19,6 +19,7 @@ resources players can use.
 | `systemd/user-slice.conf` | `/etc/systemd/system/user-<UID>.slice.d/50-roguemoji.conf` | The same caps for SSH players |
 | `Makefile`, `scripts/` | | Install all of the above (see Setup) |
 | `nginx/roguemoji.conf` | your site's TLS `server { }` block | Proxies `/roguemoji/play/` and its websocket to ttyd |
+| `apache/roguemoji.conf` | your site's TLS `<VirtualHost *:443>` block | The same proxy for Apache instead of nginx |
 
 ## Setup
 
@@ -57,9 +58,11 @@ it; the old file is kept beside it as `.orig`. Unit changes need
   current SSH session open until you've logged in again from a new one.
 - Paste `nginx/roguemoji.conf` into your site's TLS `server { }` block, then
   run `nginx -t && systemctl reload nginx`. ttyd listens only on loopback, so
-  nginx is the only way in from outside. On Apache, the same proxy is
-  `ProxyPass /roguemoji/play/ http://127.0.0.1:7681/roguemoji/play/ upgrade=websocket`,
-  which needs `mod_proxy_http` and Apache 2.4.47 or newer.
+  nginx is the only way in from outside. On Apache, paste
+  `apache/roguemoji.conf` into the TLS `<VirtualHost *:443>` block instead
+  (above any catch-all `ProxyPass`), enable `proxy` and `proxy_http`, then run
+  `apachectl configtest && systemctl reload apache2`. It needs Apache 2.4.47
+  or newer.
 - With many players, raise sshd's global `MaxStartups` (default `10:30:100`)
   so that a burst of logins isn't refused.
 
