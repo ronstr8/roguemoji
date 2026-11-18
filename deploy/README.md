@@ -15,7 +15,7 @@ resources players can use.
 | `roguemoji-session` | `/opt/roguemoji/` | The one program players can run. Clears `ROGUEMOJI_DATA`, sets a UTF-8 locale, and starts the game |
 | `sshd/50-roguemoji.conf` | `/etc/ssh/sshd_config.d/` | Password login for the `roguemoji` account only, which always runs the game. No forwarding or tunnels |
 | `sshd/banner.txt` | `/opt/roguemoji/` | Shown before the password prompt. Tells players the password (`@PASSWORD@` is filled in on install) |
-| `systemd/roguemoji-ttyd.service` | `/etc/systemd/system/` | ttyd on loopback port 7681, sandboxed, with shared memory, task and CPU caps |
+| `systemd/roguemoji-ttyd.service` | `/etc/systemd/system/` | ttyd (path filled in for `@TTYD@` on install) on loopback port 7681, sandboxed, with shared memory, task and CPU caps |
 | `systemd/user-slice.conf` | `/etc/systemd/system/user-<UID>.slice.d/50-roguemoji.conf` | The same caps for SSH players |
 | `Makefile`, `scripts/` | | Install all of the above (see Setup) |
 | `nginx/roguemoji.conf` | your site's TLS `server { }` block | Proxies `/roguemoji/play/` and its websocket to ttyd |
@@ -42,7 +42,7 @@ every target. `install` runs these in order:
 | `ensure-user` | Creates the `roguemoji` system account if it's missing. Its home is `/var/lib/roguemoji`, its password is `PASSWORD` (default `roguemoji`), and its login shell is the wrapper, so even `su` lands in the game. It warns if an existing account has a different shell |
 | `sshd` | Installs the wrapper, banner and sshd drop-in, runs `sshd -t`, and reloads sshd only if that passes. Set `SSH_UNIT=sshd` on distros that name the service that way |
 | `slice` | Fills in the account's UID and installs the cap for SSH players |
-| `ttyd` | Installs ttyd with apt if `/usr/bin/ttyd` is missing (`ensure-ttyd`), stops if it's older than 1.7, then installs and starts the service |
+| `ttyd` | Finds ttyd (`ensure-ttyd`): `TTYD=path` if given, else the one on `PATH`. If there's none it installs the apt package where the distro has one; Debian 13 (trixie) doesn't, so it prints the commands to put the static binary from [ttyd's releases](https://github.com/tsl0922/ttyd/releases) in `/usr/local/bin` and stops. It also stops if ttyd is older than 1.7. Then it installs and starts the service, with that ttyd's path in `ExecStart` |
 
 **Config files are installed only where they're missing.** If one already
 exists and differs, it's left alone and reported, since you may have edited it

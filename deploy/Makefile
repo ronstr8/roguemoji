@@ -11,7 +11,8 @@ SESSION    := $(OPT)/roguemoji-session
 BANNER     := $(OPT)/banner.txt
 SSHD_CONF  := /etc/ssh/sshd_config.d/50-roguemoji.conf
 UNIT       := /etc/systemd/system/roguemoji-ttyd.service
-TTYD       := /usr/bin/ttyd
+# ttyd to run; empty means the one on PATH (see scripts/find-ttyd).
+TTYD       ?=
 TTYD_MIN   := 1.7
 SSH_UNIT   ?= ssh
 # The game to install: a release tarball, or else the `make static` build in this checkout.
@@ -21,7 +22,7 @@ GAME_DATA  ?= ../data
 BUILD      := build
 
 SUDO := $(if $(filter 0,$(shell id -u)),,sudo)
-export SUDO FORCE
+export SUDO FORCE TTYD
 
 .DEFAULT_GOAL := help
 .PHONY: help install game session banner ensure-user sshd slice ensure-ttyd ttyd password check status uninstall clean
@@ -74,18 +75,13 @@ slice: ensure-user ## Cap memory, tasks and CPU for all SSH players together
 		scripts/place $(BUILD)/user-slice.conf /etc/systemd/system/user-$$uid.slice.d/50-roguemoji.conf 644
 	$(SUDO) systemctl daemon-reload
 
-ensure-ttyd: $(TTYD) ## Install ttyd with apt if missing, and check it's new enough
-	@v=$$($(TTYD) --version | sed -n 's/.*version \([0-9][0-9.]*\).*/\1/p'); \
-	if [ -z "$$v" ]; then echo "warning: couldn't read ttyd's version; it needs $(TTYD_MIN) or newer" >&2; \
-	elif [ "$$(printf '%s\n' $(TTYD_MIN) "$$v" | sort -V | head -1)" != $(TTYD_MIN) ]; then \
-		echo "ttyd $$v is older than $(TTYD_MIN). Put a static ttyd from its GitHub releases at $(TTYD)." >&2; exit 1; \
-	fi
+ensure-ttyd: ## Find ttyd (TTYD=path, or on PATH), apt-install it where the distro has it, and check it's new enough
+	@scripts/find-ttyd $(TTYD_MIN) >/dev/null
 
-$(TTYD):
-	$(SUDO) apt-get install -y ttyd
-
-ttyd: ensure-ttyd session ensure-user ## Install and start the browser service (restart it yourself after a unit change)
-	scripts/place systemd/roguemoji-ttyd.service $(UNIT) 644
+ttyd: session ensure-user ## Install and start the browser service (restart it yourself after a unit change)
+	@path=$$(scripts/find-ttyd $(TTYD_MIN)) && mkdir -p $(BUILD) && \
+		sed "s|@TTYD@|$$path|" systemd/roguemoji-ttyd.service > $(BUILD)/roguemoji-ttyd.service
+	scripts/place $(BUILD)/roguemoji-ttyd.service $(UNIT) 644
 	$(SUDO) systemctl daemon-reload
 	$(SUDO) systemctl enable --now roguemoji-ttyd
 

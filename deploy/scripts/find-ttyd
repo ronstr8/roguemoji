@@ -1,0 +1,55 @@
+#!/bin/sh
+# find-ttyd MIN_VERSION: print the path of a ttyd at least MIN_VERSION.
+#
+# Uses $TTYD if set, else the ttyd on PATH (/usr/local/bin for a hand-installed
+# static binary, /usr/bin for a distro package). If there's none, installs the
+# apt package where the distro has one; Debian 13 (trixie) doesn't, so
+# otherwise it prints how to fetch the static binary and fails.
+set -eu
+min=$1
+sudo=${SUDO-sudo}
+
+locate() {
+    if [ -n "${TTYD:-}" ]; then
+        if [ -x "$TTYD" ]; then echo "$TTYD"; fi
+    else
+        command -v ttyd || true
+    fi
+}
+
+fetch_help() {
+    arch=$(uname -m)
+    url=https://github.com/tsl0922/ttyd/releases/latest/download
+    cat >&2 <<EOF
+$1 Install the static binary from ttyd's GitHub releases:
+
+  cd "\$(mktemp -d)"
+  curl -fLO $url/ttyd.$arch
+  curl -fLO $url/SHA256SUMS
+  grep " ttyd.$arch\\\$" SHA256SUMS | sha256sum -c -
+  sudo install -m 755 ttyd.$arch ${TTYD:-/usr/local/bin/ttyd}
+
+then run make again.
+EOF
+    exit 1
+}
+
+path=$(locate)
+if [ -z "$path" ] && [ -z "${TTYD:-}" ] &&
+    apt-cache policy ttyd 2>/dev/null | grep -q 'Candidate: [0-9]'; then
+    $sudo apt-get install -y ttyd >&2
+    path=$(locate)
+fi
+if [ -n "${TTYD:-}" ]; then
+    [ -n "$path" ] || fetch_help "There's no ttyd at $TTYD."
+else
+    [ -n "$path" ] || fetch_help "ttyd isn't installed, and apt has no package for it."
+fi
+
+v=$("$path" --version | sed -n 's/.*version \([0-9][0-9.]*\).*/\1/p')
+if [ -z "$v" ]; then
+    echo "warning: couldn't read the version of $path; it needs $min or newer" >&2
+elif [ "$(printf '%s\n' "$min" "$v" | sort -V | head -1)" != "$min" ]; then
+    fetch_help "$path is ttyd $v, older than $min."
+fi
+echo "$path"
