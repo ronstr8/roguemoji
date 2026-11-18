@@ -55,10 +55,6 @@ impl Attribute {
         }
     }
 
-    pub fn is_physical(self) -> bool {
-        matches!(self, Attribute::Brawn | Attribute::Reflexes | Attribute::Fortitude)
-    }
-
     fn index(self) -> usize {
         self as usize
     }

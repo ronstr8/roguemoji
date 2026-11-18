@@ -223,9 +223,7 @@ mod tests {
         let g = game();
         let mut canvas = Canvas::new(120, 36);
         draw(&mut canvas, &g, Sort { key: SortKey::Value, descending: true }, 0);
-        let rows: Vec<String> = (0..canvas.height())
-            .map(|y| canvas.row(y).iter().filter(|c| !c.cont).map(|c| c.ch).collect::<String>())
-            .collect();
+        let rows = canvas.text_rows();
         let screen = rows.join("\n");
         println!("{screen}");
         assert!(screen.contains("sort: value ↓"));

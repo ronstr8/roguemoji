@@ -1,0 +1,3 @@
+makes = { food = "boiled_water" }
+difficulty = 6
+ingredients = { dirty_water = 1 }

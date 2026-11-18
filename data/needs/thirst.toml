@@ -1,0 +1,23 @@
+# People last about 3 days without water but 3 weeks or more without food.
+# The game squeezes that 7x gap to 3x (drain 3 vs hunger's 1), so water is a
+# steady concern without crowding out everything else.
+name = "Hydration"            # what the meter shows as
+max = 1000
+start = 800
+drain = 3          # per turn: a quart (hydration 400) lasts about 130 turns
+
+[[stages]]
+name = "Hydrated"
+
+[[stages]]
+name = "Thirsty"
+at_most = 300
+message = "Your mouth is dry. You're thirsty."
+modifiers = { brains = -1, wit = -1 }
+
+[[stages]]
+name = "Parched"
+at_most = 0
+message = "Your head pounds. You're parched!"
+modifiers = { brains = -2, wit = -2, reflexes = -1 }
+hurts = { every = 10, message = "You are dying of thirst!" }

@@ -6,9 +6,10 @@ use crate::creatures::Background;
 use crate::creatures::player::{BASE_CAPACITY, Burden, CAPACITY_PER_BRAWN};
 use crate::effects::{EffectKind, EffectSpec};
 use crate::geometry::Dir;
+use crate::items::Item;
 use crate::items::{Component, ItemKind, Pack};
 use crate::stats::Attribute;
-use crate::world::Feature;
+use crate::world::{Feature, Tile};
 
 fn new_game(seed: u64) -> Game {
     let bg = Background::ALL[seed as usize % Background::ALL.len()];
@@ -234,4 +235,91 @@ fn selling_pays_crystals_and_takes_the_item() {
     g.sell(idx);
     assert_eq!(g.player.crystals, before + price);
     assert!(g.player.inventory.items().contains(&bar));
+}
+
+/// A game with no monsters, so passing time only drains needs.
+fn quiet_game(seed: u64) -> Game {
+    let mut g = new_game(seed);
+    g.monsters.clear();
+    g
+}
+
+fn add_and_use(g: &mut Game, item: Item) {
+    g.player.inventory.add(item.clone()).unwrap();
+    let idx = g.player.inventory.items().iter().position(|i| *i == item).unwrap();
+    g.use_item(idx);
+}
+
+#[test]
+fn thirst_drains_faster_than_hunger() {
+    let mut g = quiet_game(1);
+    let (hunger, thirst) = (g.player.hunger.value, g.player.thirst.value);
+    g.pass_time(50);
+    let hunger_lost = hunger - g.player.hunger.value;
+    let thirst_lost = thirst - g.player.thirst.value;
+    assert!(hunger_lost > 0 && thirst_lost > hunger_lost, "hunger -{hunger_lost}, thirst -{thirst_lost}");
+}
+
+#[test]
+fn parched_dulls_the_mind_and_hurts() {
+    let mut g = quiet_game(2);
+    let brains = g.player.attr(Attribute::Brains);
+    g.player.thirst.value = 0;
+    assert!(g.player.attr(Attribute::Brains) < brains);
+    let hp = g.player.hp;
+    g.pass_time(30);
+    assert!(g.player.hp < hp, "going without water costs HP");
+}
+
+#[test]
+fn water_quenches_thirst_and_moonshine_dries_you_out() {
+    use crate::items::Consumable;
+    let mut g = quiet_game(3);
+    g.player.thirst.value = 100;
+    let hunger = g.player.hunger.value;
+    add_and_use(&mut g, Item::food(Consumable::named("bottled_water"), 1));
+    assert!(g.player.thirst.value > 400);
+    assert!(g.player.hunger.value < hunger, "water doesn't feed you; a turn passed");
+    let thirst = g.player.thirst.value;
+    add_and_use(&mut g, Item::food(Consumable::named("moonshine"), 1));
+    assert!(g.player.thirst.value < thirst - g.player.thirst.def().drain);
+}
+
+#[test]
+fn dirty_water_can_be_drunk_from_the_pack() {
+    let mut g = quiet_game(4);
+    g.player.thirst.value = 100;
+    let water = Item::component(Component::named("dirty_water"), 1);
+    add_and_use(&mut g, water.clone());
+    assert!(g.player.thirst.value > 400);
+    assert!(!g.player.inventory.items().contains(&water));
+    // Components without `drink` stay put.
+    let scrap = Item::component(Component::named("scrap_metal"), 1);
+    add_and_use(&mut g, scrap.clone());
+    assert!(g.player.inventory.items().contains(&scrap));
+}
+
+#[test]
+fn drinking_needs_water_nearby_and_sometimes_sickens() {
+    let mut g = quiet_game(5);
+    let pos = g.player.pos;
+    for p in std::iter::once(pos).chain(pos.neighbors()) {
+        if g.map.tile(p) == Tile::Water {
+            g.map.set_tile(p, Tile::Floor);
+        }
+    }
+    let turn = g.turn;
+    g.drink_here();
+    assert_eq!(g.turn, turn, "no water, no time spent");
+
+    g.map.set_tile(pos.step(Dir::E), Tile::Water);
+    let mut sick = 0;
+    for _ in 0..40 {
+        g.player.thirst.value = 100;
+        g.player.effects = Default::default();
+        g.drink_here();
+        assert!(g.player.thirst.value > 400);
+        sick += usize::from(g.player.effects.has(EffectKind::Poison));
+    }
+    assert!(sick > 0 && sick < 40, "{sick} of 40 drinks made you sick");
 }

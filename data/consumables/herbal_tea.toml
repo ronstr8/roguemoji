@@ -4,6 +4,7 @@ description = "Calming and clean. Purges toxins and knits small wounds."
 weight = 1
 
 satiety = 60
+hydration = 250
 heal = 2
 cures = true
 effects = [

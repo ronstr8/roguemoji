@@ -77,10 +77,16 @@ weight = 0.3                 # pounds
 loot_weight = 1              # optional; relative chance among floor components.
                              # 0 or absent = never found lying around
 price = 2                    # optional, default 2; Autovend price of one, in 💎. 0 = never sold
+
+# Optional: makes the component drinkable from the inventory (Enter). Drinking
+# adds `hydration` to thirst, then a Survival check against `risk` decides
+# whether `sickness` (any timed effect, see Consumables) follows.
+drink = { hydration = 400, risk = 10, sickness = { kind = "poison", potency = 1, turns = 8 } }
 ```
 
 Some components are named by the game's own tables: harvest nodes (🌿 🚗 🧰 …)
-and starting kits. You can override those files to change names, glyphs,
+and starting kits, plus `dirty_water`, whose `drink` is required: drinking from a
+water tile on the map (`d`) works like drinking one. You can override those files to change names, glyphs,
 weights and loot chances. You can't remove them; the game checks at startup
 that they all exist. A new component can be dropped by a monster (`drops`),
 found on the floor (`loot_weight`), and used in recipes.
@@ -95,7 +101,9 @@ glyph = "🧉"
 description = "Shimmering mushroom tea. Thoughts come fast and bright."
 weight = 1                   # pounds
 
-satiety = 40                 # hunger restored
+satiety = 40                 # optional, default 0; hunger restored
+hydration = 200              # optional, default 0; thirst quenched. Negative dries you
+                             # out (Moonshine). A quart of water is 400
 heal = 0                     # optional, default 0; HP restored at once
 cures = false                # optional, default false; true removes poison and bleeding
 loot_weight = 0              # optional; relative chance among food found on the floor
@@ -119,6 +127,43 @@ effects = [
 
 Starting kits name `canned_peaches`, `bottled_water` and `hardtack`, so those
 must exist (you can still override them).
+
+## Needs — `needs/*.toml`
+
+Meters that drain every turn. The game uses `hunger` (filled by `satiety`) and
+`thirst` (filled by `hydration`), so both files must exist; override them to
+retune.
+
+```toml
+name = "Hydration"           # what the meter shows as, beside its value
+max = 1000                   # the meter when full
+start = 800                  # at the start of a game
+drain = 3                    # lost every turn
+
+# Stages name ranges of the meter, highest first. The first is the top and has
+# no at_most; each later one covers from its at_most down to the next stage's.
+[[stages]]
+name = "Hydrated"
+
+[[stages]]
+name = "Thirsty"
+at_most = 300                # must be below the stage above, and 0 or more
+message = "Your mouth is dry. You're thirsty."   # optional; logged on falling in
+modifiers = { brains = -1, wit = -1 }            # optional; added to attributes
+
+[[stages]]
+name = "Parched"
+at_most = 0
+hurts = { every = 10, message = "You are dying of thirst!" }   # optional; 1 HP every 10 turns
+```
+
+A stage with a message, modifiers or `hurts` shows in red on the sidebar.
+
+The stock rates come from how long people last: about 3 days without water and
+3 weeks or more without food. The game squeezes that 7× gap to 3× (thirst drains
+3 a turn, hunger 1) so water is a steady concern without crowding out everything
+else. Hunger runs about 800 turns from Stuffed to Hungry; a quart of water lasts
+about 130 turns.
 
 ## Recipes — `recipes/*.toml`
 

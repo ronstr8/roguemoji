@@ -4,5 +4,6 @@ description = "Syrupy and perfect."
 weight = 1
 
 satiety = 220
+hydration = 80
 heal = 2
 loot_weight = 4

@@ -3,7 +3,6 @@ glyph = "💊"
 description = "Expired opioid tablets. Dulls pain and wits alike."
 weight = 0.1
 
-satiety = 0
 heal = 6
 loot_weight = 3
 effects = [

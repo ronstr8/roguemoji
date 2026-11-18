@@ -2,6 +2,7 @@
 
 pub mod background;
 pub mod monster;
+pub mod needs;
 pub mod player;
 pub mod species;
 

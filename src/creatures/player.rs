@@ -1,6 +1,7 @@
 //! The player character: stats, equipment, pack and derived values.
 
 use crate::combat::{Momentum, Stance};
+use crate::creatures::needs::{self, Meter, Need};
 use crate::effects::{EffectKind, Effects};
 use crate::geometry::Pos;
 use crate::items::melee::{FISTS, MeleeDef};
@@ -8,9 +9,6 @@ use crate::items::{Armor, Gun, Inventory, MeleeWeapon, Pack, weight};
 use crate::stats::attributes::{self, MAX_SCORE, MIN_SCORE};
 use crate::stats::skills::{self, SkillBreakdown};
 use crate::stats::{Attribute, Attributes, Skill, SkillSet};
-
-pub const MAX_SATIETY: i32 = 1000;
-pub const HUNGRY_AT: i32 = 200;
 
 /// Carry capacity at average Brawn, in hundredths of a pound.
 pub const BASE_CAPACITY: u32 = 45_00;
@@ -106,7 +104,8 @@ pub struct Player {
     pub armor: Option<Armor>,
     pub pack: Option<Pack>,
     pub crystals: u32,
-    pub satiety: i32,
+    pub hunger: Meter,
+    pub thirst: Meter,
     pub stance: Stance,
     pub momentum: Momentum,
     pub kills: u32,
@@ -130,7 +129,8 @@ impl Player {
             armor: None,
             pack: None,
             crystals: 0,
-            satiety: MAX_SATIETY * 3 / 4,
+            hunger: Meter::new(Need::named(needs::HUNGER)),
+            thirst: Meter::new(Need::named(needs::THIRST)),
             stance: Stance::Balanced,
             momentum: Momentum::default(),
             kills: 0,
@@ -142,8 +142,8 @@ impl Player {
 
     /// Effective attribute score including temporary effects.
     pub fn attr(&self, a: Attribute) -> i32 {
-        let hungry_penalty = if self.satiety <= 0 && a.is_physical() { 1 } else { 0 };
-        (self.base.get(a) + self.effects.attr_mod(a) - hungry_penalty).clamp(MIN_SCORE, MAX_SCORE)
+        let needs: i32 = self.needs().iter().map(|m| m.modifier(a)).sum();
+        (self.base.get(a) + self.effects.attr_mod(a) + needs).clamp(MIN_SCORE, MAX_SCORE)
     }
 
     pub fn attr_bonus(&self, a: Attribute) -> i32 {
@@ -215,12 +215,12 @@ impl Player {
         self.hp <= 0
     }
 
-    pub fn hunger_label(&self) -> &'static str {
-        match self.satiety {
-            s if s <= 0 => "Starving",
-            s if s <= HUNGRY_AT => "Hungry",
-            s if s >= MAX_SATIETY * 9 / 10 => "Stuffed",
-            _ => "Fed",
-        }
+    /// Every bodily need, in display order.
+    pub fn needs(&self) -> [&Meter; 2] {
+        [&self.hunger, &self.thirst]
+    }
+
+    pub fn needs_mut(&mut self) -> [&mut Meter; 2] {
+        [&mut self.hunger, &mut self.thirst]
     }
 }

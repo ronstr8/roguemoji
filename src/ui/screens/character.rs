@@ -68,13 +68,8 @@ pub fn draw(canvas: &mut Canvas, game: &Game) {
 
     let derived = [
         format!("Max HP {}  ·  Defense {}  ·  Armor {}", p.max_hp(), p.defense(), p.armor_value()),
-        format!(
-            "Each 💎 heals {}  ·  Crystals {}  ·  Satiety {} ({})",
-            p.crystal_heal(),
-            p.crystals,
-            p.satiety.max(0),
-            p.hunger_label()
-        ),
+        format!("Each 💎 heals {}  ·  Crystals {}", p.crystal_heal(), p.crystals),
+        p.needs().map(|m| format!("{} {}/{} · {}", m.def().name, m.value, m.def().max, m.label())).join("  ·  "),
         format!(
             "Carry {} (Brawn {:+} lb{})  ·  Load {}  ·  {}",
             fmt_lb(p.carry_capacity()),
@@ -95,4 +90,24 @@ pub fn draw(canvas: &mut Canvas, game: &Game) {
         positive attribute bonus applies (penalties apply in full). Skills improve with successful use.";
     paragraph(canvas, x, y, inner.w, inner.y + inner.h.saturating_sub(1), rules, theme::DIM);
     footer(canvas, inner, "Esc close");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::creatures::Background;
+
+    #[test]
+    fn shows_needs_and_still_fits_the_rules() {
+        let g = Game::new(Background::ALL[0].create("Tester".into()), Some(1));
+        let mut canvas = Canvas::new(100, 40);
+        draw(&mut canvas, &g);
+        let rows = canvas.text_rows();
+        println!("{}", rows.join("\n"));
+        assert!(
+            rows.iter().any(|r| r.contains("Satiety 750/1000 · Fed") && r.contains("Hydration 800/1000 · Hydrated"))
+        );
+        assert!(rows.iter().any(|r| r.contains("Checks roll 2d10")));
+        assert!(rows.iter().any(|r| r.contains("Esc close")));
+    }
 }

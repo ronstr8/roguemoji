@@ -30,6 +30,7 @@ You need a terminal of at least 80×24 with a font that renders emoji as double-
 | `r` | reload |
 | `g` / `,` / `5` | pick up |
 | `a` / `A` | absorb one crystal / absorb until healed |
+| `d` | drink from water underfoot or next to you |
 | `S` | cycle stance |
 | `>` | descend on 🔽 |
 | `i` `c` `m` `?` | inventory · character sheet · crafting · help |
@@ -96,6 +97,12 @@ Sell tab uses the same order, and `s` works there too.
 the yield), or spend them at Autovend kiosks. Crystals you spend can't heal you. Autovends
 also buy gear, ammo, food and components for half their price (Tab in the kiosk).
 
+**Hunger and thirst** drain every turn, thirst about three times as fast. Hungry is
+only a warning; Starving lowers Brawn, Reflexes and Fortitude and costs HP. Thirsty
+lowers Brains and Wit, and Parched lowers them further and costs HP faster. Bottled
+Water is safe. Dirty Water from pumps, and pools you drink from with `d`, quench as
+well but take a Survival check to keep down; boil Dirty Water (`m`) to make it safe.
+
 **Harvesting and crafting.** Bump plants, pumps, wrecks, toolboxes, electronics and crates
 to gather components with Survival or Scavenging. Then craft food and drink with timed
 buffs, such as Glowcap Brew (+Brains/Wit), Grilled Meat (+Brawn), Mutant Stew
@@ -149,6 +156,7 @@ data/
   monsters/        one TOML file per monster (see data/README.md)
   components/      one TOML file per crafting component
   consumables/     food, drink and medicine
+  needs/           hunger and thirst: drain rates and stages
   recipes/         crafting recipes
   melee/ armor/ packs/   wieldable and wearable gear
   cartridges/ ammo/ guns/  firearms and their ballistics

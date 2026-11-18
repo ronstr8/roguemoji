@@ -4,6 +4,7 @@ description = "Clear grain liquor. Liquid courage, wobbly hands."
 weight = 1
 
 satiety = 20
+hydration = -150
 loot_weight = 1
 effects = [
     { kind = "boost", attribute = "willpower", potency = 3, turns = 100 },

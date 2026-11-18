@@ -106,9 +106,7 @@ mod tests {
             sort = sort.next();
         }
         draw(&mut canvas, &g, 0, true, sort, 0);
-        let rows: Vec<String> = (0..canvas.height())
-            .map(|y| canvas.row(y).iter().filter(|c| !c.cont).map(|c| c.ch).collect::<String>())
-            .collect();
+        let rows = canvas.text_rows();
         println!("{}", rows.join("\n"));
         assert!(rows.iter().any(|r| r.contains(" Buy  [Sell]   You carry") && r.contains("sort: value ↓")));
         assert!(rows.iter().any(|r| r.contains("Carrying ") && r.contains(" lb · Light")));

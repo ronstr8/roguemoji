@@ -21,6 +21,8 @@ pub struct ConsumableDef {
     pub weight: u32,
     /// Hunger restored.
     pub satiety: i32,
+    /// Thirst quenched; negative for drinks that dry you out.
+    pub hydration: i32,
     /// Immediate healing.
     pub heal: i32,
     /// Removes poison and bleeding.
@@ -40,7 +42,10 @@ struct RawConsumable {
     description: String,
     /// Pounds.
     weight: f64,
+    #[serde(default)]
     satiety: i32,
+    #[serde(default)]
+    hydration: i32,
     #[serde(default)]
     heal: i32,
     #[serde(default)]
@@ -73,6 +78,7 @@ fn build(id: String, raw: RawConsumable) -> Result<ConsumableDef, Vec<String>> {
         desc: raw.description,
         weight: (raw.weight * 100.0).round() as u32,
         satiety: raw.satiety,
+        hydration: raw.hydration,
         heal: raw.heal,
         cures: raw.cures,
         effects,
@@ -121,6 +127,7 @@ mod tests {
     fn parses_and_defaults() {
         let d = parse(GOOD).unwrap();
         assert_eq!((d.weight, d.heal, d.cures, d.price.base, d.loot_weight), (100, 0, false, 5, 0));
+        assert_eq!(d.hydration, 0);
         assert_eq!(d.effects, vec![EffectSpec::new(EffectKind::Boost(Attribute::Wit), 2, 50)]);
     }
 
@@ -130,5 +137,6 @@ mod tests {
         assert!(parse(&GOOD.replace("\"boost\"", "\"teleport\"")).is_err());
         assert!(parse(&GOOD.replace("turns = 50", "turns = 0")).unwrap_err().contains("turns"));
         assert!(parse(&GOOD.replace("satiety = 100", "satiety = -1")).is_err());
+        assert_eq!(parse(&GOOD.replace("satiety = 100", "hydration = -50")).unwrap().hydration, -50);
     }
 }

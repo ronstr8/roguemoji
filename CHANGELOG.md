@@ -16,12 +16,25 @@ version can change rules, controls or data-file formats.
   for `ssh roguemoji@host`, a sandboxed ttyd service for play in the browser,
   nginx and Apache snippets, and setup steps. `make webplay` builds the game and
   installs it all, creating the `roguemoji` account if needed.
+- Thirst. It drains three times as fast as hunger: Thirsty lowers Brains and
+  Wit, and Parched lowers them more and costs HP. The sidebar shows it beside
+  hunger.
+- Press `d` to drink from water underfoot or next to you, or drink Dirty Water
+  from your pack. Either takes a Survival check, or you get sick.
+- Boiled Water: craft it from Dirty Water to drink it safely.
+- Drinks quench thirst: water, tea, broth, juice and soda. Moonshine dries you out.
+- Mods can retune hunger and thirst in `data/needs/`, give consumables
+  `hydration`, and make components drinkable with `drink`.
 
 ### Changed
 - 20ga #3 Buck carries 470 grains of shot instead of 400, matching real
   loads. Its full-pattern damage rises from about 13.9 to 15.0.
 - Brawn and Brains are abbreviated STR and INT on the title and character
   screens, instead of BRN and BRA.
+- Bottled Water quenches thirst instead of filling you up (no more satiety).
+- `satiety` is optional in consumable files, defaulting to 0.
+- The character sheet shows Satiety and Hydration out of 1000 with their
+  current stage, replacing the old Satiety line.
 
 ## [0.4.0] - 2026-11-16
 

@@ -223,6 +223,7 @@ impl App {
             Command::Reload => game.reload(),
             Command::Pickup => game.pickup(),
             Command::Absorb { to_full } => game.absorb(to_full),
+            Command::Drink => game.drink_here(),
             Command::Descend => game.descend(),
             Command::Stance => game.cycle_stance(),
             Command::Inventory => return Screen::Inventory { selected: 0 },

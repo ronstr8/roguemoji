@@ -1,0 +1,7 @@
+name = "Boiled Water"
+glyph = "🫖"
+description = "Dirty water, boiled. Flat and warm, but it won't make you sick."
+weight = 2
+
+hydration = 400
+price = 0

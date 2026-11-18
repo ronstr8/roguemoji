@@ -4,6 +4,7 @@ description = "Sweetened pulp. Twitchy-quick hydration."
 weight = 1
 
 satiety = 80
+hydration = 250
 effects = [
     { kind = "boost", attribute = "reflexes", potency = 2, turns = 120 },
 ]

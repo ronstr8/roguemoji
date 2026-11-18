@@ -4,6 +4,7 @@ description = "Steeped from the hair of things that shouldn't exist. Primal vigo
 weight = 1
 
 satiety = 50
+hydration = 100
 heal = 10
 cures = true
 effects = [

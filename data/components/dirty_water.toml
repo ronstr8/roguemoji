@@ -1,5 +1,9 @@
 name = "Dirty Water"
 glyph = "💧"
-description = "Boil it first. Probably."
+description = "A quart of murky water. Boil it first. Probably."
 weight = 2
 loot_weight = 1
+
+# Drink it as is: a Survival check against risk, or you get sick.
+# Drinking from a water tile on the map works the same way.
+drink = { hydration = 400, risk = 10, sickness = { kind = "poison", potency = 1, turns = 8 } }

@@ -1,0 +1,22 @@
+name = "Satiety"              # what the meter shows as
+max = 1000
+start = 750
+drain = 1          # per turn: about 800 turns from Stuffed to Hungry
+
+[[stages]]
+name = "Stuffed"
+
+[[stages]]
+name = "Fed"
+at_most = 899
+
+[[stages]]
+name = "Hungry"
+at_most = 200
+message = "Your stomach growls. You're hungry."
+
+[[stages]]
+name = "Starving"
+at_most = 0
+modifiers = { brawn = -1, reflexes = -1, fortitude = -1 }
+hurts = { every = 15, message = "You are starving!" }

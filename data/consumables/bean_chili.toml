@@ -4,6 +4,7 @@ description = "Spiced beans. Warms the belly and stiffens the spine."
 weight = 1.2
 
 satiety = 320
+hydration = 50
 heal = 2
 effects = [
     { kind = "boost", attribute = "willpower", potency = 2, turns = 150 },

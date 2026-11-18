@@ -217,11 +217,28 @@ impl Item {
                 out.push(d.desc.to_string());
                 out.push(format!("Armor {} · Dodge penalty {}", d.armor, d.dodge_penalty));
             }
-            ItemKind::Component(c) => out.push(c.def().desc.clone()),
+            ItemKind::Component(c) => {
+                let d = c.def();
+                out.push(d.desc.clone());
+                if let Some(drink) = d.drink {
+                    out.push(format!(
+                        "Drinkable: hydration +{}, Survival vs {} or {}",
+                        drink.hydration,
+                        drink.risk,
+                        drink.sickness.describe()
+                    ));
+                }
+            }
             ItemKind::Consumable(c) => {
                 let d = c.def();
                 out.push(d.desc.to_string());
-                let mut parts = vec![format!("satiety +{}", d.satiety)];
+                let mut parts = Vec::new();
+                if d.satiety != 0 {
+                    parts.push(format!("satiety +{}", d.satiety));
+                }
+                if d.hydration != 0 {
+                    parts.push(format!("hydration {:+}", d.hydration));
+                }
                 if d.heal > 0 {
                     parts.push(format!("heal {}", d.heal));
                 }

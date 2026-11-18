@@ -4,7 +4,6 @@ use crossterm::style::Color;
 
 use super::canvas::Canvas;
 use super::{Area, theme};
-use crate::creatures::player::HUNGRY_AT;
 use crate::game::Game;
 use crate::items::weight::fmt_lb;
 use crate::items::{CRYSTAL_GLYPH, GUN_GLYPH};
@@ -42,8 +41,9 @@ pub fn draw_sidebar(canvas: &mut Canvas, area: Area, game: &Game) {
         _ => theme::BAD,
     };
     line(canvas, &mut y, &format!("HP {} {}/{}", bar(p.hp, max_hp, 14), p.hp, max_hp), hp_color);
-    let hunger_color = if p.satiety <= HUNGRY_AT { theme::BAD } else { theme::TEXT };
-    line(canvas, &mut y, &format!("{} {} crystals  ·  {}", CRYSTAL_GLYPH, p.crystals, p.hunger_label()), hunger_color);
+    let needs_color = if p.needs().iter().any(|m| m.stage().is_warning()) { theme::BAD } else { theme::TEXT };
+    let needs = format!("{} {}  ·  {}  ·  {}", CRYSTAL_GLYPH, p.crystals, p.hunger.label(), p.thirst.label());
+    line(canvas, &mut y, &needs, needs_color);
     line(canvas, &mut y, &format!("DEF {}  ARMOR {}  Turn {}", p.defense(), p.armor_value(), game.turn), theme::TEXT);
     let burden = p.burden();
     let load = format!("Load {}/{} {}", fmt_lb(p.carried_weight()), fmt_lb(p.carry_capacity()), burden.name());
@@ -122,5 +122,27 @@ pub fn draw_log(canvas: &mut Canvas, area: Area, game: &Game, status_line: Optio
         let y = area.y + area.h - 1;
         canvas.fill(area.x, y, area.w, 1, theme::SELECTED);
         canvas.text_max(area.x + 1, y, s, area.w - 2, theme::TITLE, theme::SELECTED);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::creatures::Background;
+
+    fn sidebar(g: &Game) -> Vec<String> {
+        let mut canvas = Canvas::new(40, 40);
+        draw_sidebar(&mut canvas, Area::new(0, 0, 38, 40), g);
+        canvas.text_rows()
+    }
+
+    #[test]
+    fn shows_hunger_and_thirst() {
+        let mut g = Game::new(Background::ALL[0].create("Tester".into()), Some(1));
+        let rows = sidebar(&g);
+        println!("{}", rows.join("\n"));
+        assert!(rows.iter().any(|r| r.contains("💎") && r.contains("Fed  ·  Hydrated")));
+        g.player.thirst.value = 0;
+        assert!(sidebar(&g).iter().any(|r| r.contains("Parched")));
     }
 }

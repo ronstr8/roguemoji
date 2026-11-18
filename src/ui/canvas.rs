@@ -54,6 +54,12 @@ impl Canvas {
         &self.cells[start..start + self.width as usize]
     }
 
+    /// Every row as plain text, for test renders to search.
+    #[cfg(test)]
+    pub fn text_rows(&self) -> Vec<String> {
+        (0..self.height).map(|y| self.row(y).iter().filter(|c| !c.cont).map(|c| c.ch).collect()).collect()
+    }
+
     fn idx(&self, x: u16, y: u16) -> Option<usize> {
         (x < self.width && y < self.height).then(|| y as usize * self.width as usize + x as usize)
     }

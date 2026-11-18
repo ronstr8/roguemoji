@@ -1,7 +1,6 @@
 //! The passage of time.
 
 use super::{Game, Outcome, Tone};
-use crate::creatures::player::{HUNGRY_AT, MAX_SATIETY};
 use crate::effects::{EffectKind, EffectSpec};
 use crate::items::{Component, Item};
 use crate::world::Tile;
@@ -43,15 +42,17 @@ impl Game {
     fn tick_player(&mut self) {
         let p = &mut self.player;
 
-        // Hunger.
-        let was_hungry = p.satiety <= HUNGRY_AT;
-        p.satiety = (p.satiety - 1).clamp(-1, MAX_SATIETY);
-        if !was_hungry && p.satiety == HUNGRY_AT {
-            self.log.push("Your stomach growls. You're hungry.", Tone::Bad);
-        }
-        if p.satiety <= 0 && self.turn.is_multiple_of(15) {
-            p.hp -= 1;
-            self.log.push("You are starving!", Tone::Bad);
+        // Hunger and thirst.
+        let turn = self.turn;
+        let changes = p.needs_mut().map(|m| m.tick(turn));
+        for change in changes {
+            if let Some(msg) = change.message {
+                self.log.push(msg, Tone::Bad);
+            }
+            if let Some(msg) = change.hurt {
+                p.hp -= 1;
+                self.log.push(msg, Tone::Bad);
+            }
         }
 
         // Toxic terrain.

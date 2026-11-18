@@ -4,16 +4,19 @@
 use super::{Game, Outcome, Tone};
 use crate::combat::{self, Attack, HitTier};
 use crate::crafting::{Recipe, recipes};
-use crate::creatures::player::{Burden, MAX_SATIETY};
+use crate::creatures::Player;
+use crate::creatures::needs::{Meter, UnsafeDrink};
+use crate::creatures::player::Burden;
 use crate::effects::{EffectKind, EffectSpec};
 use crate::geometry::{Dir, Pos, line};
+use crate::items::components::UNSAFE_WATER;
 use crate::items::loot;
 use crate::items::melee::Special;
-use crate::items::{Consumable, Gun, Item, ItemKind};
+use crate::items::{Component, Consumable, Gun, Item, ItemKind};
 use crate::stats::Skill;
 use crate::stats::check::{self, Tier};
 use crate::world::fov::SIGHT_RADIUS;
-use crate::world::{Feature, Harvestable};
+use crate::world::{Feature, Harvestable, Tile};
 
 /// Something the UI needs to react to after an action.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -481,15 +484,22 @@ impl Game {
             }
             ItemKind::Gun(_) | ItemKind::Melee(_) | ItemKind::Armor(_) | ItemKind::Pack(_) => self.equip(idx),
             ItemKind::Ammo(_) => self.log.info("Equip a matching gun and press r to load it."),
-            ItemKind::Component(_) => self.log.info("Components are used for crafting (m)."),
+            ItemKind::Component(c) => match c.def().drink {
+                Some(drink) => {
+                    self.player.inventory.take(idx, 1);
+                    self.drink_unsafe(&format!("the {}", c.def().name), drink);
+                }
+                None => self.log.info("Components are used for crafting (m)."),
+            },
             ItemKind::Crystals => {}
         }
     }
 
     fn consume(&mut self, c: Consumable) {
         let def = c.def();
+        self.adjust_need(|p| &mut p.hunger, def.satiety);
+        self.adjust_need(|p| &mut p.thirst, def.hydration);
         let p = &mut self.player;
-        p.satiety = (p.satiety + def.satiety).min(MAX_SATIETY);
         let healed = if def.heal > 0 { p.heal(def.heal) } else { 0 };
         if def.cures {
             p.effects.clear_harmful();
@@ -506,6 +516,39 @@ impl Game {
             msg.push_str(&format!(" ({})", fx.join(", ")));
         }
         self.log.push(msg, Tone::Good);
+    }
+
+    /// Change one of the player's needs by `delta`, logging a stage it falls into.
+    fn adjust_need(&mut self, need: fn(&mut Player) -> &mut Meter, delta: i32) {
+        if let Some(msg) = need(&mut self.player).adjust(delta).message {
+            self.log.push(msg, Tone::Bad);
+        }
+    }
+
+    /// Drink from a water tile underfoot or next to you.
+    pub fn drink_here(&mut self) {
+        let pos = self.player.pos;
+        if !std::iter::once(pos).chain(pos.neighbors()).any(|p| self.map.tile(p) == Tile::Water) {
+            self.log.info("There's no water here to drink.");
+            return;
+        }
+        let drink = Component::named(UNSAFE_WATER).def().drink.expect("checked at load");
+        self.drink_unsafe("from the murky water", drink);
+    }
+
+    /// Drink something that might make you sick: a Survival check against
+    /// its risk decides. Takes a turn.
+    fn drink_unsafe(&mut self, what: &str, drink: UnsafeDrink) {
+        self.adjust_need(|p| &mut p.thirst, drink.hydration);
+        let skill = self.player.skill(Skill::Survival).total();
+        let result = check::roll(&mut self.dice, skill, drink.risk);
+        if result.tier.succeeded() {
+            self.log.push(format!("You drink {what}. It goes down fine. {}", result.summary()), Tone::Good);
+        } else {
+            self.player.effects.add(drink.sickness, "bad water");
+            self.log.push(format!("You drink {what}. Your gut twists. {}", result.summary()), Tone::Bad);
+        }
+        self.pass_time(1);
     }
 
     fn equip(&mut self, idx: usize) {
