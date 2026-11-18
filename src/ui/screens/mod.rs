@@ -96,7 +96,8 @@ pub fn item_details(canvas: &mut Canvas, area: Area, item: &Item) -> u16 {
         y = if rest.h as usize >= stats.len() + load_table_height(&loads, w) {
             stat_block(canvas, rest, &stats)
         } else {
-            let joined: Vec<String> = stats.iter().map(|(l, v)| format!("{l} {v}")).collect();
+            let joined: Vec<String> =
+                stats.iter().map(|(l, v)| if l.is_empty() { v.clone() } else { format!("{l} {v}") }).collect();
             paragraph(canvas, x, rest.y, w, bottom, &joined.join(" · "), theme::TEXT)
         };
     }

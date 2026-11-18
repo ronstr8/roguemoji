@@ -19,6 +19,9 @@ version can change rules, controls or data-file formats.
 - Melee weapons and armor get the same stats block: Skill, Damage,
   Accuracy, Penetration and Weight for melee; Armor, Dodge Penalty and
   Weight for armor.
+- Food, drink and packs get a stats block too. Consumables list only what
+  they do (Satiety, Hydration, Heal, Cures, Effects); packs list their
+  Carry Capacity. Both list Weight.
 - The load table's first column is headed "Load" instead of "Name".
 - The Autovend window grows taller on big terminals.
 - The load table names each load by type ("JHP", "Buck ×9") instead of its

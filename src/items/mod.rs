@@ -137,11 +137,12 @@ impl Item {
         self.unit_weight() * self.qty
     }
 
-    fn weight_line(&self) -> String {
+    /// The stack's weight, with the unit weight too when there's more than one.
+    fn weight_text(&self) -> String {
         if self.qty > 1 {
-            format!("Weight {} ({} each)", weight::fmt_lb(self.weight()), weight::fmt_lb(self.unit_weight()))
+            format!("{} ({} each)", weight::fmt_lb(self.weight()), weight::fmt_lb(self.unit_weight()))
         } else {
-            format!("Weight {}", weight::fmt_lb(self.weight()))
+            weight::fmt_lb(self.weight())
         }
     }
 
@@ -188,34 +189,12 @@ impl Item {
                     ));
                 }
             }
-            ItemKind::Consumable(c) => {
-                let d = c.def();
-                out.push(d.desc.to_string());
-                let mut parts = Vec::new();
-                if d.satiety != 0 {
-                    parts.push(format!("satiety +{}", d.satiety));
-                }
-                if d.hydration != 0 {
-                    parts.push(format!("hydration {:+}", d.hydration));
-                }
-                if d.heal > 0 {
-                    parts.push(format!("heal {}", d.heal));
-                }
-                if d.cures {
-                    parts.push("cures poison & bleeding".into());
-                }
-                parts.extend(d.effects.iter().map(|e| e.describe()));
-                out.push(parts.join("; "));
-            }
-            ItemKind::Pack(p) => {
-                let d = p.def();
-                out.push(d.desc.to_string());
-                out.push(format!("Carry capacity +{}", weight::fmt_lb(d.capacity)));
-            }
+            ItemKind::Consumable(c) => out.push(c.def().desc.to_string()),
+            ItemKind::Pack(p) => out.push(p.def().desc.to_string()),
         }
         // Items with a stats block list their weight there instead.
         if self.stats().is_empty() {
-            out.push(self.weight_line());
+            out.push(format!("Weight {}", self.weight_text()));
         }
         out
     }
@@ -248,11 +227,35 @@ impl Item {
                 let d = a.def();
                 vec![("Armor", d.armor.to_string()), ("Dodge Penalty", d.dodge_penalty.to_string())]
             }
+            ItemKind::Consumable(c) => consumable_stats(c.def()),
+            ItemKind::Pack(p) => vec![("Carry Capacity", format!("+{}", weight::fmt_lb(p.def().capacity)))],
             _ => return Vec::new(),
         };
-        out.push(("Weight", weight::fmt_lb(self.weight())));
+        out.push(("Weight", self.weight_text()));
         out
     }
+}
+
+/// What eating or drinking does: only the meters it moves and the effects it
+/// grants. The effects share one label so they read as a list.
+fn consumable_stats(d: &consumables::ConsumableDef) -> Vec<(&'static str, String)> {
+    let mut out = Vec::new();
+    if d.satiety != 0 {
+        out.push(("Satiety", format!("{:+}", d.satiety)));
+    }
+    if d.hydration != 0 {
+        out.push(("Hydration", format!("{:+}", d.hydration)));
+    }
+    if d.heal > 0 {
+        out.push(("Heal", format!("{} HP", d.heal)));
+    }
+    if d.cures {
+        out.push(("Cures", "poison & bleeding".to_string()));
+    }
+    for (i, e) in d.effects.iter().enumerate() {
+        out.push((if i == 0 { "Effects" } else { "" }, e.describe()));
+    }
+    out
 }
 
 #[cfg(test)]
@@ -271,5 +274,24 @@ mod tests {
         let vest = Item::one(ItemKind::Armor(Armor::named("kevlar_vest")));
         assert_eq!(labels(&vest), ["Armor", "Dodge Penalty", "Weight"]);
         assert!(vest.describe().iter().all(|l| !l.contains("Weight")), "weight moves to the stats block");
+    }
+
+    #[test]
+    fn consumables_list_only_what_they_do() {
+        let hardtack = Item::food(Consumable::named("hardtack"), 4);
+        assert_eq!(labels(&hardtack), ["Satiety", "Weight"]);
+        let weight = &hardtack.stats()[1].1;
+        assert!(weight.contains(" each)"), "a stack shows the unit weight too: {weight}");
+        let tonic = Item::food(Consumable::named("cryptid_tonic"), 1);
+        assert_eq!(labels(&tonic), ["Satiety", "Hydration", "Heal", "Cures", "Effects", "", "", "", "Weight"]);
+        assert!(tonic.stats().contains(&("Effects", "+2 Brawn for 200 turns".into())));
+        assert_eq!(tonic.describe().len(), 1, "just the prose stays above the block");
+    }
+
+    #[test]
+    fn packs_list_their_capacity() {
+        let pack = Item::one(ItemKind::Pack(Pack::named("hiking_pack")));
+        assert_eq!(labels(&pack), ["Carry Capacity", "Weight"]);
+        assert!(pack.stats()[0].1.starts_with('+'));
     }
 }
