@@ -26,6 +26,8 @@ pub enum Event {
     OpenStash,
     /// Walked into an encounter; its report is in `Game::last_encounter`.
     OpenEncounter,
+    /// Walked up to a wager; it's in `Game::table`.
+    OpenWager,
 }
 
 /// Where an item moves when shuffling between pack and lockbox.
@@ -60,10 +62,7 @@ impl Game {
                 return Event::None;
             }
             Some(Feature::Kiosk(k)) => return Event::OpenShop(k),
-            Some(Feature::Encounter(e)) if e.def().stays => {
-                self.encounter(target, e);
-                return Event::None;
-            }
+            Some(Feature::Encounter { kind, .. }) if kind.def().stays => return self.encounter(target, kind),
             Some(Feature::Lockbox) => {
                 self.log
                     .push("The lockbox irises open. Its contents are the same as every other one's.", Tone::Special);
@@ -82,7 +81,7 @@ impl Game {
         self.player.pos = target;
         // A one-off encounter happens as you step in, then it's gone.
         let event = match self.map.feature(target).copied() {
-            Some(Feature::Encounter(e)) if self.encounter(target, e) => Event::OpenEncounter,
+            Some(Feature::Encounter { kind, .. }) => self.encounter(target, kind),
             _ => Event::None,
         };
         self.describe_floor();

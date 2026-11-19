@@ -57,6 +57,8 @@ enum Screen {
         scroll: usize,
     },
     Encounter,
+    /// Sitting at a wager; the table is in `Game::table`.
+    Wager,
     ConfirmQuit,
     Ended,
 }
@@ -164,6 +166,7 @@ impl App {
             Screen::Shoot { targets, selected } => screens::shoot::draw(canvas, game, targets, *selected),
             Screen::Help { scroll } => screens::help::draw(canvas, *scroll),
             Screen::Encounter => screens::encounter::draw(canvas, game),
+            Screen::Wager => screens::wager::draw(canvas, game),
             Screen::Ended => screens::ended::draw(canvas, game),
             _ => {}
         }
@@ -205,6 +208,7 @@ impl App {
                     screen_restore(&screen)
                 }
             }
+            Screen::Wager => self.on_wager(key),
             Screen::Crafting { selected } => self.on_crafting(key, selected),
             Screen::Shop { kiosk, selling, selected } => self.on_shop(key, kiosk, selling, selected),
             Screen::Stash { side, selected } => self.on_stash(key, side, selected),
@@ -234,6 +238,24 @@ impl App {
             self.screen = Screen::Ended;
         } else if self.game.as_ref().is_some_and(|g| g.player.is_asleep()) {
             self.screen = Screen::Play;
+        }
+    }
+
+    /// Enter bets while you can, and otherwise leaves; Esc always leaves.
+    fn on_wager(&mut self, key: KeyEvent) -> Screen {
+        let Some(game) = self.game.as_mut() else { return Screen::Play };
+        let bet = input::is_confirm(key) && game.place_bet();
+        if bet && (game.is_over() || game.player.is_asleep()) {
+            // The turn spent betting ended you or knocked you out; you're up from the table.
+            game.leave_table();
+            Screen::Play
+        } else if bet {
+            Screen::Wager
+        } else if input::is_cancel(key) || input::is_confirm(key) {
+            game.leave_table();
+            Screen::Play
+        } else {
+            Screen::Wager
         }
     }
 
@@ -269,6 +291,7 @@ impl App {
                 Event::OpenShop(kiosk) => return Screen::Shop { kiosk, selling: false, selected: 0 },
                 Event::OpenStash => return Screen::Stash { side: StashSide::Pack, selected: 0 },
                 Event::OpenEncounter => return Screen::Encounter,
+                Event::OpenWager => return Screen::Wager,
                 Event::None => {}
             },
             Command::Wait => game.wait(),

@@ -15,6 +15,8 @@ use crate::creatures::needs::Need;
 use crate::items::{Component, Consumable, Item};
 use crate::stats::Attribute;
 
+use super::wager::{self, RawWager, Wager};
+
 /// A handle to a loaded encounter: an index into the encounter table.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Encounter(u16);
@@ -37,6 +39,8 @@ pub struct EncounterDef {
     pub needs: Vec<(Need, i32)>,
     pub gives: Vec<Item>,
     pub resist: Option<Resist>,
+    /// A bet offered instead of fixed effects.
+    pub wager: Option<Wager>,
 }
 
 /// A check that softens a bad encounter: on success, losses are halved.
@@ -65,6 +69,8 @@ struct RawEncounter {
     gives: BTreeMap<String, u32>,
     #[serde(default)]
     resist: Option<Resist>,
+    #[serde(default)]
+    wager: Option<RawWager>,
 }
 
 /// An item an encounter can give: any consumable or component, by id.
@@ -79,13 +85,7 @@ fn build(id: String, raw: RawEncounter) -> Result<EncounterDef, Vec<String>> {
     p.check(!raw.name.trim().is_empty(), "name is empty");
     p.check(!raw.glyph.trim().is_empty(), "glyph is empty");
     p.check(!raw.text.is_blank(), "text is empty");
-    let mut needs = Vec::new();
-    for (need, n) in raw.needs {
-        match Need::lookup(&need) {
-            Some(handle) => needs.push((handle, n)),
-            None => p.check(false, format!("needs: `{need}` is not in data/needs/")),
-        }
-    }
+    let needs = wager::resolve_needs(raw.needs, &mut p, "needs");
     let mut gives = Vec::new();
     for (item, qty) in raw.gives {
         p.check(qty > 0, format!("gives: `{item}` needs a quantity of 1 or more"));
@@ -94,7 +94,13 @@ fn build(id: String, raw: RawEncounter) -> Result<EncounterDef, Vec<String>> {
             None => p.check(false, format!("gives: `{item}` is not a consumable or component")),
         }
     }
-    p.check(!needs.is_empty() || !gives.is_empty(), "does nothing: give it `needs` or `gives`");
+    let wager = raw.wager.map(|w| w.build(raw.stays, &mut p));
+    if wager.is_some() {
+        let fixed = !needs.is_empty() || !gives.is_empty() || raw.resist.is_some();
+        p.check(!fixed, "a wager's effects go in its win and lose tables, not `needs`, `gives` or `resist`");
+    } else {
+        p.check(!needs.is_empty() || !gives.is_empty(), "does nothing: give it `needs`, `gives` or a `wager`");
+    }
     p.finish(|| EncounterDef {
         id,
         name: raw.name,
@@ -105,6 +111,7 @@ fn build(id: String, raw: RawEncounter) -> Result<EncounterDef, Vec<String>> {
         needs,
         gives,
         resist: raw.resist,
+        wager,
     })
 }
 
@@ -146,6 +153,43 @@ mod tests {
         assert_eq!(d.gives.iter().map(|i| i.qty).sum::<u32>(), 3);
         assert!(!d.stays);
         assert_eq!(d.resist.unwrap().attribute, Attribute::Willpower);
+    }
+
+    const DEN: &str = r#"
+        name = "Den"
+        glyph = "🎲"
+        text = "Dice."
+        stays = true
+        [wager]
+        stake = 3
+        target = 10
+        purse = 30
+        decline = "No."
+        [wager.win]
+        text = "Won."
+        crystals = 3
+        [wager.lose]
+        text = "Lost."
+    "#;
+
+    #[test]
+    fn parses_a_wager() {
+        let w = parse(DEN).unwrap().wager.unwrap();
+        assert_eq!((w.stake, w.target, w.purse, w.attribute), (3, 10, Some(30), None));
+        assert!(w.push.is_none());
+    }
+
+    #[test]
+    fn rejects_bad_wagers() {
+        let bad = |from: &str, to: &str| parse(&DEN.replace(from, to)).unwrap_err();
+        assert!(bad("purse = 30", "").contains("needs a house `purse`"));
+        assert!(bad("stays = true", "").contains("only for a den"));
+        assert!(bad("purse = 30", "purse = 5").contains("cover a big win"));
+        assert!(bad("stake = 3", "stake = 0").contains("stake"));
+        assert!(bad("target = 10", "target = 25").contains("target"));
+        assert!(bad("text = \"Lost.\"", "text = \"Lost.\"\ncrystals = 2").contains("win only"));
+        assert!(bad("stays = true", "stays = true\nneeds = { hope = 5 }").contains("win and lose tables"));
+        assert!(bad("text = \"Won.\"", "text = \"Won.\"\nneeds = { joy = 5 }").contains("wager.win.needs"));
     }
 
     #[test]

@@ -1,0 +1,23 @@
+name = "Arm Wrestler"
+glyph = "💪"
+text = """
+A { huge | wiry | scarred } {@who man | woman} has cleared a car hood and \
+plants an elbow on it. "Beat me and I'll double your crystals. { Nobody has. | \
+Last one cried. | Don't make it boring. }"
+"""
+chance = { weight = 1 }
+
+[wager]
+stake = 5
+attribute = "brawn"
+target = 14
+decline = "You wave it off. The challenger flexes at your back as you go."
+
+[wager.win]
+text = "{@who His | Her} knuckles hit the hood { with a bang | hard enough to dent it }. {@who He | She} pays up, rubbing a sore wrist, and heads off."
+crystals = 5
+needs = { hope = 50 }
+
+[wager.lose]
+text = "Your arm folds like wet cardboard. {@who He | She} pockets the crystals and strolls off { whistling | without looking back }."
+needs = { hope = -40, rest = -60 }

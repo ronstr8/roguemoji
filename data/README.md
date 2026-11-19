@@ -212,11 +212,51 @@ gives = { bottled_water = 1 }    # optional; consumable or component id = how ma
 resist = { attribute = "willpower", target = 11, text = "You look away in time." }
 ```
 
-An encounter needs `needs` or `gives`, or it would do nothing. Each level
-places two or three, picked by `chance` at that depth.
+An encounter needs `needs`, `gives` or a `wager`, or it would do nothing. Each
+level places two or three, picked by `chance` at that depth.
 
-`text` and the resist `text` take [flavor markup](#flavor-markup), rolled
-afresh each time the scene is shown.
+### Wagers
+
+An encounter with a `[wager]` table offers a bet instead of fixed effects, so
+it can't also have `needs`, `gives` or `resist`. Walking up shows the scene
+with the stake and the odds; Enter bets, Esc walks away. Stakes are crystals,
+which also heal, so a bet is a bet with your health.
+
+```toml
+stays = true                 # a den: bet again and again (each bet is a turn).
+                             # Without it, a wandering gambler: one bet or walk
+                             # away, and either way they're gone
+
+[wager]
+stake = 3                    # crystals per bet, 1 or more
+attribute = "wit"            # optional: the check's attribute. Absent = pure luck
+target = 12                  # 2–20, against 2d10 + the attribute's bonus
+purse = 30                   # dens only, and required for them: the house's
+                             # crystals. Wins come out, losses go in, and the den
+                             # stops taking bets when it can't cover a big win
+decline = "You keep walking."    # logged if you leave without betting
+
+[wager.win]                  # Success; a Critical is a big win that pays double
+text = "The bones come up sixes."
+crystals = 3                 # won on top of your stake back, 1 or more
+needs = { hope = 40 }        # optional, as for an encounter
+
+[wager.push]                 # optional: a Partial gives your stake back.
+text = "A tie."              # Without this table a Partial counts as a win.
+                             # A push can't pay crystals
+
+[wager.lose]                 # Fail or Fumble: the stake is gone
+text = "Snake eyes."         # no crystals here: only a win pays
+needs = { hope = -30 }
+```
+
+A Partial means making the target by 0–3, a Success by 4–8, and a Critical by
+9 or more or a natural 20. On 2d10 with no bonus, target 10 wins (Success or
+better) about 28% of the time and loses about 36%. Each attribute point above
+10 adds one to the roll. All the texts, `decline` included, take flavor markup.
+
+`text`, the resist `text` and every wager text take
+[flavor markup](#flavor-markup), rolled afresh each time they're shown.
 
 ## Flavor markup
 

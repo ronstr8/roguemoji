@@ -1,0 +1,25 @@
+# A one-off: one hand, or walk away, and either way they move on.
+name = "Card Sharp"
+glyph = "🃏"
+text = """
+A {@who man | woman | stranger} in a { moth-eaten | surprisingly clean } suit \
+sits on an overturned { crate | shopping cart }, shuffling a deck with too \
+many { kings | aces }. "One hand," {@who he says | she says | they say}. \
+"Keep your wits about you."
+"""
+chance = { weight = 2 }
+
+[wager]
+stake = 4
+attribute = "wit"
+target = 13
+decline = "\"Suit yourself.\" The deck vanishes into a sleeve, and so does the dealer."
+
+[wager.win]
+text = "You catch the { bottom deal | marked card | second ace } and call it. The dealer laughs, pays up and is gone before you can count it."
+crystals = 6
+needs = { hope = 60 }
+
+[wager.lose]
+text = "You never see how it happened. By the time you look up from the cards, the dealer is a speck on the horizon."
+needs = { hope = -50 }

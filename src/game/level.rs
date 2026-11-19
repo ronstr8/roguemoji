@@ -84,7 +84,7 @@ impl Game {
         for _ in 0..2 + self.dice.range(0, 1) {
             let Some(e) = self.dice.weighted(&encounters) else { break };
             let Some(p) = take_isolated(&mut open, &self.map) else { break };
-            self.map.set_feature(p, Feature::Encounter(e));
+            self.map.set_feature(p, Feature::encounter(e));
         }
 
         // Loot, favoring building interiors in the ruins.

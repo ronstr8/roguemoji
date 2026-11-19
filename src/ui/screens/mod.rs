@@ -10,6 +10,7 @@ pub mod shoot;
 pub mod shop;
 pub mod stash;
 pub mod title;
+pub mod wager;
 
 use super::canvas::Canvas;
 use super::{Area, theme};

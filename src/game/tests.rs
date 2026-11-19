@@ -445,7 +445,7 @@ fn fighting_tires_you_faster_than_waiting() {
 fn encounter_beside(g: &mut Game, id: &str) -> Dir {
     use crate::world::encounter::Encounter;
     let dir = open_step(g);
-    g.map.set_feature(g.player.pos.step(dir), Feature::Encounter(Encounter::named(id)));
+    g.map.set_feature(g.player.pos.step(dir), Feature::encounter(Encounter::named(id)));
     dir
 }
 
@@ -536,7 +536,91 @@ fn levels_have_encounters() {
     let mut total = 0;
     for depth in 1..=FINAL_DEPTH {
         g.enter_level(depth);
-        total += g.map.cells().filter(|p| matches!(g.map.feature(*p), Some(Feature::Encounter(_)))).count();
+        total += g.map.cells().filter(|p| matches!(g.map.feature(*p), Some(Feature::Encounter { .. }))).count();
     }
     assert!(total >= FINAL_DEPTH as usize * 2, "{total} encounters over {FINAL_DEPTH} levels");
+}
+
+fn table_beside(g: &mut Game, id: &str, crystals: u32) -> Pos {
+    g.player.crystals = crystals;
+    let dir = encounter_beside(g, id);
+    assert_eq!(g.move_player(dir), Event::OpenWager);
+    g.table.as_ref().expect("a table to sit at").pos
+}
+
+#[test]
+fn a_den_takes_bets_and_keeps_the_crystals_in_play() {
+    let mut g = quiet_game(30);
+    let pos = table_beside(&mut g, "dice_den", 20);
+    assert_ne!(g.player.pos, pos, "a den is bumped, not entered");
+    let total = g.player.crystals + g.house_purse(pos);
+    for _ in 0..3 {
+        let turn = g.turn;
+        assert!(g.place_bet());
+        assert_eq!(g.turn, turn + 1, "each bet takes a turn");
+        assert_eq!(g.player.crystals + g.house_purse(pos), total, "crystals only change hands");
+    }
+    g.leave_table();
+    assert!(g.map.feature(pos).is_some(), "the den is still there");
+    assert!(g.table.is_none());
+}
+
+#[test]
+fn a_broke_house_takes_no_bets() {
+    let mut g = quiet_game(31);
+    let pos = table_beside(&mut g, "dice_den", 20);
+    if let Some(Feature::Encounter { purse, .. }) = g.map.feature_mut(pos) {
+        *purse = 1;
+    }
+    assert!(g.bet_blocker().unwrap().contains("broke"));
+    assert!(!g.place_bet());
+    assert_eq!(g.player.crystals, 20, "nothing staked");
+}
+
+#[test]
+fn you_need_the_stake_to_bet() {
+    let mut g = quiet_game(32);
+    table_beside(&mut g, "card_sharp", 1);
+    assert!(g.bet_blocker().unwrap().contains("You need"));
+    assert!(!g.place_bet());
+}
+
+#[test]
+fn a_wandering_gambler_takes_one_bet_and_moves_on() {
+    let mut g = quiet_game(33);
+    let pos = table_beside(&mut g, "card_sharp", 20);
+    assert_eq!(g.player.pos, pos, "you step up to a one-off");
+    assert!(g.place_bet());
+    let net = g.table.as_ref().unwrap().last.as_ref().unwrap().net;
+    assert!(net == 6 || net == 12 || net == -4, "won 6 (12 on a critical) or lost the 4 staked: {net}");
+    assert_eq!(g.player.crystals as i64, 20 + net);
+    assert!(!g.place_bet(), "only one bet");
+    g.leave_table();
+    assert!(g.map.feature(pos).is_none(), "and they're gone");
+}
+
+#[test]
+fn walking_away_logs_the_decline_and_a_wanderer_leaves() {
+    let mut g = quiet_game(34);
+    let pos = table_beside(&mut g, "card_sharp", 20);
+    g.leave_table();
+    assert!(logged(&g, "Suit yourself"));
+    assert!(g.map.feature(pos).is_none());
+    assert_eq!(g.player.crystals, 20);
+}
+
+#[test]
+fn wits_win_more_card_games() {
+    let wins = |push: i32| {
+        (0..200)
+            .filter(|&seed| {
+                let mut g = quiet_game(seed);
+                g.player.effects.add(EffectSpec::new(EffectKind::Boost(Attribute::Wit), push, 100), "test");
+                table_beside(&mut g, "card_sharp", 20);
+                g.place_bet();
+                g.table.as_ref().unwrap().last.as_ref().unwrap().net > 0
+            })
+            .count()
+    };
+    assert!(wins(4) > wins(-4) + 40, "a sharp mind beats the sharp");
 }

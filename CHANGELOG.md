@@ -9,6 +9,10 @@ version can change rules, controls or data-file formats.
 
 ### Added
 
+- Gambling. Wandering gamblers (🃏 Card Sharp, 💪 Arm Wrestler) offer one bet
+  and move on; dens (🎲 Bones in the Ruins) take bets until the house purse runs
+  dry. You stake crystals, so you're betting your healing. Some games are pure
+  luck and others test Wit or Brawn. Encounter files take a `[wager]` table.
 - Flavor markup for encounter text: `{ red | blue }` picks a phrase, `@tag`s keep linked
   choices in agreement, and the Friendly Stranger, Garden in the Rubble and Peaceful
   Sanctum now read a little differently each time.

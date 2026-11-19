@@ -1,0 +1,28 @@
+# A den stays put: bet as often as you like until the house purse runs dry.
+name = "Bones in the Ruins"
+glyph = "🎲"
+text = """
+In the shell of a { laundromat | chapel | bus depot }, a {@who wiry man | \
+gap-toothed woman} rattles two bone dice in a { tin cup | dented hubcap }. \
+{@who He | She} doesn't look up. "Crystals on the table, or keep walking."
+"""
+chance = { weight = 2 }
+stays = true
+
+[wager]
+stake = 3
+target = 10                  # no attribute: pure luck, with a slight house edge
+purse = 30
+decline = "You keep walking. Behind you, the dice keep rattling."
+
+[wager.win]
+text = "The bones come up { sixes | in your favor | clean }. {@who He | She} pushes the crystals over { without a word | with a sour look }."
+crystals = 3
+needs = { hope = 40 }
+
+[wager.push]
+text = "A { tie | wash | split decision }. Your crystals slide back to you."
+
+[wager.lose]
+text = "{ Snake eyes | Craps | Not even close }. {@who He | She} sweeps your crystals into the cup."
+needs = { hope = -30 }

@@ -16,10 +16,12 @@ pub mod log;
 #[cfg(test)]
 mod tests;
 mod turn;
+mod wagers;
 
 pub use actions::{Event, StashSide};
 pub use encounters::EncounterReport;
 pub use log::{Log, Tone};
+pub use wagers::{BetReport, Table};
 
 use crate::creatures::player::Burden;
 use crate::creatures::{Monster, Player};
@@ -66,6 +68,8 @@ pub struct Game {
     pub stash: Inventory,
     /// The encounter just walked into, for its pop-up.
     pub last_encounter: Option<EncounterReport>,
+    /// The wager you're sitting at, while its pop-up is open.
+    pub table: Option<Table>,
     /// Burden as of the last check, to announce changes.
     last_burden: Burden,
     dice: Dice,
@@ -88,6 +92,7 @@ impl Game {
             outcome: None,
             stash: Inventory::with_slots(STASH_SLOTS),
             last_encounter: None,
+            table: None,
             last_burden: Burden::Light,
             dice,
             next_id: 1,

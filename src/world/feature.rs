@@ -128,12 +128,22 @@ pub enum Feature {
     /// A Visitor lockbox. Every lockbox opens onto the same shared stash.
     Lockbox,
     /// Something happening here: walk in (or bump, if it stays) to engage.
-    Encounter(Encounter),
+    /// `purse` is the crystals a gambling den has left (0 for anything else).
+    Encounter {
+        kind: Encounter,
+        purse: u32,
+    },
     Stairs,
     Beacon,
 }
 
 impl Feature {
+    /// An encounter as placed, with a den's house purse full.
+    pub fn encounter(kind: Encounter) -> Self {
+        let purse = kind.def().wager.as_ref().and_then(|w| w.purse).unwrap_or(0);
+        Feature::Encounter { kind, purse }
+    }
+
     pub fn harvest(kind: Harvestable) -> Self {
         Feature::Harvest { kind, uses_left: kind.def().uses }
     }
@@ -143,7 +153,7 @@ impl Feature {
             Feature::Harvest { kind, .. } => kind.def().glyph,
             Feature::Kiosk(_) => "🏧",
             Feature::Lockbox => "🛅",
-            Feature::Encounter(e) => e.def().glyph.as_str(),
+            Feature::Encounter { kind, .. } => kind.def().glyph.as_str(),
             Feature::Stairs => "🔽",
             Feature::Beacon => "📡",
         }
@@ -154,7 +164,7 @@ impl Feature {
     pub fn blocks(&self) -> bool {
         match self {
             Feature::Harvest { .. } | Feature::Kiosk(_) | Feature::Lockbox => true,
-            Feature::Encounter(e) => e.def().stays,
+            Feature::Encounter { kind, .. } => kind.def().stays,
             Feature::Stairs | Feature::Beacon => false,
         }
     }

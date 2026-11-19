@@ -6,6 +6,7 @@ pub mod fov;
 pub mod generator;
 pub mod map;
 pub mod tile;
+pub mod wager;
 
 pub use feature::{Feature, Harvestable};
 pub use generator::Biome;
