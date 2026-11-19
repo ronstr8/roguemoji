@@ -13,6 +13,9 @@ version can change rules, controls or data-file formats.
   it takes you at once, with a half-second white flash.
 - Levels are called phases now: "Phase 3" instead of "Depth 3" on the HUD,
   character sheet, log and death message.
+- The README is now a short tour of the game, with a logo and mascot. Controls and
+  rules moved to `docs/GUIDE.md` (included in downloads), and build, release and
+  code notes to `docs/DEVELOPER.md`.
 
 ### Removed
 

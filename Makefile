@@ -39,15 +39,17 @@ windows: ## Static, stripped Windows exe (MinGW) at target/$(WIN)/release/$(BIN)
 	RUSTFLAGS="-C strip=symbols -C target-feature=+crt-static" $(CARGO) build --release --target $(WIN)
 	@ls -lh target/$(WIN)/release/$(BIN).exe
 
-dist: static windows ## Package the Linux tarball and Windows zip, each with README, CHANGELOG and live data/
+dist: static windows ## Package the Linux tarball and Windows zip, each with README, guide, CHANGELOG and live data/
 	rm -rf dist/$(DIST) && mkdir -p dist/$(DIST)
 	cp -f target/$(MUSL)/release/$(BIN) README.md CHANGELOG.md dist/$(DIST)/
-	cp -rf data dist/$(DIST)/data
+	cp -rf data assets dist/$(DIST)/
+	mkdir -p dist/$(DIST)/docs && cp -f docs/GUIDE.md dist/$(DIST)/docs/
 	tar -C dist -czf dist/$(DIST).tar.gz $(DIST)
 	cd dist && sha256sum $(DIST).tar.gz > $(DIST).tar.gz.sha256
 	rm -rf dist/$(WDIST) dist/$(WDIST).zip && mkdir -p dist/$(WDIST)
 	cp -f target/$(WIN)/release/$(BIN).exe README.md CHANGELOG.md dist/$(WDIST)/
-	cp -rf data dist/$(WDIST)/data
+	cp -rf data assets dist/$(WDIST)/
+	mkdir -p dist/$(WDIST)/docs && cp -f docs/GUIDE.md dist/$(WDIST)/docs/
 	cd dist && zip -qr $(WDIST).zip $(WDIST) && sha256sum $(WDIST).zip > $(WDIST).zip.sha256
 	awk -v version=$(VERSION) -f scripts/release-notes.awk CHANGELOG.md > dist/notes-$(TAG).md
 	printf '\n%s\n' '$(DOWNLOAD_NOTE)' >> dist/notes-$(TAG).md

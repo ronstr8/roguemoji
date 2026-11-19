@@ -9,7 +9,7 @@ grains, fps, inches. Distances on the map are tiles.
   It must pass before every commit.
 - `make run SEED=42`: play a reproducible world.
 - `make windows`: cross-compile the Windows exe (MinGW).
-- `make dist` / `make publish`: package and release. See README "Versions".
+- `make dist` / `make publish`: package and release. See "Versions" in `docs/DEVELOPER.md`.
 
 ## Content is data
 
