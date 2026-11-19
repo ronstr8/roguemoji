@@ -266,6 +266,19 @@ impl Player {
         }
     }
 
+    /// What you have equipped that `item` would replace, for comparing stats.
+    /// Only melee weapons, guns and packs compare, and an item doesn't
+    /// compare with itself.
+    pub fn compare_with(&self, item: &Item) -> Option<Item> {
+        let slot = match item.kind {
+            ItemKind::Melee(_) => Slot::Melee,
+            ItemKind::Gun(_) => Slot::Gun,
+            ItemKind::Pack(_) => Slot::Pack,
+            _ => return None,
+        };
+        self.equipped(slot).filter(|e| e != item)
+    }
+
     /// Empty an equipment slot, returning what was in it.
     pub fn unequip(&mut self, slot: Slot) -> Option<Item> {
         let item = self.equipped(slot)?;

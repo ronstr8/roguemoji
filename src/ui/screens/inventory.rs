@@ -195,7 +195,7 @@ fn draw_detail(canvas: &mut Canvas, area: Area, game: &Game, row: Option<Row>) {
     };
     canvas.text_max(dx, dy, &worth, dw, theme::LOOT, theme::POPUP);
     dy += 2;
-    item_details(canvas, Area::new(dx, dy, dw, bottom.saturating_sub(dy)), &item);
+    item_details(canvas, Area::new(dx, dy, dw, bottom.saturating_sub(dy)), &item, &game.player);
 }
 
 #[cfg(test)]
@@ -289,6 +289,40 @@ mod tests {
             assert!(rows.iter().any(|r| r.contains(label)), "{name} shows {label}\n{}", rows.join("\n"));
             println!("{}", rows.join("\n"));
         }
+    }
+
+    #[test]
+    fn stats_sit_beside_the_equipped_weapon() {
+        let mut g = game();
+        g.player.melee = Some(MeleeWeapon::named("kitchen_knife"));
+        let idx = g.player.inventory.items().iter().position(|i| i.base_name() == "Crowbar").unwrap();
+        let mut canvas = Canvas::new(120, 40);
+        draw(&mut canvas, &g, Sort::default(), SLOT_ROWS + idx);
+        println!("{}", canvas.text_rows().join("\n"));
+        let rows = canvas.text_rows();
+        // The equipped knife's numbers, colored for how they compare with the crowbar's.
+        let colors_on = |label: &str| {
+            let y = rows.iter().position(|r| r.contains(label)).unwrap() as u16;
+            canvas.row(y).iter().map(|c| c.fg).collect::<Vec<_>>()
+        };
+        assert!(colors_on("Damage").contains(&theme::BAD), "the knife hits softer");
+        assert!(colors_on("Accuracy").contains(&theme::GOOD), "but more accurately");
+        assert!(colors_on("Weight").contains(&theme::GOOD), "and weighs less");
+        assert!(!colors_on("Skill").contains(&theme::GOOD) && !colors_on("Skill").contains(&theme::BAD));
+        assert!(rows.iter().any(|r| r.contains("Accuracy") && r.contains("+0") && r.contains("+2")));
+    }
+
+    #[test]
+    fn equipped_gear_is_not_compared_with_itself() {
+        let g = game();
+        let crowbar = Item::one(ItemKind::Melee(MeleeWeapon::named("crowbar")));
+        let mut g2 = g;
+        g2.player.melee = Some(MeleeWeapon::named("crowbar"));
+        assert!(g2.player.compare_with(&crowbar).is_none());
+        g2.player.melee = Some(MeleeWeapon::named("kitchen_knife"));
+        assert!(g2.player.compare_with(&crowbar).is_some());
+        let vest = Item::one(ItemKind::Armor(Armor::named("kevlar_vest")));
+        assert!(g2.player.compare_with(&vest).is_none(), "armor isn't compared");
     }
 
     #[test]

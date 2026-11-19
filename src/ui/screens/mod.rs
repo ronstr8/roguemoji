@@ -14,10 +14,12 @@ pub mod wager;
 
 use super::canvas::Canvas;
 use super::{Area, theme};
+use crate::creatures::player::Player;
 use crate::items::guns::LoadStats;
 use crate::items::loot::sale_value;
 use crate::items::weight::fmt_lb;
-use crate::items::{Item, ItemKind};
+use crate::items::{Item, ItemKind, Stat};
+use std::cmp::Ordering;
 
 /// Draw a centered pop-up frame and return its inner content area.
 pub fn popup(canvas: &mut Canvas, want_w: u16, want_h: u16, title: &str) -> Area {
@@ -78,9 +80,9 @@ pub fn item_row(canvas: &mut Canvas, at: Area, label: &str, item: Option<&Item>,
     canvas.text(right(&wt, x + w), y, &wt, theme::DIM, bg);
 }
 
-/// An item's description, then for a gun a table of the loads it fires.
-/// Returns the next free row.
-pub fn item_details(canvas: &mut Canvas, area: Area, item: &Item) -> u16 {
+/// An item's description, its stats beside the gear it would replace, then
+/// for a gun a table of the loads it fires. Returns the next free row.
+pub fn item_details(canvas: &mut Canvas, area: Area, item: &Item, player: &Player) -> u16 {
     let (x, w, bottom) = (area.x, area.w, area.y + area.h);
     let mut y = area.y;
     for line in item.describe() {
@@ -90,15 +92,19 @@ pub fn item_details(canvas: &mut Canvas, area: Area, item: &Item) -> u16 {
         ItemKind::Gun(g) => g.loads(),
         _ => Vec::new(),
     };
-    let stats = item.stats();
+    let brawn = player.brawn_damage();
+    let stats = item.stats(brawn);
+    let equipped = player.compare_with(item).map(|e| e.stats(brawn)).unwrap_or_default();
     if !stats.is_empty() {
         let rest = Area::new(x, y + 1, w, bottom.saturating_sub(y + 1));
         // Short panes get the stats as one wrapped line so the load table still fits.
         y = if rest.h as usize >= stats.len() + load_table_height(&loads, w) {
-            stat_block(canvas, rest, &stats)
+            stat_block(canvas, rest, &stats, &equipped)
         } else {
-            let joined: Vec<String> =
-                stats.iter().map(|(l, v)| if l.is_empty() { v.clone() } else { format!("{l} {v}") }).collect();
+            let joined: Vec<String> = stats
+                .iter()
+                .map(|s| if s.label.is_empty() { s.full_text() } else { format!("{} {}", s.label, s.full_text()) })
+                .collect();
             paragraph(canvas, x, rest.y, w, bottom, &joined.join(" · "), theme::TEXT)
         };
     }
@@ -114,15 +120,31 @@ fn load_table_height(loads: &[LoadStats], w: u16) -> usize {
 }
 
 /// One `Label  value` per line, labels dim and padded to a shared column.
-fn stat_block(canvas: &mut Canvas, area: Area, stats: &[(&str, String)]) -> u16 {
-    let label_w = stats.iter().map(|(l, _)| super::canvas::text_width(l)).max().unwrap_or(0) as u16 + 2;
+/// Beside each value, the equipped item's value for the same stat (without
+/// its note): green where it's the better number, red where it's worse.
+fn stat_block(canvas: &mut Canvas, area: Area, stats: &[Stat], equipped: &[Stat]) -> u16 {
+    let width = |texts: &mut dyn Iterator<Item = &str>| texts.map(super::canvas::text_width).max().unwrap_or(0) as u16;
+    let label_w = width(&mut stats.iter().map(|s| s.label)) + 2;
+    let values: Vec<String> = stats.iter().map(Stat::full_text).collect();
+    let value_w = width(&mut values.iter().map(String::as_str)) + 3;
     let mut y = area.y;
-    for (label, value) in stats {
+    for (stat, value) in stats.iter().zip(&values) {
         if y >= area.y + area.h {
             break;
         }
-        canvas.text_max(area.x, y, label, area.w, theme::DIM, theme::POPUP);
-        canvas.text_max(area.x + label_w, y, value, area.w.saturating_sub(label_w), theme::TEXT, theme::POPUP);
+        let at = |dx: u16| (area.x + dx, area.w.saturating_sub(dx));
+        canvas.text_max(area.x, y, stat.label, area.w, theme::DIM, theme::POPUP);
+        let (x, w) = at(label_w);
+        canvas.text_max(x, y, value, w, theme::TEXT, theme::POPUP);
+        if let Some(theirs) = equipped.iter().find(|e| !e.label.is_empty() && e.label == stat.label) {
+            let color = match theirs.versus(stat) {
+                Some(Ordering::Greater) => theme::GOOD,
+                Some(Ordering::Less) => theme::BAD,
+                _ => theme::DIM,
+            };
+            let (x, w) = at(label_w + value_w);
+            canvas.text_max(x, y, &theirs.text, w, color, theme::POPUP);
+        }
         y += 1;
     }
     y

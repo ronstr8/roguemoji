@@ -76,11 +76,11 @@ pub fn draw(canvas: &mut Canvas, game: &Game, kiosk: usize, selling: bool, sort:
         let w = fmt_lb(unit_weight(&item.kind) * sold);
         let wnote = if selling { format!("Selling sheds {w}.") } else { format!("Weighs {w}.") };
         // A bought item's stats block already lists its weight.
-        if selling || item.stats().is_empty() {
+        if selling || item.stats(0).is_empty() {
             y = paragraph(canvas, dx, y, dw, bottom, &wnote, theme::DIM);
             y += 1;
         }
-        item_details(canvas, Area::new(dx, y, dw, bottom.saturating_sub(y)), item);
+        item_details(canvas, Area::new(dx, y, dw, bottom.saturating_sub(y)), item, &game.player);
     }
     let help = if selling {
         "↑↓ select · Enter sell · s sort · Tab buy · Esc leave"
