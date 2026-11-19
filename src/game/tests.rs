@@ -624,3 +624,18 @@ fn wits_win_more_card_games() {
     };
     assert!(wins(4) > wins(-4) + 40, "a sharp mind beats the sharp");
 }
+
+#[test]
+fn a_dealer_keeps_their_pronouns_from_scene_to_result() {
+    for seed in 0..40 {
+        let mut g = quiet_game(seed);
+        table_beside(&mut g, "dice_den", 20);
+        let scene = g.table.as_ref().unwrap().text.clone();
+        let wrong = if scene.contains("wiry man") { "She " } else { "He " };
+        for _ in 0..3 {
+            g.place_bet();
+            let bet = g.table.as_ref().unwrap().last.as_ref().unwrap();
+            assert!(!bet.text.contains(wrong), "seed {seed}: {scene:?} then {:?}", bet.text);
+        }
+    }
+}

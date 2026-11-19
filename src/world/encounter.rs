@@ -95,6 +95,12 @@ fn build(id: String, raw: RawEncounter) -> Result<EncounterDef, Vec<String>> {
         }
     }
     let wager = raw.wager.map(|w| w.build(raw.stays, &mut p));
+    let mut texts = vec![&raw.text];
+    texts.extend(raw.resist.as_ref().map(|r| &r.text));
+    texts.extend(wager.iter().flat_map(Wager::texts));
+    if let Err(e) = Flavor::check_linked(&texts) {
+        p.check(false, format!("tags shared between texts: {e}"));
+    }
     if wager.is_some() {
         let fixed = !needs.is_empty() || !gives.is_empty() || raw.resist.is_some();
         p.check(!fixed, "a wager's effects go in its win and lose tables, not `needs`, `gives` or `resist`");
@@ -190,6 +196,9 @@ mod tests {
         assert!(bad("text = \"Lost.\"", "text = \"Lost.\"\ncrystals = 2").contains("win only"));
         assert!(bad("stays = true", "stays = true\nneeds = { hope = 5 }").contains("win and lose tables"));
         assert!(bad("text = \"Won.\"", "text = \"Won.\"\nneeds = { joy = 5 }").contains("wager.win.needs"));
+        let linked = DEN.replace("text = \"Dice.\"", "text = \"{@who A | B}\"");
+        let err = parse(&linked.replace("text = \"Won.\"", "text = \"{@who x | y | z}\"")).unwrap_err();
+        assert!(err.contains("tags shared between texts"), "{err}");
     }
 
     #[test]

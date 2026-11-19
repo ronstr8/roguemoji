@@ -90,7 +90,14 @@ mod tests {
         let pos = g.player.pos;
         let e = Encounter::named(id);
         g.map.set_feature(pos, Feature::encounter(e));
-        g.table = Some(Table { pos, encounter: e, text: "The scene.".into(), last: None, bets: 0 });
+        g.table = Some(Table {
+            pos,
+            encounter: e,
+            text: "The scene.".into(),
+            last: None,
+            bets: 0,
+            picks: Default::default(),
+        });
         g
     }
 

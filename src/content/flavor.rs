@@ -4,7 +4,8 @@
 //! - Choices nest: `{ a { red | blue } scarf | nothing }`.
 //! - An empty option makes words optional: `a { | faded } photograph`.
 //! - Choices sharing a tag pick the same position, which keeps a sentence
-//!   consistent: `{@who man | woman}` … `{@who his | her}`.
+//!   consistent: `{@who man | woman}` … `{@who his | her}`. Texts rolled with
+//!   the same [`Picks`] share tags too, so a scene and its outcome agree.
 //! - `{{` and `}}` are literal braces.
 //!
 //! Parsing happens at load, so a bad brace is reported with the file's name;
@@ -34,6 +35,11 @@ struct Choice {
     tag: Option<String>,
     options: Vec<Flavor>,
 }
+
+/// The options tagged choices have taken so far. Roll related texts (a scene,
+/// then its outcome) with the same `Picks` so their tags agree.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Picks(BTreeMap<String, usize>);
 
 /// A markup mistake, worded for someone editing a data file.
 #[derive(Debug, PartialEq)]
@@ -70,11 +76,19 @@ impl Flavor {
         })
     }
 
-    /// Pick an option for every choice and return the finished text.
-    pub fn roll(&self, dice: &mut Dice) -> String {
+    /// Pick an option for every choice and return the finished text, keeping
+    /// any tag already in `picks` and recording new ones.
+    pub fn roll_with(&self, dice: &mut Dice, picks: &mut Picks) -> String {
         let mut out = String::new();
-        self.write(dice, &mut BTreeMap::new(), &mut out);
+        self.write(dice, &mut picks.0, &mut out);
         tidy(&out)
+    }
+
+    /// Check that tags shared across texts rolled together line up, as they
+    /// must within one text.
+    pub fn check_linked(texts: &[&Flavor]) -> Result<(), FlavorError> {
+        let mut arity = BTreeMap::new();
+        texts.iter().try_for_each(|t| t.check_tags(&mut arity))
     }
 
     fn write(&self, dice: &mut Dice, picks: &mut BTreeMap<String, usize>, out: &mut String) {
@@ -87,7 +101,8 @@ impl Flavor {
                         Some(tag) => *picks.entry(tag.clone()).or_insert_with(|| dice.index(len)),
                         None => dice.index(len),
                     };
-                    c.options[i].write(dice, picks, out);
+                    // Load checks keep linked tags the same size; `min` is a backstop.
+                    c.options[i.min(len - 1)].write(dice, picks, out);
                 }
             }
         }
@@ -231,7 +246,7 @@ mod tests {
     fn rolls(src: &str) -> BTreeSet<String> {
         let f = Flavor::parse(src).unwrap();
         let mut dice = Dice::seeded(7);
-        (0..200).map(|_| f.roll(&mut dice)).collect()
+        (0..200).map(|_| f.roll_with(&mut dice, &mut Picks::default())).collect()
     }
 
     fn err(src: &str) -> String {
@@ -271,6 +286,26 @@ mod tests {
     }
 
     #[test]
+    fn shared_picks_link_separate_texts() {
+        let scene = Flavor::parse("A {@who man | woman}.").unwrap();
+        let after = Flavor::parse("{@who He | She} leaves.").unwrap();
+        let mut dice = Dice::seeded(5);
+        for _ in 0..50 {
+            let mut picks = Picks::default();
+            let pair = (scene.roll_with(&mut dice, &mut picks), after.roll_with(&mut dice, &mut picks));
+            assert!(matches!(pair.0.as_str(), "A man." | "A woman."));
+            assert_eq!(pair.0 == "A man.", pair.1 == "He leaves.", "{pair:?}");
+        }
+    }
+
+    #[test]
+    fn linked_texts_must_line_up() {
+        let (a, b) = (Flavor::parse("{@x a | b}").unwrap(), Flavor::parse("{@x c | d | e}").unwrap());
+        assert!(Flavor::check_linked(&[&a, &b]).unwrap_err().0.contains("`@x` has 2 options"));
+        assert!(Flavor::check_linked(&[&a, &a]).is_ok());
+    }
+
+    #[test]
     fn doubled_braces_are_literal() {
         assert_eq!(rolls("{{not a choice}}"), BTreeSet::from(["{not a choice}".to_string()]));
     }
@@ -279,7 +314,7 @@ mod tests {
     fn same_seed_same_words() {
         let f = Flavor::parse("{ a | b | c } { d | e | f } { g | h | i }").unwrap();
         let (mut d1, mut d2) = (Dice::seeded(3), Dice::seeded(3));
-        assert_eq!(f.roll(&mut d1), f.roll(&mut d2));
+        assert_eq!(f.roll_with(&mut d1, &mut Picks::default()), f.roll_with(&mut d2, &mut Picks::default()));
     }
 
     #[test]

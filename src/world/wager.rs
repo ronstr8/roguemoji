@@ -66,6 +66,12 @@ impl Verdict {
 }
 
 impl Wager {
+    /// Every text the wager can show, for checking tags shared with the scene.
+    pub fn texts(&self) -> impl Iterator<Item = &Flavor> {
+        let outcomes = [Some(&self.win), Some(&self.lose), self.push.as_ref()];
+        std::iter::once(&self.decline).chain(outcomes.into_iter().flatten().map(|p| &p.text))
+    }
+
     /// The result a check tier earns.
     pub fn verdict(&self, tier: Tier) -> Verdict {
         match tier {

@@ -271,6 +271,11 @@ braces:
 | `{@who man \| woman }` … `{@who his \| her }` | choices with the same `@tag` pick the same position, so the sentence agrees with itself |
 | `{{` and `}}` | literal braces |
 
+Tags carry across one encounter's texts: its scene picks first, and the resist
+text, `decline` and every wager outcome reuse those picks. A dealer who's a
+woman in the scene is still "she" when she pays you. Texts that share a tag
+must give it the same number of options.
+
 Spaces around each option are trimmed, and doubled spaces or a space before
 punctuation left by an empty option are tidied away. A choice needs at least
 two options, and every choice sharing a tag must have the same number of

@@ -1,6 +1,7 @@
 //! Betting at a wager: walking up, staking crystals, and walking away.
 
 use super::{Game, Tone};
+use crate::content::flavor::Picks;
 use crate::creatures::needs::Need;
 use crate::geometry::Pos;
 use crate::stats::check::{self, CheckResult};
@@ -19,6 +20,8 @@ pub struct Table {
     pub last: Option<BetReport>,
     /// Bets placed since you sat down.
     pub bets: u32,
+    /// The scene's tagged choices, so every later text agrees with it.
+    pub picks: Picks,
 }
 
 /// How one bet went.
@@ -42,8 +45,9 @@ impl Table {
 impl Game {
     /// Walk up to a wager: roll its scene and keep it for the pop-up.
     pub(super) fn sit_at_table(&mut self, pos: Pos, encounter: Encounter) {
-        let text = encounter.def().text.roll(&mut self.dice);
-        self.table = Some(Table { pos, encounter, text, last: None, bets: 0 });
+        let mut picks = Picks::default();
+        let text = encounter.def().text.roll_with(&mut self.dice, &mut picks);
+        self.table = Some(Table { pos, encounter, text, last: None, bets: 0, picks });
     }
 
     /// Crystals the house has left at `pos`, for a den.
@@ -84,7 +88,8 @@ impl Game {
         }
         let payout = wager.payout(verdict);
         let changes = self.apply_needs(&payout.needs, false);
-        let text = payout.text.roll(&mut self.dice);
+        let picks = self.table.as_mut().map(|t| &mut t.picks).expect("checked above");
+        let text = payout.text.roll_with(&mut self.dice, picks);
         let def = encounter.def();
         let tone = if net < 0 { Tone::Bad } else { Tone::Good };
         self.log.push(format!("{} {}: {} {net:+} 💎", def.glyph, def.name, verdict.name()), tone);
@@ -100,9 +105,9 @@ impl Game {
     /// Get up from the table. Walking away without betting logs the decline;
     /// a one-off wager is gone either way.
     pub fn leave_table(&mut self) {
-        let Some(table) = self.table.take() else { return };
+        let Some(mut table) = self.table.take() else { return };
         if table.bets == 0 {
-            let line = table.wager().decline.roll(&mut self.dice);
+            let line = table.wager().decline.roll_with(&mut self.dice, &mut table.picks);
             self.log.push(line, Tone::Info);
         }
         if !table.encounter.def().stays {

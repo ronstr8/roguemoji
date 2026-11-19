@@ -1,6 +1,7 @@
 //! What happens when you walk into an encounter.
 
 use super::{Event, Game, Tone};
+use crate::content::flavor::Picks;
 use crate::creatures::needs::Need;
 use crate::geometry::Pos;
 use crate::items::Item;
@@ -69,8 +70,9 @@ impl Game {
         for item in &def.gives {
             self.give_player(item.clone());
         }
-        let text = def.text.roll(&mut self.dice);
-        let resist_text = def.resist.as_ref().map(|r| r.text.roll(&mut self.dice));
+        let mut picks = Picks::default();
+        let text = def.text.roll_with(&mut self.dice, &mut picks);
+        let resist_text = def.resist.as_ref().map(|r| r.text.roll_with(&mut self.dice, &mut picks));
         EncounterReport { encounter: e, text, resist, resist_text, changes, gifts: def.gives.clone() }
     }
 
