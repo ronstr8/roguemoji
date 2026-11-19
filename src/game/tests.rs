@@ -26,7 +26,7 @@ fn exit_is_always_reachable() {
             let exit = g
                 .map
                 .cells()
-                .find(|p| matches!(g.map.feature(*p), Some(Feature::Stairs | Feature::Beacon)))
+                .find(|p| matches!(g.map.feature(*p), Some(Feature::Portal | Feature::Beacon)))
                 .expect("level has an exit");
             // The exit isn't blocking, so it is reachable if any neighbor is.
             let reachable = exit.neighbors().any(|n| g.map.distance_at(&dist, n).is_some());
@@ -638,4 +638,22 @@ fn a_dealer_keeps_their_pronouns_from_scene_to_result() {
             assert!(!bet.text.contains(wrong), "seed {seed}: {scene:?} then {:?}", bet.text);
         }
     }
+}
+
+#[test]
+fn walking_into_a_portal_carries_you_to_the_next_world() {
+    let mut g = new_game(7);
+    g.monsters.clear();
+    let portal = g.map.cells().find(|p| g.map.feature(*p) == Some(&Feature::Portal)).expect("level has a portal");
+    let (from, dir) = portal
+        .neighbors()
+        .filter(|n| g.map.passable(*n))
+        .find_map(|n| Dir::ALL.into_iter().find(|d| n.step(*d) == portal).map(|d| (n, d)))
+        .expect("portal has an open neighbor");
+    g.player.pos = from;
+
+    assert_eq!(g.move_player(dir), Event::Portal);
+    assert_eq!(g.depth, 2);
+    assert_ne!(g.map.feature(g.player.pos), Some(&Feature::Portal), "you arrive at the new start");
+    assert!(g.log.recent(5).iter().any(|m| m.text.starts_with("Spacetime swallows you up")));
 }

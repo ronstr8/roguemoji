@@ -128,7 +128,7 @@ impl Game {
             self.log.push(format!("{label} wears off."), Tone::Info);
         }
         if p.is_dead() && self.outcome.is_none() {
-            self.outcome = Some(Outcome::Died(format!("Succumbed to wounds and sickness on depth {}", self.depth)));
+            self.outcome = Some(Outcome::Died(format!("Succumbed to wounds and sickness in Phase {}", self.depth)));
         }
     }
 

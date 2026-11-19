@@ -16,10 +16,14 @@ use crate::stats::check::success_chance;
 use crate::ui::canvas::Canvas;
 use crate::ui::screens;
 use crate::ui::terminal::Terminal;
+use crate::ui::theme;
 use crate::ui::{self, MIN_HEIGHT, MIN_WIDTH};
 
 /// How long each turn of sleep shows on screen.
 const SLEEP_TICK: Duration = Duration::from_millis(40);
+
+/// How long the screen stays white after stepping through a portal.
+const WHITEOUT: Duration = Duration::from_millis(500);
 
 const NAMES: &[&str] = &["Ash", "Rook", "Juniper", "Vega", "Sable", "Cass", "Ozzie", "Wren", "Dell", "Marlow"];
 
@@ -70,6 +74,8 @@ pub struct App {
     last_target: Option<u32>,
     /// A 💥 drawn on a creature a shot struck, until the deadline passes.
     flash: Option<(Pos, Instant)>,
+    /// The screen is blanked white until this moment, after a portal jump.
+    whiteout: Option<Instant>,
     inv_sort: screens::inventory::Sort,
     running: bool,
 }
@@ -82,6 +88,7 @@ impl App {
             seed,
             last_target: None,
             flash: None,
+            whiteout: None,
             inv_sort: Default::default(),
             running: true,
         }
@@ -98,11 +105,12 @@ impl App {
                 self.sleep_tick();
                 continue;
             }
-            // While a flash is up, wait only until it expires, then redraw.
-            if let Some((_, until)) = self.flash {
+            // While a flash or whiteout is up, wait only until the first one
+            // expires, then redraw.
+            if let Some(until) = self.flash.map(|(_, t)| t).into_iter().chain(self.whiteout).min() {
                 let left = until.saturating_duration_since(Instant::now());
                 if left.is_zero() || !event::poll(left)? {
-                    self.flash = None;
+                    self.expire_effects();
                     continue;
                 }
             }
@@ -113,6 +121,13 @@ impl App {
             }
         }
         Ok(())
+    }
+
+    /// Drop the timed screen effects whose moment has passed.
+    fn expire_effects(&mut self) {
+        let now = Instant::now();
+        self.flash = self.flash.filter(|(_, t)| *t > now);
+        self.whiteout = self.whiteout.filter(|t| *t > now);
     }
 
     /// Whether the player is asleep on the map, so turns should pass by themselves.
@@ -131,6 +146,10 @@ impl App {
     // ── Drawing ───────────────────────────────────────────────────────────
 
     fn draw(&self, canvas: &mut Canvas) {
+        if self.whiteout.is_some() {
+            canvas.fill(0, 0, canvas.width(), canvas.height(), theme::WHITEOUT);
+            return;
+        }
         if canvas.width() < MIN_WIDTH || canvas.height() < MIN_HEIGHT {
             ui::draw_too_small(canvas);
             return;
@@ -292,6 +311,7 @@ impl App {
                 Event::OpenStash => return Screen::Stash { side: StashSide::Pack, selected: 0 },
                 Event::OpenEncounter => return Screen::Encounter,
                 Event::OpenWager => return Screen::Wager,
+                Event::Portal => self.whiteout = Some(Instant::now() + WHITEOUT),
                 Event::None => {}
             },
             Command::Wait => game.wait(),
@@ -302,7 +322,6 @@ impl App {
             Command::Absorb { to_full } => game.absorb(to_full),
             Command::Drink => game.drink_here(),
             Command::Nap => game.nap(),
-            Command::Descend => game.descend(),
             Command::Stance => game.cycle_stance(),
             Command::Inventory => return Screen::Inventory { selected: screens::inventory::first_row(game) },
             Command::Character => return Screen::Character,

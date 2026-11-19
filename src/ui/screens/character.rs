@@ -81,7 +81,7 @@ pub fn draw(canvas: &mut Canvas, game: &Game) {
             fmt_lb(p.carried_weight()),
             p.burden().name()
         ),
-        format!("Kills {}  ·  Depth {}  ·  Turn {}", p.kills, game.depth, game.turn),
+        format!("Kills {}  ·  Phase {}  ·  Turn {}", p.kills, game.depth, game.turn),
     ]);
     for line in derived {
         canvas.text_max(x, y, &line, inner.w, theme::TEXT, bg);

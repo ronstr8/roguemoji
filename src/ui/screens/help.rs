@@ -21,7 +21,6 @@ const LINES: &[(&str, &str)] = &[
     ("d", "drink from water underfoot or next to you (a Survival check, or you get sick)"),
     ("z", "nap until rested: a monster in view, a hit or any key wakes you"),
     ("S", "cycle stance: Aggressive ⇄ Balanced ⇄ Guarded"),
-    (">", "descend when standing on 🔽"),
     ("i c m", "inventory · character sheet · crafting"),
     ("Q", "quit"),
     ("", ""),
@@ -44,7 +43,7 @@ const LINES: &[(&str, &str)] = &[
     ("LOAD", "Carry 45 lb + 6 per Brawn point over 5, plus a worn pack 🎒. Over that you're Burdened"),
     ("", "(slower, -1 DEF); over 1.5× Strained (half speed, -3 DEF); over 2× you can't move."),
     ("🛅", "Visitor lockboxes share one stash: leave gear in one, take it out of any other."),
-    ("GOAL", "Find the Visitor Beacon 📡 on depth 10."),
+    ("GOAL", "Find the Visitor Beacon 📡 in Phase 10."),
 ];
 
 /// How many help lines fit in a terminal `height` rows tall.

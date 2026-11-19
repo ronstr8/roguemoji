@@ -3,6 +3,9 @@
 Content lives here as TOML, one file per thing. A file's **id** is its name
 without `.toml` (`feral_dog.toml` → `feral_dog`).
 
+**Depth** in field names (`min_depth`, `per_depth`, …) is the phase number the
+player sees: Phase 1 is depth 1, and the Beacon sits at depth 10.
+
 ## Where files are read from
 
 1. **Built-in:** everything in this directory is compiled into the binary, so a

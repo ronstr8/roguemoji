@@ -1,5 +1,5 @@
 //! Map features: harvestable nodes, Autovend kiosks, Visitor lockboxes,
-//! encounters, stairs, and the Beacon.
+//! encounters, portals, and the Beacon.
 
 use super::encounter::Encounter;
 use crate::stats::Skill;
@@ -133,7 +133,8 @@ pub enum Feature {
         kind: Encounter,
         purse: u32,
     },
-    Stairs,
+    /// A tear in spacetime that drops you into the next, stranger world.
+    Portal,
     Beacon,
 }
 
@@ -154,7 +155,7 @@ impl Feature {
             Feature::Kiosk(_) => "🏧",
             Feature::Lockbox => "🛅",
             Feature::Encounter { kind, .. } => kind.def().glyph.as_str(),
-            Feature::Stairs => "🔽",
+            Feature::Portal => "🌀",
             Feature::Beacon => "📡",
         }
     }
@@ -165,7 +166,7 @@ impl Feature {
         match self {
             Feature::Harvest { .. } | Feature::Kiosk(_) | Feature::Lockbox => true,
             Feature::Encounter { kind, .. } => kind.def().stays,
-            Feature::Stairs | Feature::Beacon => false,
+            Feature::Portal | Feature::Beacon => false,
         }
     }
 }

@@ -7,6 +7,17 @@ version can change rules, controls or data-file formats.
 
 ## [Unreleased]
 
+### Changed
+
+- The way to the next world is a portal 🌀 instead of stairs 🔽. Walk into it and
+  it takes you at once, with a half-second white flash.
+- Levels are called phases now: "Phase 3" instead of "Depth 3" on the HUD,
+  character sheet, log and death message.
+
+### Removed
+
+- The `>` descend key. Portals take you without one.
+
 ## [0.7.0] - 2026-11-19
 
 ### Added

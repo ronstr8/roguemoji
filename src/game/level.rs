@@ -24,7 +24,7 @@ impl Game {
         let width = self.map.width();
         let dist_of = |p: Pos| dist[(p.y * width + p.x) as usize].unwrap_or(0);
 
-        // The way down (or the Beacon) goes as far from the start as possible.
+        // The portal onward (or the Beacon) goes as far from the start as possible.
         let exit = self
             .map
             .walkable_cells()
@@ -32,7 +32,7 @@ impl Game {
             .filter(|p| !is_liquid(self.map.tile(*p)))
             .max_by_key(|p| dist_of(*p))
             .unwrap_or(start);
-        let exit_feature = if depth >= FINAL_DEPTH { Feature::Beacon } else { Feature::Stairs };
+        let exit_feature = if depth >= FINAL_DEPTH { Feature::Beacon } else { Feature::Portal };
         self.map.set_feature(exit, exit_feature);
 
         // Blocking features only go in open ground so they never seal a passage.
@@ -123,7 +123,7 @@ impl Game {
             self.monsters.push(Monster::new(id, species, p, depth));
         }
 
-        self.log.push(format!("— Depth {}: {} —", depth, self.biome.name()), Tone::Special);
+        self.log.push(format!("— Phase {}: {} —", depth, self.biome.name()), Tone::Special);
         if depth >= FINAL_DEPTH {
             self.log.push("The air tastes of copper. The Beacon 📡 is near.", Tone::Special);
         }

@@ -121,7 +121,7 @@ impl Game {
 
         if self.player.is_dead() && self.outcome.is_none() {
             let article = if name.starts_with(['A', 'E', 'I', 'O', 'U']) { "an" } else { "a" };
-            self.outcome = Some(Outcome::Died(format!("Killed by {article} {name} on depth {}", self.depth)));
+            self.outcome = Some(Outcome::Died(format!("Killed by {article} {name} in Phase {}", self.depth)));
         }
     }
 }

@@ -3,8 +3,8 @@
 A post-apocalyptic, near-future roguelike drawn entirely in Unicode, written in Rust.
 
 The Visitors came, took nothing, and left. Since then, animals have mutated, cryptids have
-stopped hiding, and everything that dies crystallizes into 💎 life crystals. Somewhere ten
-levels down, their Beacon 📡 still hums. Go find it.
+stopped hiding, and everything that dies crystallizes into 💎 life crystals. Ten phases of
+spacetime away, their Beacon 📡 still hums. Go find it.
 
 ```
 cargo run --release            # play
@@ -33,7 +33,6 @@ You need a terminal of at least 80×24 with a font that renders emoji as double-
 | `d` | drink from water underfoot or next to you |
 | `z` | nap until rested (a monster in view, a hit or any key wakes you) |
 | `S` | cycle stance |
-| `>` | descend on 🔽 |
 | `i` `c` `m` `?` | inventory · character sheet · crafting · help |
 | `Q` | quit |
 
@@ -136,7 +135,7 @@ can't move until you drop something. Packs range from a craftable Rag Satchel
 stackable items share one slot.
 
 **Visitor lockboxes** 🛅 all open onto one shared stash of 20 slots. Leave
-spare guns and armor in one, then take them out of a lockbox on a deeper level.
+spare guns and armor in one, then take them out of a lockbox in a later phase.
 
 ## Hosting
 

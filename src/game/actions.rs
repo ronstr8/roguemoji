@@ -28,6 +28,8 @@ pub enum Event {
     OpenEncounter,
     /// Walked up to a wager; it's in `Game::table`.
     OpenWager,
+    /// Stepped into a portal and arrived in the next world.
+    Portal,
 }
 
 /// Where an item moves when shuffling between pack and lockbox.
@@ -79,6 +81,10 @@ impl Game {
             return Event::None;
         }
         self.player.pos = target;
+        if self.map.feature(target) == Some(&Feature::Portal) {
+            self.enter_portal();
+            return Event::Portal;
+        }
         // A one-off encounter happens as you step in, then it's gone.
         let event = match self.map.feature(target).copied() {
             Some(Feature::Encounter { kind, .. }) => self.encounter(target, kind),
@@ -104,9 +110,6 @@ impl Game {
             1 => self.log.info(format!("You see {} here. (g to pick up)", here[0])),
             n => self.log.info(format!("You see {n} items here. (g to pick up)")),
         }
-        if self.map.feature(self.player.pos) == Some(&Feature::Stairs) {
-            self.log.info("A way down. (> to descend)");
-        }
     }
 
     pub fn wait(&mut self) {
@@ -118,11 +121,10 @@ impl Game {
         self.log.info(format!("You shift to a {} stance.", self.player.stance.name()));
     }
 
-    pub fn descend(&mut self) {
-        if self.map.feature(self.player.pos) != Some(&Feature::Stairs) {
-            self.log.info("There is no way down here.");
-            return;
-        }
+    /// Swept through a portal: arrive at the start of the next world. No
+    /// time passes, so nothing on either side gets a free move.
+    fn enter_portal(&mut self) {
+        self.log.push("Spacetime swallows you up and spits you back out in a strange new world...", Tone::Special);
         self.enter_level(self.depth + 1);
     }
 

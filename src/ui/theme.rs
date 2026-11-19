@@ -25,6 +25,8 @@ pub const LOOT: Color = rgb(120, 200, 240);
 pub const SPECIAL: Color = rgb(200, 150, 255);
 pub const TARGET_BG: Color = rgb(90, 30, 30);
 pub const PATH_BG: Color = rgb(50, 30, 30);
+/// The blinding flash of a portal jump.
+pub const WHITEOUT: Color = rgb(255, 255, 255);
 
 pub fn burden(b: Burden) -> Color {
     match b {

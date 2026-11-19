@@ -21,7 +21,7 @@ pub fn draw(canvas: &mut Canvas, game: &Game) {
     let mut y = paragraph(canvas, inner.x, inner.y + 1, inner.w, bottom, &text, color) + 1;
     for line in [
         format!("{} the {}", p.name, p.background),
-        format!("Depth {} · {} kills · {} turns · {} 💎 unspent", game.depth, p.kills, game.turn, p.crystals),
+        format!("Phase {} · {} kills · {} turns · {} 💎 unspent", game.depth, p.kills, game.turn, p.crystals),
     ] {
         y = paragraph(canvas, inner.x, y, inner.w, bottom, &line, theme::TEXT);
     }

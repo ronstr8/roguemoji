@@ -98,10 +98,8 @@ impl Game {
             next_id: 1,
         };
         game.log.push("The Visitors came, took nothing, and left. Everything since has been strange.", Tone::Special);
-        game.log.push(
-            format!("Their Beacon still hums somewhere below depth {}. Find it.", FINAL_DEPTH - 1),
-            Tone::Special,
-        );
+        game.log
+            .push(format!("Their Beacon still hums somewhere past Phase {}. Find it.", FINAL_DEPTH - 1), Tone::Special);
         game.last_burden = game.player.burden();
         game.enter_level(1);
         game.log.info("Press ? for help.");

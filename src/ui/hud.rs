@@ -32,7 +32,7 @@ pub fn draw_sidebar(canvas: &mut Canvas, area: Area, game: &Game) {
     };
 
     line(canvas, &mut y, &format!("{} the {}", p.name, p.background), theme::TITLE);
-    line(canvas, &mut y, &format!("Depth {} · {}", game.depth, game.biome.name()), theme::DIM);
+    line(canvas, &mut y, &format!("Phase {} · {}", game.depth, game.biome.name()), theme::DIM);
     y += 1;
 
     let max_hp = p.max_hp();
