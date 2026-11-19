@@ -195,7 +195,9 @@ fn draw_detail(canvas: &mut Canvas, area: Area, game: &Game, row: Option<Row>) {
     };
     canvas.text_max(dx, dy, &worth, dw, theme::LOOT, theme::POPUP);
     dy += 2;
-    item_details(canvas, Area::new(dx, dy, dw, bottom.saturating_sub(dy)), &item, &game.player);
+    // The equipped slot itself has nothing to compare with; a spare in the pack does.
+    let against = if equipped { None } else { game.player.compare_with(&item) };
+    item_details(canvas, Area::new(dx, dy, dw, bottom.saturating_sub(dy)), &item, &game.player, against.as_ref());
 }
 
 #[cfg(test)]
@@ -312,17 +314,36 @@ mod tests {
         assert!(rows.iter().any(|r| r.contains("Accuracy") && r.contains("+0") && r.contains("+2")));
     }
 
+    fn stat_rows(g: &Game, selected: usize, w: u16, h: u16) -> Vec<String> {
+        let mut canvas = Canvas::new(w, h);
+        draw(&mut canvas, g, Sort::default(), selected);
+        canvas.text_rows()
+    }
+
     #[test]
-    fn equipped_gear_is_not_compared_with_itself() {
-        let g = game();
-        let crowbar = Item::one(ItemKind::Melee(MeleeWeapon::named("crowbar")));
-        let mut g2 = g;
-        g2.player.melee = Some(MeleeWeapon::named("crowbar"));
-        assert!(g2.player.compare_with(&crowbar).is_none());
-        g2.player.melee = Some(MeleeWeapon::named("kitchen_knife"));
-        assert!(g2.player.compare_with(&crowbar).is_some());
+    fn a_spare_copy_compares_but_the_equipped_slot_does_not() {
+        let mut g = game();
+        g.player.melee = Some(MeleeWeapon::named("crowbar"));
+        let idx = g.player.inventory.items().iter().position(|i| i.base_name() == "Crowbar").unwrap();
+        let spare = stat_rows(&g, SLOT_ROWS + idx, 100, 30);
+        assert!(spare.iter().any(|r| r.matches("Melee").count() == 2), "{}", spare.join("\n"));
+        let slot = stat_rows(&g, 0, 100, 30);
+        assert!(slot.iter().any(|r| r.contains("Skill") && r.matches("Melee").count() == 1));
         let vest = Item::one(ItemKind::Armor(Armor::named("kevlar_vest")));
-        assert!(g2.player.compare_with(&vest).is_none(), "armor isn't compared");
+        assert!(g.player.compare_with(&vest).is_none(), "armor isn't compared");
+    }
+
+    #[test]
+    fn a_spare_gun_compares_in_a_normal_terminal() {
+        use crate::items::{Ammo, Gun, GunModel};
+        let mut g = game();
+        let revolver = Gun::loaded_with(GunModel::named("revolver_357"), Ammo::named("357_magnum_jhp"), 0);
+        g.player.inventory.add(Item::gun(revolver)).unwrap();
+        let idx = g.player.inventory.items().iter().position(|i| i.base_name() == ".357 Revolver").unwrap();
+        let rows = stat_rows(&g, SLOT_ROWS + idx, 100, 30);
+        let theirs = g.player.gun.as_ref().unwrap().def().capacity.to_string();
+        let row = rows.iter().find(|r| r.contains("Capacity")).unwrap();
+        assert!(row.split_whitespace().filter(|w| *w == "6" || *w == theirs).count() >= 2, "{}", rows.join("\n"));
     }
 
     #[test]

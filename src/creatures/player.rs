@@ -267,8 +267,7 @@ impl Player {
     }
 
     /// What you have equipped that `item` would replace, for comparing stats.
-    /// Only melee weapons, guns and packs compare, and an item doesn't
-    /// compare with itself.
+    /// Only melee weapons, guns and packs compare.
     pub fn compare_with(&self, item: &Item) -> Option<Item> {
         let slot = match item.kind {
             ItemKind::Melee(_) => Slot::Melee,
@@ -276,7 +275,7 @@ impl Player {
             ItemKind::Pack(_) => Slot::Pack,
             _ => return None,
         };
-        self.equipped(slot).filter(|e| e != item)
+        self.equipped(slot)
     }
 
     /// Empty an equipment slot, returning what was in it.

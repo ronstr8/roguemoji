@@ -80,9 +80,10 @@ pub fn item_row(canvas: &mut Canvas, at: Area, label: &str, item: Option<&Item>,
     canvas.text(right(&wt, x + w), y, &wt, theme::DIM, bg);
 }
 
-/// An item's description, its stats beside the gear it would replace, then
-/// for a gun a table of the loads it fires. Returns the next free row.
-pub fn item_details(canvas: &mut Canvas, area: Area, item: &Item, player: &Player) -> u16 {
+/// An item's description, its stats beside `against` (the gear it would
+/// replace), then for a gun a table of the loads it fires. Returns the next
+/// free row.
+pub fn item_details(canvas: &mut Canvas, area: Area, item: &Item, player: &Player, against: Option<&Item>) -> u16 {
     let (x, w, bottom) = (area.x, area.w, area.y + area.h);
     let mut y = area.y;
     for line in item.describe() {
@@ -94,7 +95,7 @@ pub fn item_details(canvas: &mut Canvas, area: Area, item: &Item, player: &Playe
     };
     let brawn = player.brawn_damage();
     let stats = item.stats(brawn);
-    let equipped = player.compare_with(item).map(|e| e.stats(brawn)).unwrap_or_default();
+    let equipped = against.map(|e| e.stats(brawn)).unwrap_or_default();
     if !stats.is_empty() {
         let rest = Area::new(x, y + 1, w, bottom.saturating_sub(y + 1));
         // Short panes get the stats as one wrapped line so the load table still fits.
@@ -122,11 +123,14 @@ fn load_table_height(loads: &[LoadStats], w: u16) -> usize {
 /// One `Label  value` per line, labels dim and padded to a shared column.
 /// Beside each value, the equipped item's value for the same stat (without
 /// its note): green where it's the better number, red where it's worse.
+/// The numeric rows set where that column starts; a long text value (a
+/// gun's Type) shows the equipped value only if it fits after it.
 fn stat_block(canvas: &mut Canvas, area: Area, stats: &[Stat], equipped: &[Stat]) -> u16 {
-    let width = |texts: &mut dyn Iterator<Item = &str>| texts.map(super::canvas::text_width).max().unwrap_or(0) as u16;
-    let label_w = width(&mut stats.iter().map(|s| s.label)) + 2;
+    let width = |s: &str| super::canvas::text_width(s) as u16;
+    let label_w = stats.iter().map(|s| width(s.label)).max().unwrap_or(0) + 2;
     let values: Vec<String> = stats.iter().map(Stat::full_text).collect();
-    let value_w = width(&mut values.iter().map(String::as_str)) + 3;
+    let numeric = stats.iter().zip(&values).filter(|(s, _)| s.score.is_some());
+    let column = label_w + numeric.map(|(_, v)| width(v)).max().unwrap_or(0) + 3;
     let mut y = area.y;
     for (stat, value) in stats.iter().zip(&values) {
         if y >= area.y + area.h {
@@ -136,13 +140,14 @@ fn stat_block(canvas: &mut Canvas, area: Area, stats: &[Stat], equipped: &[Stat]
         canvas.text_max(area.x, y, stat.label, area.w, theme::DIM, theme::POPUP);
         let (x, w) = at(label_w);
         canvas.text_max(x, y, value, w, theme::TEXT, theme::POPUP);
-        if let Some(theirs) = equipped.iter().find(|e| !e.label.is_empty() && e.label == stat.label) {
+        let theirs = equipped.iter().find(|e| !e.label.is_empty() && e.label == stat.label);
+        if let Some(theirs) = theirs.filter(|_| label_w + width(value) < column) {
             let color = match theirs.versus(stat) {
                 Some(Ordering::Greater) => theme::GOOD,
                 Some(Ordering::Less) => theme::BAD,
                 _ => theme::DIM,
             };
-            let (x, w) = at(label_w + value_w);
+            let (x, w) = at(column);
             canvas.text_max(x, y, &theirs.text, w, color, theme::POPUP);
         }
         y += 1;

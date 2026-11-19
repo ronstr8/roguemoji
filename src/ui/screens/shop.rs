@@ -80,7 +80,13 @@ pub fn draw(canvas: &mut Canvas, game: &Game, kiosk: usize, selling: bool, sort:
             y = paragraph(canvas, dx, y, dw, bottom, &wnote, theme::DIM);
             y += 1;
         }
-        item_details(canvas, Area::new(dx, y, dw, bottom.saturating_sub(y)), item, &game.player);
+        item_details(
+            canvas,
+            Area::new(dx, y, dw, bottom.saturating_sub(y)),
+            item,
+            &game.player,
+            game.player.compare_with(item).as_ref(),
+        );
     }
     let help = if selling {
         "↑↓ select · Enter sell · s sort · Tab buy · Esc leave"

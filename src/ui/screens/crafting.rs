@@ -58,7 +58,13 @@ pub fn draw(canvas: &mut Canvas, game: &Game, selected: usize) {
         bg,
     );
     y += 2;
-    y = item_details(canvas, Area::new(dx, y, dw, bottom.saturating_sub(y)), &r.output.item(), &game.player);
+    y = item_details(
+        canvas,
+        Area::new(dx, y, dw, bottom.saturating_sub(y)),
+        &r.output.item(),
+        &game.player,
+        game.player.compare_with(&r.output.item()).as_ref(),
+    );
     y += 1;
     paragraph(
         canvas,
