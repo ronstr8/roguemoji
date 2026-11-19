@@ -24,6 +24,8 @@ version can change rules, controls or data-file formats.
   folded in: `4-7 (2-5, +2 Brawn)` instead of `2-5 (+Brawn)`.
 - Melee weapon, gun and pack details show what you have equipped beside each
   stat, in green where your gear's number is better and red where it's worse.
+  With nothing equipped, a weapon compares against your fists and a pack
+  against carrying none.
 - Gun details list their stats one per line under the description: Type,
   Barrel, Capacity, Skill, Accuracy, Reload Turns and Weight. Short terminals
   fold them into one wrapped line so the load table still fits.

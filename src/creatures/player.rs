@@ -5,7 +5,7 @@ use crate::creatures::needs::{self, Meter, Need, SleepDef};
 use crate::effects::{EffectKind, Effects};
 use crate::geometry::Pos;
 use crate::items::melee::{FISTS, MeleeDef};
-use crate::items::{Armor, Gun, Inventory, Item, ItemKind, MeleeWeapon, Pack, weight};
+use crate::items::{self, Armor, Gun, Inventory, Item, ItemKind, MeleeWeapon, Pack, Stat, weight};
 use crate::stats::attributes::{self, MAX_SCORE, MIN_SCORE};
 use crate::stats::skills::{self, SkillBreakdown};
 use crate::stats::{Attribute, Attributes, Skill, SkillSet};
@@ -266,16 +266,18 @@ impl Player {
         }
     }
 
-    /// What you have equipped that `item` would replace, for comparing stats.
-    /// Only melee weapons, guns and packs compare.
-    pub fn compare_with(&self, item: &Item) -> Option<Item> {
-        let slot = match item.kind {
-            ItemKind::Melee(_) => Slot::Melee,
-            ItemKind::Gun(_) => Slot::Gun,
-            ItemKind::Pack(_) => Slot::Pack,
+    /// The stats of what `item` would replace, for comparing: your equipped
+    /// melee weapon (or fists), gun or pack (or none). Other items, and a gun
+    /// when you have none, have nothing to compare against.
+    pub fn compare_stats(&self, item: &Item) -> Option<Vec<Stat>> {
+        let brawn = self.brawn_damage();
+        let (slot, empty) = match item.kind {
+            ItemKind::Melee(_) => (Slot::Melee, Some(items::fist_stats(brawn))),
+            ItemKind::Gun(_) => (Slot::Gun, None),
+            ItemKind::Pack(_) => (Slot::Pack, Some(items::no_pack_stats())),
             _ => return None,
         };
-        self.equipped(slot)
+        self.equipped(slot).map(|e| e.stats(brawn)).or(empty)
     }
 
     /// Empty an equipment slot, returning what was in it.

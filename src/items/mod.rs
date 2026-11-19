@@ -220,16 +220,7 @@ impl Item {
                     Stat::lower("Reload Turns", d.action.reload_turns().to_string(), d.action.reload_turns() as i64),
                 ]
             }
-            ItemKind::Melee(m) => {
-                let d = m.def();
-                let (lo, hi) = d.damage;
-                vec![
-                    Stat::plain("Skill", d.skill.name().to_string()),
-                    damage_stat(lo, hi, brawn),
-                    Stat::higher("Accuracy", format!("{:+}", d.accuracy), d.accuracy as i64),
-                    Stat::higher("Penetration", d.pen.to_string(), d.pen as i64),
-                ]
-            }
+            ItemKind::Melee(m) => melee_stats(m.def(), brawn),
             ItemKind::Armor(a) => {
                 let d = a.def();
                 vec![
@@ -238,15 +229,43 @@ impl Item {
                 ]
             }
             ItemKind::Consumable(c) => consumable_stats(c.def()),
-            ItemKind::Pack(p) => {
-                let cap = p.def().capacity;
-                vec![Stat::higher("Carry Capacity", format!("+{}", weight::fmt_lb(cap)), cap as i64)]
-            }
+            ItemKind::Pack(p) => vec![capacity_stat(p.def().capacity)],
             _ => return Vec::new(),
         };
         out.push(Stat::lower("Weight", self.weight_text(), self.weight() as i64));
         out
     }
+}
+
+/// What fighting bare-handed is like, to compare a first weapon against.
+pub fn fist_stats(brawn: i32) -> Vec<Stat> {
+    let mut out = melee_stats(&melee::FISTS, brawn);
+    out.push(nothing_carried());
+    out
+}
+
+/// What wearing no pack is like, to compare a first pack against.
+pub fn no_pack_stats() -> Vec<Stat> {
+    vec![capacity_stat(0), nothing_carried()]
+}
+
+fn nothing_carried() -> Stat {
+    Stat::lower("Weight", weight::fmt_lb(0), 0)
+}
+
+/// A melee weapon's stats, without weight (fists weigh nothing).
+fn melee_stats(d: &melee::MeleeDef, brawn: i32) -> Vec<Stat> {
+    let (lo, hi) = d.damage;
+    vec![
+        Stat::plain("Skill", d.skill.name().to_string()),
+        damage_stat(lo, hi, brawn),
+        Stat::higher("Accuracy", format!("{:+}", d.accuracy), d.accuracy as i64),
+        Stat::higher("Penetration", d.pen.to_string(), d.pen as i64),
+    ]
+}
+
+fn capacity_stat(capacity: u32) -> Stat {
+    Stat::higher("Carry Capacity", format!("+{}", weight::fmt_lb(capacity)), capacity as i64)
 }
 
 /// Melee damage as the wielder deals it, `4-7`, noting the weapon's own range

@@ -85,7 +85,7 @@ pub fn draw(canvas: &mut Canvas, game: &Game, kiosk: usize, selling: bool, sort:
             Area::new(dx, y, dw, bottom.saturating_sub(y)),
             item,
             &game.player,
-            game.player.compare_with(item).as_ref(),
+            game.player.compare_stats(item).as_deref(),
         );
     }
     let help = if selling {

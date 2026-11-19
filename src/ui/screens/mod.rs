@@ -80,10 +80,10 @@ pub fn item_row(canvas: &mut Canvas, at: Area, label: &str, item: Option<&Item>,
     canvas.text(right(&wt, x + w), y, &wt, theme::DIM, bg);
 }
 
-/// An item's description, its stats beside `against` (the gear it would
-/// replace), then for a gun a table of the loads it fires. Returns the next
-/// free row.
-pub fn item_details(canvas: &mut Canvas, area: Area, item: &Item, player: &Player, against: Option<&Item>) -> u16 {
+/// An item's description, its stats beside `against` (the stats of the gear
+/// it would replace), then for a gun a table of the loads it fires. Returns
+/// the next free row.
+pub fn item_details(canvas: &mut Canvas, area: Area, item: &Item, player: &Player, against: Option<&[Stat]>) -> u16 {
     let (x, w, bottom) = (area.x, area.w, area.y + area.h);
     let mut y = area.y;
     for line in item.describe() {
@@ -95,12 +95,12 @@ pub fn item_details(canvas: &mut Canvas, area: Area, item: &Item, player: &Playe
     };
     let brawn = player.brawn_damage();
     let stats = item.stats(brawn);
-    let equipped = against.map(|e| e.stats(brawn)).unwrap_or_default();
+    let equipped = against.unwrap_or_default();
     if !stats.is_empty() {
         let rest = Area::new(x, y + 1, w, bottom.saturating_sub(y + 1));
         // Short panes get the stats as one wrapped line so the load table still fits.
         y = if rest.h as usize >= stats.len() + load_table_height(&loads, w) {
-            stat_block(canvas, rest, &stats, &equipped)
+            stat_block(canvas, rest, &stats, equipped)
         } else {
             let joined: Vec<String> = stats
                 .iter()

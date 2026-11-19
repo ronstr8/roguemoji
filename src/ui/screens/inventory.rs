@@ -196,8 +196,8 @@ fn draw_detail(canvas: &mut Canvas, area: Area, game: &Game, row: Option<Row>) {
     canvas.text_max(dx, dy, &worth, dw, theme::LOOT, theme::POPUP);
     dy += 2;
     // The equipped slot itself has nothing to compare with; a spare in the pack does.
-    let against = if equipped { None } else { game.player.compare_with(&item) };
-    item_details(canvas, Area::new(dx, dy, dw, bottom.saturating_sub(dy)), &item, &game.player, against.as_ref());
+    let against = if equipped { None } else { game.player.compare_stats(&item) };
+    item_details(canvas, Area::new(dx, dy, dw, bottom.saturating_sub(dy)), &item, &game.player, against.as_deref());
 }
 
 #[cfg(test)]
@@ -330,7 +330,33 @@ mod tests {
         let slot = stat_rows(&g, 0, 100, 30);
         assert!(slot.iter().any(|r| r.contains("Skill") && r.matches("Melee").count() == 1));
         let vest = Item::one(ItemKind::Armor(Armor::named("kevlar_vest")));
-        assert!(g.player.compare_with(&vest).is_none(), "armor isn't compared");
+        assert!(g.player.compare_stats(&vest).is_none(), "armor isn't compared");
+    }
+
+    #[test]
+    fn empty_slots_compare_against_fists_and_no_pack() {
+        let mut g = game();
+        g.player.melee = None;
+        g.player.pack = None;
+        g.player.inventory.add(Item::one(ItemKind::Pack(crate::items::Pack::named("frame_pack")))).unwrap();
+        let fists = crate::items::melee::FISTS.damage;
+        let brawn = g.player.brawn_damage();
+        let fist_text = format!("{}-{}", (fists.0 + brawn).max(0), (fists.1 + brawn).max(0));
+        let at = |g: &Game, name: &str| g.player.inventory.items().iter().position(|i| i.base_name() == name).unwrap();
+        let rows = stat_rows(&g, SLOT_ROWS + at(&g, "Crowbar"), 100, 30);
+        let damage = rows.iter().find(|r| r.contains("Damage")).unwrap();
+        assert!(damage.trim_end_matches(['│', ' ']).ends_with(&fist_text), "{}", rows.join("\n"));
+        let rows = stat_rows(&g, SLOT_ROWS + at(&g, "Frame Pack"), 100, 30);
+        let capacity = rows.iter().find(|r| r.contains("Carry Capacity")).unwrap();
+        assert_eq!(capacity.matches("lb").count(), 2, "a no-pack column beside it: {capacity}");
+        let mut no_gun = game();
+        no_gun.player.gun = None;
+        let revolver = Item::gun(crate::items::Gun::loaded_with(
+            crate::items::GunModel::named("revolver_357"),
+            crate::items::Ammo::named("357_magnum_jhp"),
+            0,
+        ));
+        assert!(no_gun.player.compare_stats(&revolver).is_none(), "no gun, no comparison");
     }
 
     #[test]

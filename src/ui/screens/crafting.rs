@@ -63,7 +63,7 @@ pub fn draw(canvas: &mut Canvas, game: &Game, selected: usize) {
         Area::new(dx, y, dw, bottom.saturating_sub(y)),
         &r.output.item(),
         &game.player,
-        game.player.compare_with(&r.output.item()).as_ref(),
+        game.player.compare_stats(&r.output.item()).as_deref(),
     );
     y += 1;
     paragraph(
