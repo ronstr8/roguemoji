@@ -7,6 +7,8 @@
 //! replaces an earlier one, so drop-ins can both add and override content.
 //! Entries are returned sorted by id so a seed always produces the same world.
 
+pub mod flavor;
+
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::PathBuf;

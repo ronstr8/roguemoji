@@ -1,10 +1,13 @@
 name = "Friendly Stranger"
 glyph = "🤝"
 text = """
-A woman with a three-legged dog waves you over to her fire. She doesn't ask \
-where you're headed. She tells you about the orchard her family kept before \
-the Visitors, then presses a sealed bottle into your hands and won't take \
-anything for it. "Somebody did the same for me," she says.
+A {@who woman | man | stranger} with a { three-legged | one-eyed | grey-muzzled } \
+dog waves you over to {@who her | his | their} fire. {@who She | He | They} \
+{@who doesn't | doesn't | don't} ask where you're headed. {@who She tells | He tells | \
+They tell} you about the { orchard | dairy | bakery } {@who her | his | their} family \
+kept before the Visitors, then {@who presses | presses | press} a sealed bottle \
+into your hands and won't take anything for it. "Somebody did the same for \
+me," {@who she | he | they} {@who says | says | say}.
 """
 chance = { weight = 4 }
 needs = { hope = 250 }

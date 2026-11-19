@@ -2,7 +2,10 @@
 # cost food and water.
 name = "Peaceful Sanctum"
 glyph = "🧘"
-text = "You sit in the stillness a while."
+text = """
+You sit in the stillness a while{ | , and the dust settles | , listening to \
+the wind | , and for once nothing moves on the horizon }.
+"""
 chance = { weight = 1 }
 stays = true
 needs = { hope = 25 }

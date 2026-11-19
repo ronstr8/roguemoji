@@ -11,13 +11,13 @@ pub fn draw(canvas: &mut Canvas, game: &Game) {
     let Some(report) = &game.last_encounter else { return };
     let def = report.encounter.def();
     let body_w = WIDTH - 4;
-    let text_lines = wrap(&def.text, body_w as usize).len() as u16;
+    let text_lines = wrap(&report.text, body_w as usize).len() as u16;
     let outcome = outcome_lines(report);
     let height = text_lines + outcome.len() as u16 + 6;
     let inner = popup(canvas, WIDTH, height, &format!("{} {}", def.glyph, def.name));
     let bottom = inner.y + inner.h.saturating_sub(1);
 
-    let mut y = paragraph(canvas, inner.x, inner.y, inner.w, bottom, &def.text, theme::TEXT) + 1;
+    let mut y = paragraph(canvas, inner.x, inner.y, inner.w, bottom, &report.text, theme::TEXT) + 1;
     for (line, color) in outcome {
         y = paragraph(canvas, inner.x, y, inner.w, bottom, &line, color);
     }
@@ -30,7 +30,8 @@ fn outcome_lines(report: &EncounterReport) -> Vec<(String, crossterm::style::Col
     if let (Some(check), Some(resist)) = (report.resist, &report.encounter.def().resist) {
         let name = resist.attribute.name();
         let line = if report.resisted() {
-            (format!("{} {name}: {}", check.summary(), resist.text), theme::GOOD)
+            let text = report.resist_text.as_deref().unwrap_or_default();
+            (format!("{} {name}: {text}", check.summary()), theme::GOOD)
         } else {
             (format!("{} {name}: it gets to you.", check.summary()), theme::BAD)
         };
@@ -58,7 +59,9 @@ mod tests {
         let e = Encounter::named("friendly_stranger");
         g.last_encounter = Some(EncounterReport {
             encounter: e,
+            text: "A woman with a three-legged dog waves you over.".into(),
             resist: None,
+            resist_text: None,
             changes: e.def().needs.clone(),
             gifts: e.def().gives.clone(),
         });
@@ -67,6 +70,7 @@ mod tests {
         let rows = canvas.text_rows();
         println!("{}", rows.join("\n"));
         assert!(rows.iter().any(|r| r.contains("🤝 Friendly Stranger")));
+        assert!(rows.iter().any(|r| r.contains("three-legged dog")), "the rolled scene is shown");
         assert!(rows.iter().any(|r| r.contains("Hope +")));
         assert!(rows.iter().any(|r| r.contains("You receive")));
         assert!(rows.iter().any(|r| r.contains("Enter / Esc continue")));

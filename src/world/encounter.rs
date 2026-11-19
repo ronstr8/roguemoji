@@ -9,6 +9,7 @@ use std::collections::BTreeMap;
 
 use serde::Deserialize;
 
+use crate::content::flavor::Flavor;
 use crate::content::{self, Loot, Problems};
 use crate::creatures::needs::Need;
 use crate::items::{Component, Consumable, Item};
@@ -24,8 +25,9 @@ pub struct EncounterDef {
     pub id: String,
     pub name: String,
     pub glyph: String,
-    /// The scene, shown in a pop-up (or the log, for one that stays).
-    pub text: String,
+    /// The scene, shown in a pop-up (or the log, for one that stays); rolled
+    /// fresh each time it's shown.
+    pub text: Flavor,
     /// How often it turns up, by depth.
     pub chance: Loot,
     /// Stays on the map and is bumped rather than walked into; its text goes
@@ -44,7 +46,7 @@ pub struct Resist {
     pub attribute: Attribute,
     pub target: i32,
     /// Shown when the check succeeds.
-    pub text: String,
+    pub text: Flavor,
 }
 
 #[derive(Deserialize)]
@@ -52,7 +54,7 @@ pub struct Resist {
 struct RawEncounter {
     name: String,
     glyph: String,
-    text: String,
+    text: Flavor,
     #[serde(default)]
     chance: Loot,
     #[serde(default)]
@@ -76,7 +78,7 @@ fn build(id: String, raw: RawEncounter) -> Result<EncounterDef, Vec<String>> {
     let mut p = Problems::default();
     p.check(!raw.name.trim().is_empty(), "name is empty");
     p.check(!raw.glyph.trim().is_empty(), "glyph is empty");
-    p.check(!raw.text.trim().is_empty(), "text is empty");
+    p.check(!raw.text.is_blank(), "text is empty");
     let mut needs = Vec::new();
     for (need, n) in raw.needs {
         match Need::lookup(&need) {
@@ -97,7 +99,7 @@ fn build(id: String, raw: RawEncounter) -> Result<EncounterDef, Vec<String>> {
         id,
         name: raw.name,
         glyph: raw.glyph,
-        text: raw.text.trim().to_string(),
+        text: raw.text,
         chance: raw.chance,
         stays: raw.stays,
         needs,
@@ -154,5 +156,7 @@ mod tests {
         assert!(parse(&GOOD.replace("\"willpower\"", "\"luck\"")).is_err());
         let empty = "name = \"x\"\nglyph = \"x\"\ntext = \"x\"\n";
         assert!(parse(empty).unwrap_err().contains("does nothing"));
+        assert!(parse(&GOOD.replace("shares a meal", "shares { a meal")).unwrap_err().contains("never closed"));
+        assert!(parse(&GOOD.replace("text = \"x\"", "text = \"{ x }\"")).unwrap_err().contains("two or more"));
     }
 }

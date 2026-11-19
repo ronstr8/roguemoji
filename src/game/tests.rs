@@ -466,6 +466,20 @@ fn walking_into_an_encounter_runs_it_once() {
 }
 
 #[test]
+fn encounter_text_is_rolled_per_visit() {
+    let mut seen = std::collections::BTreeSet::new();
+    for seed in 0..20 {
+        let mut g = quiet_game(seed);
+        let dir = encounter_beside(&mut g, "friendly_stranger");
+        let _ = g.move_player(dir);
+        let text = g.last_encounter.as_ref().unwrap().text.clone();
+        assert!(!text.contains(['{', '}', '|', '@']), "no markup left in {text:?}");
+        seen.insert(text);
+    }
+    assert!(seen.len() > 5, "the scene varies between visits");
+}
+
+#[test]
 fn a_sanctum_stays_and_is_bumped() {
     let mut g = quiet_game(13);
     g.player.hope.value = 1000;

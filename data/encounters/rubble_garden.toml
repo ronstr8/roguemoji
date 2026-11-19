@@ -1,9 +1,10 @@
 name = "Garden in the Rubble"
 glyph = "🌻"
 text = """
-Between two collapsed walls, someone has planted sunflowers in old tires and \
-strung a tarp to catch rain. Nobody's here, but a hand-lettered sign reads: \
-TAKE WHAT YOU NEED. LEAVE WHAT YOU CAN.
+Between two collapsed walls, someone has planted { sunflowers | tomatoes | \
+mint and marigolds } in old { tires | bathtubs | paint cans } and strung a \
+{ tarp | shower curtain } to catch rain. Nobody's here, but a hand-lettered \
+sign reads: TAKE WHAT YOU NEED. LEAVE WHAT YOU CAN.
 """
 chance = { weight = 3 }
 needs = { hope = 150 }

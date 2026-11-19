@@ -11,8 +11,12 @@ use crate::world::encounter::Encounter;
 #[derive(Clone, Debug)]
 pub struct EncounterReport {
     pub encounter: Encounter,
+    /// The scene as rolled this time.
+    pub text: String,
     /// The resist check, if the encounter has one.
     pub resist: Option<CheckResult>,
+    /// The encounter's resist text as rolled, if it has one.
+    pub resist_text: Option<String>,
     /// Each need's change as applied (losses halved if resisted).
     pub changes: Vec<(Need, i32)>,
     pub gifts: Vec<Item>,
@@ -41,7 +45,7 @@ impl Game {
         let line = format!("{} {}: {}", def.glyph, def.name, report.summary());
         let tone = if report.changes.iter().any(|(_, d)| *d < 0) { Tone::Bad } else { Tone::Good };
         if def.stays {
-            self.log.push(format!("{} {}", def.text, report.summary()), tone);
+            self.log.push(format!("{} {}", report.text, report.summary()), tone);
             self.pass_time(1);
             return false;
         }
@@ -69,6 +73,8 @@ impl Game {
         for item in &def.gives {
             self.give_player(item.clone());
         }
-        EncounterReport { encounter: e, resist, changes, gifts: def.gives.clone() }
+        let text = def.text.roll(&mut self.dice);
+        let resist_text = def.resist.as_ref().map(|r| r.text.roll(&mut self.dice));
+        EncounterReport { encounter: e, text, resist, resist_text, changes, gifts: def.gives.clone() }
     }
 }

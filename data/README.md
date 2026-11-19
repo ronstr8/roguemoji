@@ -215,6 +215,29 @@ resist = { attribute = "willpower", target = 11, text = "You look away in time."
 An encounter needs `needs` or `gives`, or it would do nothing. Each level
 places two or three, picked by `chance` at that depth.
 
+`text` and the resist `text` take [flavor markup](#flavor-markup), rolled
+afresh each time the scene is shown.
+
+## Flavor markup
+
+Some text fields vary each time they're shown. Mark the variable parts with
+braces:
+
+| Write | You get |
+|---|---|
+| `a { red \| blue \| plaid } scarf` | one option, picked at random |
+| `{ a { red \| blue } scarf \| nothing }` | choices nest |
+| `a { \| faded } photograph` | an empty option makes words optional |
+| `{@who man \| woman }` … `{@who his \| her }` | choices with the same `@tag` pick the same position, so the sentence agrees with itself |
+| `{{` and `}}` | literal braces |
+
+Spaces around each option are trimmed, and doubled spaces or a space before
+punctuation left by an empty option are tidied away. A choice needs at least
+two options, and every choice sharing a tag must have the same number of
+options. Both are checked at startup. Put a space between two opening braces
+(`{ {red | blue} scarf | nothing }`), because `{{` is a literal brace.
+Picks use the game's dice, so a seed always gives the same words.
+
 ## Recipes — `recipes/*.toml`
 
 What the crafting menu (`m`) can make. Every craft is a Crafting check against

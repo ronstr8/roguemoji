@@ -9,6 +9,9 @@ version can change rules, controls or data-file formats.
 
 ### Added
 
+- Flavor markup for encounter text: `{ red | blue }` picks a phrase, `@tag`s keep linked
+  choices in agreement, and the Friendly Stranger, Garden in the Rubble and Peaceful
+  Sanctum now read a little differently each time.
 - Cartridge files take an optional `short` name for tight tables.
 
 ### Changed
