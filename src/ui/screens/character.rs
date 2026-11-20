@@ -110,6 +110,7 @@ mod tests {
         assert!(rows.iter().any(|r| r.contains("Satiety 750/1000 (Fed)")));
         assert!(rows.iter().any(|r| r.contains("Hydration 800/1000 (Hydrated)")));
         assert!(rows.iter().any(|r| r.contains("Rest 900/1000 (Rested)")));
+        assert!(rows.iter().any(|r| r.contains("Lockpicking  ●○○○○") && r.contains("REF/INT")));
         assert!(rows.iter().any(|r| r.contains("Checks roll 2d10")));
         assert!(rows.iter().any(|r| r.contains("Esc close")));
     }

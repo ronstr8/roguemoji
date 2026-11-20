@@ -1,0 +1,6 @@
+name = "Lockpicks"
+glyph = "🪛"
+description = "A tension wrench and a ring of thin steel picks."
+weight = 0.1
+loot_weight = 1
+price = 6

@@ -157,13 +157,26 @@ pub fn kiosk_stock(dice: &mut Dice, depth: u32) -> Vec<(Item, u32)> {
             offer(Item::one(ItemKind::Pack(p)));
         }
     }
-    if depth >= 4 && dice.chance(0.3) {
-        let artifacts = MeleeWeapon::all().filter(|m| m.def().origin == Origin::Alien && m.def().price.for_sale());
-        if let Some(m) = pick_loot(dice, artifacts.map(|m| (m, m.def().loot)), depth) {
-            offer(Item::one(ItemKind::Melee(m)));
-        }
+    // Tools that open caches. Only priced ones are sold; the shovel's loot
+    // weight makes it the likeliest.
+    if dice.chance(0.4)
+        && let Some(m) = shop_melee(dice, Origin::Tool, deeper)
+    {
+        offer(Item::one(ItemKind::Melee(m)));
+    }
+    if depth >= 4
+        && dice.chance(0.3)
+        && let Some(m) = shop_melee(dice, Origin::Alien, depth)
+    {
+        offer(Item::one(ItemKind::Melee(m)));
     }
     stock
+}
+
+/// A melee weapon of `origin` an Autovend would stock, picked by loot weight.
+fn shop_melee(dice: &mut Dice, origin: Origin, depth: u32) -> Option<MeleeWeapon> {
+    let pool = MeleeWeapon::all().filter(|m| m.def().origin == origin && m.def().price.for_sale());
+    pick_loot(dice, pool.map(|m| (m, m.def().loot)), depth)
 }
 
 /// What an Autovend on `depth` charges for `item` (the whole stack), or
@@ -252,7 +265,7 @@ mod tests {
         let hardtack = Consumable::named("hardtack");
         let one = shop_price(&Item::food(hardtack, 1), 1).unwrap();
         assert_eq!(sell_price(&Item::food(hardtack, 3), 1), Some((one / 2).max(1)));
-        assert_eq!(sell_price(&Item::one(ItemKind::Melee(MeleeWeapon::named("crowbar"))), 1), None);
+        assert_eq!(sell_price(&Item::one(ItemKind::Melee(MeleeWeapon::named("claw_hammer"))), 1), None);
         assert_eq!(sell_price(&Item::crystals(5), 1), None);
         // A loaded gun is worth more than an empty one.
         let model = GunModel::named("service_pistol_9mm");

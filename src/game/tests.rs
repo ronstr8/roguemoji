@@ -234,7 +234,7 @@ fn selling_pays_crystals_and_takes_the_item() {
     assert!(!g.player.inventory.items().contains(&vest));
 
     // Unpriced items stay put.
-    let bar = Item::one(ItemKind::Melee(MeleeWeapon::named("crowbar")));
+    let bar = Item::one(ItemKind::Melee(MeleeWeapon::named("claw_hammer")));
     g.player.inventory.add(bar.clone()).unwrap();
     let idx = g.player.inventory.items().iter().position(|i| *i == bar).unwrap();
     g.sell(idx);
@@ -470,6 +470,82 @@ fn bumping_a_harvest_node_gathers_until_its_picked_clean() {
     }
     assert!(g.map.feature(spot).is_none(), "a one-use toolbox is picked clean");
     assert!(held(&g) > before, "and its components are in your pack");
+}
+
+/// A one-use lock beside the player that only lockpicks open, and always
+/// fumbles or always succeeds depending on `difficulty`.
+fn lock_beside(g: &mut Game, difficulty: i32) -> (Pos, crate::world::harvest::HarvestDef) {
+    let dir = open_step(g);
+    let spot = g.player.pos.step(dir);
+    let def = crate::world::harvest::parse(&format!(
+        r#"
+        name = "Strongbox"
+        glyph = "🔒"
+        biome = "ruins"
+        uses = 1
+        yields = [{{ item = "nails", min = 1, max = 1 }}]
+        [[open]]
+        verb = "pick"
+        skill = "lockpicking"
+        difficulty = {difficulty}
+        tool = "lockpicks"
+        fumble = {{ hp = 0, breaks = true }}
+        "#
+    ))
+    .unwrap();
+    (spot, def)
+}
+
+#[test]
+fn a_way_that_needs_a_tool_waits_for_one() {
+    let mut g = quiet_game(14);
+    let picks = Item::component(Component::named("lockpicks"), 1);
+    while g.player.inventory.consume(&picks.kind, 1) {}
+    let (spot, def) = lock_beside(&mut g, 1);
+    let turn = g.turn;
+    g.harvest(spot, &def);
+    assert_eq!(g.turn, turn, "no tool, no time spent");
+    assert!(g.log.recent(1)[0].text.contains("without a tool: 🪛 Lockpicks"));
+
+    g.player.inventory.add(picks.clone()).unwrap();
+    let nails = g.player.inventory.count_component(Component::named("nails"));
+    g.harvest(spot, &def);
+    assert!(g.turn > turn);
+    assert!(g.player.inventory.count_component(Component::named("nails")) > nails, "picked it");
+    assert_eq!(g.player.inventory.count(&picks.kind), 1, "and the picks aren't used up");
+}
+
+#[test]
+fn a_wielded_tool_counts_and_breaks_before_a_spare() {
+    use crate::items::{MeleeWeapon, Tool};
+    let mut g = new_game(0);
+    let bar = MeleeWeapon::named("crowbar");
+    let tool = Tool::Melee(bar);
+    g.player.melee = Some(bar);
+    g.player.inventory.add(Item::one(ItemKind::Melee(bar))).unwrap();
+    assert!(g.player.has_tool(tool));
+    assert!(g.player.break_tool(tool));
+    assert_eq!(g.player.melee, None, "the one in hand breaks");
+    assert!(g.player.has_tool(tool), "the spare is still in the pack");
+    assert!(g.player.break_tool(tool));
+    assert!(!g.player.has_tool(tool) && !g.player.break_tool(tool));
+}
+
+#[test]
+fn a_fumble_can_break_the_tool() {
+    let mut g = quiet_game(15);
+    let picks = Item::component(Component::named("lockpicks"), 1);
+    g.player.inventory.add(Item::component(Component::named("lockpicks"), 5)).unwrap();
+    let before = g.player.inventory.count(&picks.kind);
+    let (spot, def) = lock_beside(&mut g, 20);
+    let mut broke = 0;
+    for _ in 0..40 {
+        let had = g.player.inventory.count(&picks.kind);
+        g.harvest(spot, &def);
+        broke += had - g.player.inventory.count(&picks.kind);
+    }
+    assert!(broke > 0, "a hard lock fumbles now and then, snapping picks");
+    assert_eq!(g.player.inventory.count(&picks.kind), before - broke);
 }
 
 #[test]

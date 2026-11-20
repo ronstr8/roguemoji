@@ -78,12 +78,14 @@ impl Inventory {
         Some(Item { kind: stack.kind.clone(), qty: n })
     }
 
-    fn count(&self, kind: &ItemKind) -> u32 {
+    /// How many of `kind` the pack holds, across stacks.
+    pub fn count(&self, kind: &ItemKind) -> u32 {
         self.items.iter().filter(|i| &i.kind == kind).map(|i| i.qty).sum()
     }
 
-    /// Remove `n` of a stackable kind; fails without change if short.
-    fn consume(&mut self, kind: &ItemKind, n: u32) -> bool {
+    /// Remove `n` of a stackable kind (or one of a lone item); fails without
+    /// change if short.
+    pub fn consume(&mut self, kind: &ItemKind, n: u32) -> bool {
         if self.count(kind) < n {
             return false;
         }

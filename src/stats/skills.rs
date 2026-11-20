@@ -12,6 +12,7 @@ pub enum Skill {
     Dodge,
     Crafting,
     Scavenging,
+    Lockpicking,
     Survival,
 }
 
@@ -20,7 +21,7 @@ pub const MAX_RANK: u8 = 5;
 pub const RANK_BONUS: i32 = 2;
 
 impl Skill {
-    pub const ALL: [Skill; 8] = [
+    pub const ALL: [Skill; 9] = [
         Skill::Melee,
         Skill::Brawling,
         Skill::SmallArms,
@@ -28,6 +29,7 @@ impl Skill {
         Skill::Dodge,
         Skill::Crafting,
         Skill::Scavenging,
+        Skill::Lockpicking,
         Skill::Survival,
     ];
 
@@ -40,6 +42,7 @@ impl Skill {
             Skill::Dodge => "Dodge",
             Skill::Crafting => "Crafting",
             Skill::Scavenging => "Scavenging",
+            Skill::Lockpicking => "Lockpicking",
             Skill::Survival => "Survival",
         }
     }
@@ -55,6 +58,8 @@ impl Skill {
             Skill::Dodge => (Reflexes, Wit),
             Skill::Crafting => (Brains, Wit),
             Skill::Scavenging => (Wit, Brains),
+            // Steady fingers, and a feel for what's inside the lock.
+            Skill::Lockpicking => (Reflexes, Brains),
             Skill::Survival => (Fortitude, Wit),
         }
     }
@@ -99,8 +104,8 @@ pub fn breakdown(skill: Skill, rank: u8, score: impl Fn(Attribute) -> i32) -> Sk
 /// Ranks plus accumulated practice for every skill.
 #[derive(Clone, Debug, Default)]
 pub struct SkillSet {
-    ranks: [u8; 8],
-    xp: [u32; 8],
+    ranks: [u8; Skill::ALL.len()],
+    xp: [u32; Skill::ALL.len()],
 }
 
 impl SkillSet {

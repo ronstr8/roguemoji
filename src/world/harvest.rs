@@ -8,7 +8,7 @@ use serde::Deserialize;
 
 use super::Biome;
 use crate::content::{self, Problems};
-use crate::items::Component;
+use crate::items::{Component, Tool};
 use crate::stats::Skill;
 
 /// A handle to a loaded harvest node: an index into the harvest table.
@@ -40,15 +40,16 @@ pub struct Yield {
     pub max: u32,
 }
 
-/// One way to work a node: the check it takes and what a fumble costs.
-#[derive(Clone, Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
+/// One way to work a node: the check it takes, the tool it needs and what a
+/// fumble costs.
+#[derive(Clone, Debug)]
 pub struct Way {
     /// What you do to it, e.g. "pry open": "You pry open the Supply Crate".
     pub verb: String,
     pub skill: Skill,
     pub difficulty: i32,
-    #[serde(default)]
+    /// Needed on hand, in the pack or wielded; not used up unless it breaks.
+    pub tool: Option<Tool>,
     pub fumble: Fumble,
 }
 
@@ -59,6 +60,21 @@ pub struct Fumble {
     /// HP change, zero or negative.
     #[serde(default)]
     pub hp: i32,
+    /// The way's tool breaks.
+    #[serde(default)]
+    pub breaks: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RawWay {
+    verb: String,
+    skill: Skill,
+    difficulty: i32,
+    #[serde(default)]
+    tool: Option<String>,
+    #[serde(default)]
+    fumble: Fumble,
 }
 
 #[derive(Deserialize)]
@@ -69,7 +85,7 @@ struct RawHarvest {
     biome: Biome,
     uses: u8,
     yields: Vec<RawYield>,
-    open: Vec<Way>,
+    open: Vec<RawWay>,
 }
 
 #[derive(Deserialize)]
@@ -89,20 +105,21 @@ fn build(id: String, raw: RawHarvest) -> Result<HarvestDef, Vec<String>> {
     let yields = raw.yields.iter().filter_map(|y| resolve_yield(y, &mut p)).collect();
     // Picking among several ways comes with hidden caches; until then a node has one.
     p.check(raw.open.len() == 1, "open needs exactly one [[open]] way");
-    for way in &raw.open {
-        p.check(!way.verb.trim().is_empty(), "open: verb is empty");
-        p.check((1..=20).contains(&way.difficulty), "open: difficulty must be 1 to 20");
-        p.check(way.fumble.hp <= 0, "open: fumble hp is a loss, so zero or negative");
-    }
-    p.finish(|| HarvestDef {
-        id,
-        name: raw.name,
-        glyph: raw.glyph,
-        biome: raw.biome,
-        uses: raw.uses,
-        yields,
-        open: raw.open,
-    })
+    let open = raw.open.into_iter().map(|w| resolve_way(w, &mut p)).collect();
+    p.finish(|| HarvestDef { id, name: raw.name, glyph: raw.glyph, biome: raw.biome, uses: raw.uses, yields, open })
+}
+
+fn resolve_way(raw: RawWay, p: &mut Problems) -> Way {
+    p.check(!raw.verb.trim().is_empty(), "open: verb is empty");
+    p.check((1..=20).contains(&raw.difficulty), "open: difficulty must be 1 to 20");
+    p.check(raw.fumble.hp <= 0, "open: fumble hp is a loss, so zero or negative");
+    p.check(!raw.fumble.breaks || raw.tool.is_some(), "open: fumble breaks a tool, but the way has no `tool`");
+    let tool = raw.tool.as_deref().and_then(|id| {
+        let tool = Tool::lookup(id);
+        p.check(tool.is_some(), format!("open: tool `{id}` is not a component or melee weapon"));
+        tool
+    });
+    Way { verb: raw.verb, skill: raw.skill, difficulty: raw.difficulty, tool, fumble: raw.fumble }
 }
 
 fn resolve_yield(y: &RawYield, p: &mut Problems) -> Option<Yield> {
@@ -119,6 +136,13 @@ fn load() -> Result<Vec<HarvestDef>, String> {
     content::load_defs("harvest", build)
 }
 
+/// Build a node from TOML text, as if it were a data file; for tests elsewhere.
+#[cfg(test)]
+pub fn parse(text: &str) -> Result<HarvestDef, String> {
+    let raw: RawHarvest = toml::from_str(text).map_err(|e| e.to_string())?;
+    build("test".into(), raw).map_err(|e| e.join("; "))
+}
+
 impl HarvestDef {
     /// The way to work this node. Every node has exactly one for now.
     pub fn way(&self) -> &Way {
@@ -129,11 +153,6 @@ impl HarvestDef {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    fn parse(text: &str) -> Result<HarvestDef, String> {
-        let raw: RawHarvest = toml::from_str(text).map_err(|e| e.to_string())?;
-        build("t".into(), raw).map_err(|e| e.join("; "))
-    }
 
     const GOOD: &str = r#"
         name = "Toolbox"
@@ -166,6 +185,14 @@ mod tests {
     }
 
     #[test]
+    fn tools_resolve_to_components_or_melee_weapons() {
+        let with_tool = |id: &str| parse(&GOOD.replace("difficulty = 9", &format!("difficulty = 9\ntool = \"{id}\"")));
+        assert!(matches!(with_tool("lockpicks").unwrap().way().tool, Some(Tool::Component(_))));
+        assert!(matches!(with_tool("shovel").unwrap().way().tool, Some(Tool::Melee(_))));
+        assert!(parse(GOOD).unwrap().way().tool.is_none());
+    }
+
+    #[test]
     fn rejects_bad_nodes() {
         let bad = |from: &str, to: &str| parse(&GOOD.replace(from, to)).unwrap_err();
         assert!(bad("\"nails\"", "\"moonbeams\"").contains("`moonbeams` is not a component"));
@@ -173,6 +200,8 @@ mod tests {
         assert!(bad("uses = 1", "uses = 0").contains("uses"));
         assert!(bad("difficulty = 9", "difficulty = 0").contains("difficulty"));
         assert!(bad("hp = -1", "hp = 2").contains("fumble hp"));
+        assert!(bad("hp = -1", "breaks = true").contains("has no `tool`"));
+        assert!(bad("difficulty = 9", "difficulty = 9\ntool = \"wishes\"").contains("tool `wishes`"));
         assert!(
             bad("[[open]]", "[[open]]\nverb = \"kick\"\nskill = \"melee\"\ndifficulty = 5\n[[open]]")
                 .contains("exactly one")

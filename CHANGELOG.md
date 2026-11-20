@@ -9,6 +9,10 @@ version can change rules, controls or data-file formats.
 
 ### Added
 
+- A Lockpicking skill (Reflexes and Brains). The Scavenger starts at rank 1 with a
+  set of 🪛 Lockpicks.
+- Autovends sometimes stock a tool, most often a shovel, and the shovel and crowbar
+  now have prices.
 - Encounters glow on the map so they stand out from items: a slow pulse of
   green for hopeful ones, pale yellow for gamblers and red for horrors.
 

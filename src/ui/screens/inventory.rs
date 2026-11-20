@@ -211,6 +211,7 @@ mod tests {
         for item in [
             Item::one(ItemKind::Armor(Armor::named("kevlar_vest"))),
             Item::one(ItemKind::Melee(MeleeWeapon::named("crowbar"))),
+            Item::one(ItemKind::Melee(MeleeWeapon::named("claw_hammer"))),
             Item::food(Consumable::named("hardtack"), 4),
         ] {
             g.player.inventory.add(item).unwrap();
@@ -274,7 +275,7 @@ mod tests {
         assert!(vest.contains(&format!("{worth}💎")) && vest.contains("8.0 lb"), "{vest}");
         let title = rows.iter().find(|r| r.contains("Pack (")).unwrap();
         assert!(title.contains(" lb  sort: value ↓"), "{title}");
-        assert!(rows.iter().any(|r| r.contains("Crowbar") && r.contains("—")));
+        assert!(rows.iter().any(|r| r.contains("Claw Hammer") && r.contains("—")));
     }
 
     #[test]

@@ -28,8 +28,8 @@ You need a terminal of at least 80×24 with a font that renders emoji as double-
 **Attributes** come in physical/mental pairs: Brawn/Brains, Reflexes/Wit,
 Fortitude/Willpower. A score of 5 is average; the bonus is `score − 5`.
 
-**Skills** are Melee, Brawling, Small Arms, Long Arms, Dodge, Crafting, Scavenging and
-Survival. Each averages the bonuses of two attributes (Melee uses Brawn + Reflexes, for
+**Skills** are Melee, Brawling, Small Arms, Long Arms, Dodge, Crafting, Scavenging,
+Lockpicking and Survival. Each averages the bonuses of two attributes (Melee uses Brawn + Reflexes, for
 example). Skill modifier = `rank × 2 + attribute bonus`. When unskilled (rank 0), only
 **half** of a positive attribute bonus applies. Penalties always apply in full. Skills rank
 up through successful use.

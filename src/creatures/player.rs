@@ -5,7 +5,7 @@ use crate::creatures::needs::{self, Meter, Need, SleepDef};
 use crate::effects::{EffectKind, Effects};
 use crate::geometry::Pos;
 use crate::items::melee::{FISTS, MeleeDef};
-use crate::items::{self, Armor, Gun, Inventory, Item, ItemKind, MeleeWeapon, Pack, Stat, weight};
+use crate::items::{self, Armor, Gun, Inventory, Item, ItemKind, MeleeWeapon, Pack, Stat, Tool, weight};
 use crate::stats::attributes::{self, MAX_SCORE, MIN_SCORE};
 use crate::stats::skills::{self, SkillBreakdown};
 use crate::stats::{Attribute, Attributes, Skill, SkillSet};
@@ -250,6 +250,23 @@ impl Player {
         let before = self.hp;
         self.hp = (self.hp + n).min(self.max_hp());
         self.hp - before
+    }
+
+    /// Whether you carry `tool`, in the pack or in hand.
+    pub fn has_tool(&self, tool: Tool) -> bool {
+        self.inventory.count(&tool.kind()) > 0 || matches!(tool, Tool::Melee(m) if self.melee == Some(m))
+    }
+
+    /// Lose one `tool` to breakage: the one in hand if you're wielding it,
+    /// since that's what you were working with, otherwise one from the pack.
+    pub fn break_tool(&mut self, tool: Tool) -> bool {
+        if let Tool::Melee(m) = tool
+            && self.melee == Some(m)
+        {
+            self.melee = None;
+            return true;
+        }
+        self.inventory.consume(&tool.kind(), 1)
     }
 
     pub fn is_dead(&self) -> bool {

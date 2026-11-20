@@ -9,6 +9,7 @@ pub mod inventory;
 pub mod loot;
 pub mod melee;
 pub mod packs;
+pub mod tool;
 pub mod weight;
 
 pub use armor::Armor;
@@ -19,6 +20,7 @@ pub use guns::{Gun, GunModel};
 pub use inventory::Inventory;
 pub use melee::MeleeWeapon;
 pub use packs::Pack;
+pub use tool::Tool;
 
 use std::cmp::Ordering;
 

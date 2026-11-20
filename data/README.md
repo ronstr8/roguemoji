@@ -213,12 +213,17 @@ yields = [
 # costs nothing but the turn; a success trains the skill.
 [[open]]
 verb = "strip"               # "You strip the Car Wreck: 2 Scrap Metal."
-skill = "scavenging"         # any skill, e.g. survival
+skill = "scavenging"         # any skill, e.g. survival or lockpicking
 difficulty = 11
-fumble = { hp = -1 }         # optional: HP lost on a fumble (default 0)
+tool = "crowbar"             # optional: needed in the pack or in hand, not used up
+fumble = { hp = -1 }         # optional: hp is HP lost (default 0); add
+                             # breaks = true to destroy one of the tool
 ```
 
-`yields` names components. A node has exactly one `[[open]]` way for now.
+`yields` names components, and `tool` names a component (like `lockpicks`) or a
+melee weapon (like `crowbar` or `shovel`). A tool you're wielding counts, and it's
+the one that breaks. Without the tool, bumping says what's missing and takes no
+time. A node has exactly one `[[open]]` way for now.
 
 ## Encounters — `encounters/*.toml`
 

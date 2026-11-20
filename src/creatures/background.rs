@@ -56,9 +56,13 @@ impl Background {
     fn skills(self) -> SkillSet {
         let mut s = SkillSet::default();
         let ranks: &[(Skill, u8)] = match self {
-            Background::Scavenger => {
-                &[(Skill::Scavenging, 2), (Skill::Dodge, 1), (Skill::SmallArms, 1), (Skill::Melee, 1)]
-            }
+            Background::Scavenger => &[
+                (Skill::Scavenging, 2),
+                (Skill::Lockpicking, 1),
+                (Skill::Dodge, 1),
+                (Skill::SmallArms, 1),
+                (Skill::Melee, 1),
+            ],
             Background::ExDeputy => {
                 &[(Skill::SmallArms, 2), (Skill::Brawling, 1), (Skill::LongArms, 1), (Skill::Dodge, 1)]
             }
@@ -145,7 +149,7 @@ impl Background {
     /// Crafting components in the starting kit, by id.
     pub fn starting_components(self) -> &'static [(&'static str, u32)] {
         match self {
-            Background::Scavenger => &[("duct_tape", 1)],
+            Background::Scavenger => &[("duct_tape", 1), ("lockpicks", 1)],
             Background::ExDeputy => &[],
             Background::Mechanic => &[("nails", 2), ("scrap_metal", 2), ("duct_tape", 1)],
             Background::Homesteader => &[("herbs", 2), ("dirty_water", 2)],

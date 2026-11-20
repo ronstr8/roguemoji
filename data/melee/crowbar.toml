@@ -9,3 +9,4 @@ damage = [2, 5]
 accuracy = 0
 penetration = 1
 loot = { weight = 1 }
+price = 10
