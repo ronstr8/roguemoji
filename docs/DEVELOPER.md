@@ -35,6 +35,8 @@ entries under **Unreleased** as you go.
 To cut a release:
 
 1. In CHANGELOG.md, rename **Unreleased** to `[X.Y.Z] - date` and add its compare link.
+   A release can have a subtitle: `[X.Y.Z] - date — Subtitle`. `make publish`
+   adds it to the GitHub release title.
 2. Set the same version in Cargo.toml, commit, `git tag -a vX.Y.Z`, and push the
    commit and the tag.
 3. Run `make publish`. It checks that the tree is clean, HEAD carries the tag,

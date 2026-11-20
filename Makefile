@@ -13,6 +13,12 @@ TAG     := v$(VERSION)
 DIST    := $(BIN)-$(VERSION)-x86_64-linux
 WDIST   := $(BIN)-$(VERSION)-x86_64-windows
 REPO_URL := https://github.com/ronstr8/roguemoji
+# A release's optional subtitle, from its changelog heading: `## [X.Y.Z] - date — Subtitle`.
+SUBTITLE := $(shell sed -n 's/^\#\# \[$(VERSION)\] - [0-9-]* — //p' CHANGELOG.md)
+TITLE    := $(BIN) $(VERSION)
+ifneq ($(SUBTITLE),)
+TITLE    := $(TITLE) — $(SUBTITLE)
+endif
 # Added to every release's notes, after the changelog section. No single quotes.
 DOWNLOAD_NOTE := **Download:** the `.tar.gz` runs on any 64-bit x86 Linux; the `.zip` runs on 64-bit Windows (play it in Windows Terminal, since the old console window draws emoji badly). Both include the stock `data/` folder beside the binary. Edit those files to mod the game, no rebuild needed (see `data/README.md`). When you upgrade, replace `data/` along with the binary.
 
@@ -63,7 +69,7 @@ publish: ## Create the GitHub release for the tagged HEAD, with the Linux tarbal
 	@grep -q '^## \[$(VERSION)\]' CHANGELOG.md || { echo "publish: CHANGELOG.md has no [$(VERSION)] section"; exit 1; }
 	@! gh release view $(TAG) >/dev/null 2>&1 || { echo "publish: $(TAG) is already released"; exit 1; }
 	$(MAKE) ci dist
-	gh release create $(TAG) --verify-tag --title "$(BIN) $(VERSION)" \
+	gh release create $(TAG) --verify-tag --title "$(TITLE)" \
 		--notes-file dist/notes-$(TAG).md dist/$(DIST).tar.gz dist/$(DIST).tar.gz.sha256 \
 		dist/$(WDIST).zip dist/$(WDIST).zip.sha256
 
