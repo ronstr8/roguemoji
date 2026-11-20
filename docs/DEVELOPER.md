@@ -16,6 +16,7 @@ cargo test                     # unit + soak tests
 make static                    # self-contained Linux binary (musl), no shared-lib deps
 make dist                      # package that binary with docs and data/ into dist/
 make webplay                   # host public play over SSH and in the browser (deploy/)
+make demo                      # re-record assets/demo.gif (needs vhs and ttyd)
 ```
 
 `make` alone lists every target. `make ci` (fmt check, clippy with

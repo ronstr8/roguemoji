@@ -9,6 +9,10 @@ The Visitors came, took nothing, and left. Since then, animals have mutated, cry
 have stopped hiding, and everything that dies crystallizes into 💎 life crystals. Ten
 phases of spacetime away, their Beacon 📡 still hums. Go find it.
 
+<p align="center">
+  <img src="assets/demo.gif" alt="A short run: Vega the Ex-Deputy meets a friendly stranger, shoots a feral dog, a raccoon and a rat, and checks her pistol's ballistics" width="800">
+</p>
+
 ## What makes it different
 
 <img src="assets/mascot.jpg" alt="The roguemoji mascot: a grinning emoji wastelander with a helmet, sword and shield" align="right" width="300">

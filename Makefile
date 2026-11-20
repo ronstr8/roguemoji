@@ -23,7 +23,7 @@ endif
 DOWNLOAD_NOTE := **Download:** the `.tar.gz` runs on any 64-bit x86 Linux; the `.zip` runs on 64-bit Windows (play it in Windows Terminal, since the old console window draws emoji badly). Both include the stock `data/` folder beside the binary. Edit those files to mod the game, no rebuild needed (see `data/README.md`). When you upgrade, replace `data/` along with the binary.
 
 .DEFAULT_GOAL := help
-.PHONY: help build release static windows dist publish run debug test check lint fmt fmt-check doc clean install uninstall webplay ci
+.PHONY: help build release static windows dist publish run debug test check lint fmt fmt-check doc clean install uninstall webplay ci demo
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | \
@@ -72,6 +72,9 @@ publish: ## Create the GitHub release for the tagged HEAD, with the Linux tarbal
 	gh release create $(TAG) --verify-tag --title "$(TITLE)" \
 		--notes-file dist/notes-$(TAG).md dist/$(DIST).tar.gz dist/$(DIST).tar.gz.sha256 \
 		dist/$(WDIST).zip dist/$(WDIST).zip.sha256
+
+demo: release ## Record assets/demo.gif from assets/demo.tape (needs vhs and ttyd)
+	vhs assets/demo.tape
 
 run: ## Play (optimized). Optional: SEED=n
 	$(CARGO) run --release $(RUNARGS)
