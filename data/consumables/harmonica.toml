@@ -1,0 +1,11 @@
+name = "Harmonica"
+glyph = "🎵"
+description = "A dented blues harp in the key of C. Nobody's left to complain about your playing."
+weight = 0.3
+
+# Kept after use: your lips need a while before the next tune.
+needs = { hope = 250 }
+message = "You play a slow, wandering tune. For a while the wasteland feels less empty."
+reusable = { cooldown = 400, refusal = "Your music making muscles need a rest." }
+loot_weight = 1
+price = 30

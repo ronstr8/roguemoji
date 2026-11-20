@@ -185,14 +185,14 @@ sleep = { recover = 10, wake_at = 400, heal_every = 10 }
 # Optional, and both about hope (TOML needs them inside the same inline table):
 #   relief = { hope = 4, turns = 30 }
 #       a nap (not a collapse) gains `hope` each of its first `turns` turns
-#   oversleep = { after = 120, hope = -4, message = "You've slept too long." }
+#   oversleep = { after = 80, hope = -4, message = "You've slept too long." }
 #       past `after` turns asleep, nap or collapse, lose `hope` (negative) each
 #       turn; `message` is logged once when it starts
 ```
 
-With the stock numbers a nap gains up to +120 hope. Oversleep starts after 120
-turns, longer than any stock nap or collapse lasts (rest refills 10 a turn), so
-it only bites if you slow recovery down.
+The stock numbers reward napping before you're worn out. Rest refills 10 a
+turn, so a nap at Tired lasts 60 turns and keeps the full +120 hope; one at
+Exhausted lasts 85 and nets +100; one from nearly empty lasts 100 and nets +40.
 
 A nap lasts until rest is full, a monster comes into view, you're hit, or you
 press a key. A collapse lasts until `wake_at` or a hit. Waking from a hit

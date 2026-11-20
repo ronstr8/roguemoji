@@ -17,9 +17,10 @@ version can change rules, controls or data-file formats.
   fast they blink.
 - Ways to lift your hope: 🚬 Ditch Weed (Hope +350, but −1 Wit and Reflexes and
   the munchies), found, sold, or picked from 🌱 patches in the wastes; and the rare
-  🔦 Fleshlight Multitool, which isn't used up but needs 400 turns between uses.
-- Naps lift your mood: the first 30 turns restore hope. Sleeping past 120 turns,
-  nap or collapse, wears it down. Passing out brings no relief. The sidebar
+  🔦 Fleshlight Multitool and 🎵 Harmonica, which aren't used up but need 400
+  turns between uses.
+- Naps lift your mood: the first 30 turns restore hope. Sleeping past 80 turns,
+  nap or collapse, wears it down, so it pays to nap before you're worn out. Passing out brings no relief. The sidebar
   counts the turns of a nap.
 - ☕ Hot Coffee, brewed from 🥄 Instant Coffee and any water: rest +200 and +1 Wit.
 - Consumables can change any need (`needs`), log their own `message`, and be

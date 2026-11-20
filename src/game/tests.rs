@@ -951,3 +951,16 @@ fn coffee_takes_any_water_and_spends_the_cheapest_first() {
     let log: Vec<String> = g.log.recent(5).iter().map(|m| m.text.clone()).collect();
     assert!(g.player.inventory.count(&ItemKind::Consumable(crate::items::Consumable::named("coffee"))) >= 1, "{log:?}");
 }
+
+#[test]
+fn the_harmonica_rests_between_tunes() {
+    let mut g = quiet_game(3);
+    let harp = crate::items::Consumable::named("harmonica");
+    g.player.inventory.add(Item::food(harp, 1)).unwrap();
+    let idx = g.player.inventory.items().iter().position(|i| i.kind == ItemKind::Consumable(harp)).unwrap();
+    let hope = g.player.hope.value;
+    g.use_item(idx);
+    assert!(g.player.hope.value > hope + 200);
+    g.use_item(idx);
+    assert!(logged(&g, "Your music making muscles need a rest."));
+}
