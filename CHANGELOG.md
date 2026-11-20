@@ -7,6 +7,8 @@ version can change rules, controls or data-file formats.
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-11-20 — Thank God I'm a Country Boy
+
 ### Added
 
 - A rare 🎻 Violin: like the harmonica, Hope +250 and 400 turns between tunes,
@@ -302,7 +304,8 @@ Unicode. Find the Visitor Beacon 📡 on depth 10.
   and to trade at Autovends.
 - Harvesting, crafting, hunger and timed status effects.
 
-[Unreleased]: https://github.com/ronstr8/roguemoji/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/ronstr8/roguemoji/compare/v0.12.1...HEAD
+[0.12.1]: https://github.com/ronstr8/roguemoji/compare/v0.12.0...v0.12.1
 [0.12.0]: https://github.com/ronstr8/roguemoji/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/ronstr8/roguemoji/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/ronstr8/roguemoji/compare/v0.9.0...v0.10.0
