@@ -1,0 +1,13 @@
+name = "Glowcap Patch"
+glyph = "🍄"
+biome = "wastes"
+uses = 2
+yields = [
+    { item = "glowcap", min = 1, max = 2 },
+]
+
+[[open]]
+verb = "pick"
+skill = "survival"
+difficulty = 11
+fumble = { hp = -1 }

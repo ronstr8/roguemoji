@@ -171,48 +171,50 @@ impl Game {
 
     fn harvest(&mut self, pos: Pos, kind: Harvestable) {
         let def = kind.def();
-        let skill = self.player.skill(def.skill).total();
-        let result = check::roll(&mut self.dice, skill, def.difficulty);
+        let way = def.way();
+        let skill = self.player.skill(way.skill).total();
+        let result = check::roll(&mut self.dice, skill, way.difficulty);
         let mut gathered: Vec<(crate::items::Component, u32)> = Vec::new();
         let mut used = true;
         match result.tier {
             Tier::Fumble => {
-                self.player.hp -= 1;
-                self.log.push(format!("You fumble with the {} and hurt yourself.", def.name), Tone::Bad);
+                self.player.hp += way.fumble.hp;
+                let hurt = if way.fumble.hp < 0 { " and hurt yourself" } else { "" };
+                self.log.push(format!("You fumble with the {}{hurt}.", def.name), Tone::Bad);
             }
             Tier::Fail => {
                 used = false;
                 self.log.info(format!(
                     "You try to {} the {} but come up empty. {}",
-                    def.verb,
+                    way.verb,
                     def.name,
                     result.summary()
                 ));
             }
             tier => {
-                for (c, lo, hi) in def.yields {
-                    let mut n = self.dice.range(*lo as i32, *hi as i32) as u32;
+                for y in &def.yields {
+                    let mut n = self.dice.range(y.min as i32, y.max as i32) as u32;
                     if n > 0 && tier == Tier::Critical {
                         n += 1;
                     }
                     if n > 0 {
-                        gathered.push((crate::items::Component::named(c), n));
+                        gathered.push((y.component, n));
                     }
                     if tier == Tier::Partial && !gathered.is_empty() {
                         break;
                     }
                 }
                 if gathered.is_empty() {
-                    let (c, lo, _) = def.yields[0];
-                    gathered.push((crate::items::Component::named(c), lo.max(1)));
+                    let first = def.yields[0];
+                    gathered.push((first.component, first.min.max(1)));
                 }
-                self.train(def.skill, if tier == Tier::Critical { 2 } else { 1 });
+                self.train(way.skill, if tier == Tier::Critical { 2 } else { 1 });
             }
         }
         if !gathered.is_empty() {
             let names: Vec<String> = gathered.iter().map(|(c, n)| format!("{} {}", n, c.def().name)).collect();
             self.log.push(
-                format!("You {} the {}: {}. {}", def.verb, def.name, names.join(", "), result.summary()),
+                format!("You {} the {}: {}. {}", way.verb, def.name, names.join(", "), result.summary()),
                 Tone::Loot,
             );
             for (c, n) in gathered {

@@ -49,14 +49,12 @@ impl Game {
             .collect();
         self.dice.shuffle(&mut open);
 
-        let (primary, secondary): (&[Harvestable], &[Harvestable]) = match self.biome {
-            Biome::Ruins => (&Harvestable::URBAN, &Harvestable::NATURAL),
-            Biome::Wastes => (&Harvestable::NATURAL, &Harvestable::URBAN),
-        };
+        let (primary, secondary): (Vec<Harvestable>, Vec<Harvestable>) =
+            Harvestable::all().partition(|h| h.def().biome == self.biome);
         let n_harvest = 14 + self.dice.range(0, 6) as usize;
         for _ in 0..n_harvest {
             let Some(p) = take_isolated(&mut open, &self.map) else { break };
-            let pool = if self.dice.chance(0.75) { primary } else { secondary };
+            let pool = if self.dice.chance(0.75) || secondary.is_empty() { &primary } else { &secondary };
             let kind = *self.dice.pick(pool);
             self.map.set_feature(p, Feature::harvest(kind));
         }

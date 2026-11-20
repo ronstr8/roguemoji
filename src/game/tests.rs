@@ -450,6 +450,29 @@ fn encounter_beside(g: &mut Game, id: &str) -> Dir {
 }
 
 #[test]
+fn bumping_a_harvest_node_gathers_until_its_picked_clean() {
+    use crate::world::Harvestable;
+    let mut g = quiet_game(13);
+    let dir = open_step(&g);
+    let spot = g.player.pos.step(dir);
+    let toolbox = Harvestable::named("toolbox");
+    g.map.set_feature(spot, Feature::harvest(toolbox));
+    let held =
+        |g: &Game| toolbox.def().yields.iter().map(|y| g.player.inventory.count_component(y.component)).sum::<u32>();
+    let before = held(&g);
+    for _ in 0..50 {
+        if g.map.feature(spot).is_none() {
+            break;
+        }
+        g.player.hp = g.player.max_hp();
+        assert_eq!(g.move_player(dir), Event::None);
+        assert_ne!(g.player.pos, spot, "you bump a node, not walk onto it");
+    }
+    assert!(g.map.feature(spot).is_none(), "a one-use toolbox is picked clean");
+    assert!(held(&g) > before, "and its components are in your pack");
+}
+
+#[test]
 fn walking_into_an_encounter_runs_it_once() {
     let mut g = quiet_game(12);
     g.player.hope.value = 1000;

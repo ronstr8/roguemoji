@@ -1,0 +1,15 @@
+name = "Dead Electronics"
+glyph = "📺"
+biome = "ruins"
+uses = 2
+yields = [
+    { item = "circuit", min = 0, max = 1 },
+    { item = "wire", min = 1, max = 2 },
+    { item = "battery", min = 0, max = 1 },
+]
+
+[[open]]
+verb = "gut"
+skill = "scavenging"
+difficulty = 12
+fumble = { hp = -1 }

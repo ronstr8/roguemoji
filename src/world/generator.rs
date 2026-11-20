@@ -6,7 +6,8 @@ use super::tile::Tile;
 use crate::dice::Dice;
 use crate::geometry::{Pos, Rect};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Biome {
     Ruins,
     Wastes,

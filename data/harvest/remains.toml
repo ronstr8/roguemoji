@@ -1,0 +1,14 @@
+name = "Old Remains"
+glyph = "💀"
+biome = "ruins"
+uses = 1
+yields = [
+    { item = "bone", min = 1, max = 2 },
+    { item = "rags", min = 0, max = 2 },
+]
+
+[[open]]
+verb = "search"
+skill = "scavenging"
+difficulty = 8
+fumble = { hp = -1 }

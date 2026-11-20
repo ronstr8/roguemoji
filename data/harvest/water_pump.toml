@@ -1,0 +1,13 @@
+name = "Hand Pump"
+glyph = "🚰"
+biome = "wastes"
+uses = 3
+yields = [
+    { item = "dirty_water", min = 1, max = 2 },
+]
+
+[[open]]
+verb = "pump"
+skill = "survival"
+difficulty = 8
+fumble = { hp = -1 }

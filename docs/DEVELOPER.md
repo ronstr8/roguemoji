@@ -75,7 +75,7 @@ src/
   stats/           attributes, skills, the 2d10 check
   items/           ballistics, guns, melee, armor, components, consumables, inventory, loot tables
   creatures/       bestiary loader (species), monster, player, backgrounds
-  world/           tiles, map, features/harvestables, FOV, level generation
+  world/           tiles, map, features, harvest nodes, encounters, FOV, level generation
   game/            Game state; level, turn, ai, actions each add an `impl Game`
   ui/              canvas (wide-char aware), terminal (diffed output), HUD, map view, pop-up screens
 ```

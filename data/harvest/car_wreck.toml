@@ -1,0 +1,16 @@
+name = "Car Wreck"
+glyph = "🚗"
+biome = "ruins"
+uses = 3
+yields = [
+    { item = "scrap_metal", min = 1, max = 2 },
+    { item = "wire", min = 0, max = 1 },
+    { item = "battery", min = 0, max = 1 },
+    { item = "pipe", min = 0, max = 1 },
+]
+
+[[open]]
+verb = "strip"
+skill = "scavenging"
+difficulty = 11
+fumble = { hp = -1 }

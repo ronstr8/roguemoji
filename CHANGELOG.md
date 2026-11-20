@@ -14,6 +14,9 @@ version can change rules, controls or data-file formats.
 
 ### Changed
 
+- Harvest nodes (🌿 🚗 🧰 …) are data files in `data/harvest/`, so mods can add,
+  change or rebalance them. Their numbers haven't changed, but a given seed now
+  lays out a different world than it did in 0.8.0.
 - The title screen, the sidebar and the SSH login banner spell the name r💀guem☢️ji.
 
 ## [0.8.0] - 2026-11-19

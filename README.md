@@ -31,8 +31,8 @@ phases of spacetime away, their Beacon 📡 still hums. Go find it.
 - **Pounds and inches.** Everything you carry has a weight, and every pound slows you down.
 - **Portals, not stairs.** Each phase is a new world, and some of your gear can follow
   you there through the Visitors' shared lockboxes.
-- **Mod everything.** Every monster, gun, bullet, recipe and encounter is a plain text
-  file. Change one and the game picks it up, no compiler needed.
+- **Mod everything.** Every monster, gun, bullet, recipe, encounter and harvest node is a
+  plain text file. Change one and the game picks it up, no compiler needed.
 
 <br clear="right">
 

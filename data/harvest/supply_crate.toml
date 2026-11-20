@@ -1,0 +1,16 @@
+name = "Supply Crate"
+glyph = "📦"
+biome = "ruins"
+uses = 1
+yields = [
+    { item = "canned_beans", min = 0, max = 2 },
+    { item = "sugar", min = 0, max = 2 },
+    { item = "rags", min = 0, max = 2 },
+    { item = "duct_tape", min = 0, max = 1 },
+]
+
+[[open]]
+verb = "pry open"
+skill = "scavenging"
+difficulty = 10
+fumble = { hp = -1 }

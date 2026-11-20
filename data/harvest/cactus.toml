@@ -1,0 +1,13 @@
+name = "Barrel Cactus"
+glyph = "🌵"
+biome = "wastes"
+uses = 2
+yields = [
+    { item = "cactus_pulp", min = 1, max = 2 },
+]
+
+[[open]]
+verb = "carve"
+skill = "survival"
+difficulty = 10
+fumble = { hp = -1 }

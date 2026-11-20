@@ -72,12 +72,11 @@ content::registry!(Component, ComponentDef, "component", load);
 
 fn load() -> Result<Vec<ComponentDef>, String> {
     let defs = content::load_defs("components", build)?;
-    // Components the game's own tables name (harvest nodes, starting kits).
-    let harvest = crate::world::Harvestable::ALL.into_iter().flat_map(|h| h.def().yields.iter().map(|(id, _, _)| *id));
+    // Components the game's own tables name (starting kits, water tiles).
     let kits =
         crate::creatures::Background::ALL.into_iter().flat_map(|b| b.starting_components().iter().map(|(id, _)| *id));
     let water = std::iter::once(UNSAFE_WATER);
-    content::require("components", |id| defs.iter().any(|d| d.id == id), harvest.chain(kits).chain(water))?;
+    content::require("components", |id| defs.iter().any(|d| d.id == id), kits.chain(water))?;
     if defs.iter().any(|d| d.id == UNSAFE_WATER && d.drink.is_none()) {
         return Err(format!("data/components/{UNSAFE_WATER}.toml needs `drink`: water tiles are drunk like it"));
     }

@@ -87,12 +87,12 @@ price = 2                    # optional, default 2; Autovend price of one, in �
 drink = { hydration = 400, risk = 10, sickness = { kind = "poison", potency = 1, turns = 8 } }
 ```
 
-Some components are named by the game's own tables: harvest nodes (🌿 🚗 🧰 …)
-and starting kits, plus `dirty_water`, whose `drink` is required: drinking from a
+Some components are named by the game's own tables: starting kits, plus `dirty_water`, whose `drink` is required: drinking from a
 water tile on the map (`d`) works like drinking one. You can override those files to change names, glyphs,
 weights and loot chances. You can't remove them; the game checks at startup
 that they all exist. A new component can be dropped by a monster (`drops`),
-found on the floor (`loot_weight`), and used in recipes.
+found on the floor (`loot_weight`), gathered from a harvest node (`yields`), and
+used in recipes.
 
 ## Consumables — `consumables/*.toml`
 
@@ -189,6 +189,36 @@ about 130 turns. Rest drains like hunger (doubled in a fight), about 500 quiet
 turns from a fresh start to Tired. People sleep about 8 hours per 16 awake, but
 recovering that slowly would make a nap hundreds of turns long, so rest refills
 10 a turn: a full nap is about 100 turns.
+
+## Harvest nodes — `harvest/*.toml`
+
+Plants, pumps, wrecks and crates on the map. Bump one to gather components.
+
+```toml
+name = "Car Wreck"
+glyph = "🚗"
+biome = "ruins"              # ruins | wastes: three in four of a level's nodes
+                             # come from its own biome, the rest from the other
+uses = 3                     # successful harvests before it's picked clean
+
+# What a success can gather, in order. Each rolls min..max on its own (a
+# critical adds 1 to any that came up). A partial success stops at the first
+# that comes up; if none do, you get the first entry's min (at least 1).
+yields = [
+    { item = "scrap_metal", min = 1, max = 2 },
+    { item = "wire", min = 0, max = 1 },
+]
+
+# How to work it: a check of `skill` against `difficulty` (1 to 20). A failure
+# costs nothing but the turn; a success trains the skill.
+[[open]]
+verb = "strip"               # "You strip the Car Wreck: 2 Scrap Metal."
+skill = "scavenging"         # any skill, e.g. survival
+difficulty = 11
+fumble = { hp = -1 }         # optional: HP lost on a fumble (default 0)
+```
+
+`yields` names components. A node has exactly one `[[open]]` way for now.
 
 ## Encounters — `encounters/*.toml`
 

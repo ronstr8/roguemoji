@@ -1,0 +1,13 @@
+name = "Wild Herbs"
+glyph = "🌿"
+biome = "wastes"
+uses = 2
+yields = [
+    { item = "herbs", min = 1, max = 2 },
+]
+
+[[open]]
+verb = "forage"
+skill = "survival"
+difficulty = 9
+fumble = { hp = -1 }
