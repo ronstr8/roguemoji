@@ -7,6 +7,8 @@ version can change rules, controls or data-file formats.
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-11-20
+
 ### Added
 
 - Saved runs. Quitting (`Q`, then `y`) saves your run, and **C** on the title
@@ -283,7 +285,8 @@ Unicode. Find the Visitor Beacon 📡 on depth 10.
   and to trade at Autovends.
 - Harvesting, crafting, hunger and timed status effects.
 
-[Unreleased]: https://github.com/ronstr8/roguemoji/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/ronstr8/roguemoji/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/ronstr8/roguemoji/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/ronstr8/roguemoji/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/ronstr8/roguemoji/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/ronstr8/roguemoji/compare/v0.7.0...v0.8.0
