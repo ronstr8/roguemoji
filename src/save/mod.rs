@@ -11,6 +11,7 @@
 
 pub mod code;
 pub mod form;
+pub mod scores;
 
 use std::fs;
 use std::io;

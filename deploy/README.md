@@ -19,7 +19,7 @@ players can use.
 | `sshd/50-roguemoji.conf` | `/etc/ssh/sshd_config.d/` | Password login for the `roguemoji` account only, which always runs the game. No forwarding or tunnels |
 | `sshd/banner.txt` | `/opt/roguemoji/` | Shown before the password prompt. Tells players the password (`@PASSWORD@` is filled in on install) |
 | `systemd/roguemoji-ttyd.service` | `/etc/systemd/system/` | ttyd (path filled in for `@TTYD@` on install) on loopback port 7681, sandboxed, with shared memory, task and CPU caps |
-| `systemd/tmpfiles.conf` | `/etc/tmpfiles.d/roguemoji.conf` | Creates the saves folder, private to the account, and deletes saves left alone for `SAVE_DAYS` (default 30) |
+| `systemd/tmpfiles.conf` | `/etc/tmpfiles.d/roguemoji.conf` | Creates the saves folder, private to the account, and deletes saves left alone for `SAVE_DAYS` (default 30). The leaderboard, `scores.jsonl` in the same folder, is never cleared |
 | `systemd/user-slice.conf` | `/etc/systemd/system/user-<UID>.slice.d/50-roguemoji.conf` | The same caps for SSH players |
 | `Makefile`, `scripts/` | | Install all of the above (see Setup) |
 | `nginx/roguemoji.conf` | your site's TLS `server { }` block | Proxies `/roguemoji/play/` and its websocket to ttyd |
@@ -109,3 +109,8 @@ wrapper would save SSH players' runs into one shared slot.
   connection drops (the game catches SIGHUP and SIGTERM). Loading a run removes
   its file until it's written again, and dying or winning removes it for good,
   so a death can't be undone by reloading. A save is about 65 KB.
+- **The leaderboard** is `/var/lib/roguemoji/saves/scores.jsonl`, one JSON line
+  per finished run. Names are whatever players type (up to 16 characters), so
+  to take one down, delete its line; to reset the board, delete the file. The
+  tmpfiles rule keeps the cleanup from deleting it, so after upgrading from
+  0.11, run `make -C deploy saves FORCE=1` once to pick that rule up.

@@ -9,7 +9,8 @@ use crate::ui::{Area, theme};
 const BANNER: &[&str] = &[crate::ui::TITLE, "🐀 🧟 🦍   the world ended politely   📡 💎 🔫"];
 
 /// `note` is a line offering a saved run, shown above the backgrounds.
-pub fn draw(canvas: &mut Canvas, selected: usize, note: Option<&str>) {
+/// `board` says whether there's a leaderboard to offer.
+pub fn draw(canvas: &mut Canvas, selected: usize, note: Option<&str>, board: bool) {
     let w = canvas.width();
     canvas.fill(0, 0, w, canvas.height(), theme::BG);
     let center = |s: &str| w.saturating_sub(text_width(s) as u16) / 2;
@@ -67,7 +68,11 @@ pub fn draw(canvas: &mut Canvas, selected: usize, note: Option<&str>) {
     kit.extend(preview.inventory.items().iter().map(|i| format!("{} {}", i.glyph(), i.display_name())));
     paragraph(canvas, dx, dy, dw, bottom, &format!("Kit: {}", kit.join(" · ")), theme::DIM);
 
-    let hint = "↑↓ / 1-4 choose · Enter begin · Q quit";
+    let hint = if board {
+        "↑↓ / 1-4 choose · Enter begin · L leaderboard · Q quit"
+    } else {
+        "↑↓ / 1-4 choose · Enter begin · Q quit"
+    };
     let bottom_row = canvas.height().saturating_sub(1);
     canvas.text(center(hint), bottom_row, hint, theme::DIM, theme::BG);
     let version = format!("v{}", crate::VERSION);
@@ -81,17 +86,18 @@ mod tests {
     #[test]
     fn renders_the_title() {
         let mut canvas = Canvas::new(100, 30);
-        draw(&mut canvas, 0, None);
+        draw(&mut canvas, 0, None, true);
         let rows = canvas.text_rows();
         println!("{}", rows.join("\n"));
         assert_eq!(rows[1].trim(), crate::ui::TITLE);
         assert!(rows.iter().any(|r| r.contains("Who were you, before?")));
+        assert!(rows.iter().any(|r| r.contains("L leaderboard")));
     }
 
     #[test]
     fn offers_a_saved_run() {
         let mut canvas = Canvas::new(100, 30);
-        draw(&mut canvas, 0, Some("C  continue Ash the Drifter · phase 3"));
+        draw(&mut canvas, 0, Some("C  continue Ash the Drifter · phase 3"), false);
         let rows = canvas.text_rows();
         assert!(rows.iter().any(|r| r.contains("C  continue Ash the Drifter · phase 3")));
         assert!(rows.iter().any(|r| r.contains("Who were you, before?")), "the note doesn't cover the panel");

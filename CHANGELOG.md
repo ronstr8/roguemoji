@@ -7,6 +7,16 @@ version can change rules, controls or data-file formats.
 
 ## [Unreleased]
 
+### Added
+
+- Name your character when you start a run (Enter keeps the suggested name,
+  and your last name is offered next time).
+- A leaderboard: every run that ends in death or victory is ranked, wins
+  first, then the deepest phase, then turns (fewer for a win, more for a death
+  at the same phase). Press **L** on the title screen to see it; the end
+  screen shows where you placed. Abandoned runs aren't ranked. On the public
+  server everyone shares one board.
+
 ## [0.11.0] - 2026-11-20 — Saving the World
 
 ### Added

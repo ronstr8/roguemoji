@@ -1,22 +1,38 @@
 //! Pop-ups for saved runs: typing a resume code, the code shown on quitting,
 //! and a plain notice when a save can't be loaded.
 
-use super::{footer, paragraph, popup};
+use super::{Entry, footer, paragraph, popup, text_entry};
 use crate::ui::canvas::Canvas;
 use crate::ui::theme;
 
 /// Typing a resume code on a shared server.
 pub fn draw_entry(canvas: &mut Canvas, typed: &str, error: Option<&str>) {
-    let inner = popup(canvas, 60, 12, "Resume a run");
-    let bottom = inner.y + inner.h.saturating_sub(1);
-    let text = "Enter the resume code you were given, like ember-otter-mesa-4127.";
-    let mut y = paragraph(canvas, inner.x, inner.y + 1, inner.w, bottom, text, theme::TEXT) + 1;
-    canvas.text_max(inner.x, y, &format!("> {typed}▏"), inner.w, theme::TITLE, theme::POPUP);
-    y += 2;
-    if let Some(e) = error {
-        paragraph(canvas, inner.x, y, inner.w, bottom, e, theme::BAD);
-    }
-    footer(canvas, inner, "Enter resume · Esc back");
+    text_entry(
+        canvas,
+        &Entry {
+            title: "Resume a run",
+            prompt: "Enter the resume code you were given, like ember-otter-mesa-4127.",
+            typed,
+            placeholder: "",
+            error,
+            footer: "Enter resume · Esc back",
+        },
+    );
+}
+
+/// Choosing a name for a new run. Left empty, `suggestion` is used.
+pub fn draw_name(canvas: &mut Canvas, typed: &str, suggestion: &str) {
+    text_entry(
+        canvas,
+        &Entry {
+            title: "What do they call you?",
+            prompt: "Your name goes on the leaderboard if the run ends well, or badly.",
+            typed,
+            placeholder: suggestion,
+            error: None,
+            footer: "Enter begin · Esc back",
+        },
+    );
 }
 
 /// The run was saved on a shared server: here's how to get it back.

@@ -158,6 +158,23 @@ pub struct Player {
     pub move_debt: u32,
 }
 
+/// The longest name a player can choose, in characters.
+pub const NAME_MAX: usize = 16;
+
+/// Whether `c` may appear in a chosen name: printable and one cell wide, so
+/// names line up on the leaderboard.
+pub fn name_char(c: char) -> bool {
+    !c.is_control() && unicode_width::UnicodeWidthChar::width(c) == Some(1)
+}
+
+/// A typed name tidied for keeps: trimmed, inner runs of spaces made one, and
+/// anything not allowed dropped. `None` if nothing is left.
+pub fn tidy_name(typed: &str) -> Option<String> {
+    let kept: String = typed.chars().filter(|&c| name_char(c)).take(NAME_MAX).collect();
+    let name = kept.split_whitespace().collect::<Vec<_>>().join(" ");
+    (!name.is_empty()).then_some(name)
+}
+
 impl Player {
     pub fn new(name: String, background: &'static str, base: Attributes, skills: SkillSet) -> Self {
         let mut p = Self {

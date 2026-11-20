@@ -8,6 +8,7 @@ pub mod help;
 pub mod inventory;
 pub mod open_with;
 pub mod saves;
+pub mod scores;
 pub mod shoot;
 pub mod shop;
 pub mod stash;
@@ -39,6 +40,30 @@ pub fn popup(canvas: &mut Canvas, want_w: u16, want_h: u16, title: &str) -> Area
 pub fn panel(canvas: &mut Canvas, outer: Area, title: &str) -> Area {
     canvas.frame(outer, title, theme::BORDER, theme::POPUP);
     Area::new(outer.x + 2, outer.y + 1, outer.w.saturating_sub(4), outer.h.saturating_sub(2))
+}
+
+/// A pop-up asking for one line of text: `prompt` above, then what's been
+/// typed (or `placeholder`, dimmed, while it's empty), then `error` if any.
+pub struct Entry<'a> {
+    pub title: &'a str,
+    pub prompt: &'a str,
+    pub typed: &'a str,
+    pub placeholder: &'a str,
+    pub error: Option<&'a str>,
+    pub footer: &'a str,
+}
+
+pub fn text_entry(canvas: &mut Canvas, e: &Entry) {
+    let inner = popup(canvas, 60, 12, e.title);
+    let bottom = inner.y + inner.h.saturating_sub(1);
+    let mut y = paragraph(canvas, inner.x, inner.y + 1, inner.w, bottom, e.prompt, theme::TEXT) + 1;
+    let (shown, color) = if e.typed.is_empty() { (e.placeholder, theme::DIM) } else { (e.typed, theme::TITLE) };
+    canvas.text_max(inner.x, y, &format!("> {shown}▏"), inner.w, color, theme::POPUP);
+    y += 2;
+    if let Some(error) = e.error {
+        paragraph(canvas, inner.x, y, inner.w, bottom, error, theme::BAD);
+    }
+    footer(canvas, inner, e.footer);
 }
 
 /// Footer hint on the last inner row of a pop-up.

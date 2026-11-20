@@ -9,11 +9,13 @@ use crossterm::event::{self, Event as TermEvent, KeyCode, KeyEvent, KeyEventKind
 
 use crate::crafting::recipes;
 use crate::creatures::Background;
+use crate::creatures::player;
 use crate::creatures::player::Slot;
 use crate::dice::Dice;
 use crate::game::{Event, Game, StashSide, Tone};
 use crate::geometry::Pos;
 use crate::input::{self, Command};
+use crate::save::scores::Score;
 use crate::save::{self, Store};
 use crate::stats::check::success_chance;
 use crate::ui::canvas::Canvas;
@@ -102,6 +104,20 @@ enum Screen {
     ConfirmNew {
         selected: usize,
     },
+    /// Naming the new run's character, background `selected`. Left empty,
+    /// `suggestion` is used.
+    Name {
+        selected: usize,
+        typed: String,
+        suggestion: String,
+    },
+    /// The leaderboard, loaded when opened. `mine` highlights the run just
+    /// finished; `from_end` says whether Esc goes back to the end screen.
+    Scores {
+        list: Vec<Score>,
+        mine: Option<usize>,
+        from_end: bool,
+    },
 }
 
 pub struct App {
@@ -121,6 +137,10 @@ pub struct App {
     store: Option<Store>,
     /// The save slot of the run in progress: its resume code when shared.
     slot: Option<String>,
+    /// Where the run just finished placed on the leaderboard, and out of how many.
+    placed: Option<(usize, usize)>,
+    /// The name chosen last, offered again for the next run.
+    last_name: Option<String>,
 }
 
 impl App {
@@ -137,6 +157,8 @@ impl App {
             running: true,
             store,
             slot: None,
+            placed: None,
+            last_name: None,
         }
     }
 
@@ -219,7 +241,7 @@ impl App {
         game.sleep_turn();
         if game.is_over() {
             self.screen = Screen::Ended;
-            self.forget_run();
+            self.finish_run();
         }
     }
 
@@ -237,20 +259,24 @@ impl App {
         let note = self.title_note();
         let Some(game) = &self.game else {
             let selected = match self.screen {
-                Screen::Title { selected } | Screen::ConfirmNew { selected } => selected,
+                Screen::Title { selected } | Screen::ConfirmNew { selected } | Screen::Name { selected, .. } => {
+                    selected
+                }
                 _ => 0,
             };
-            screens::title::draw(canvas, selected, note.as_deref());
+            screens::title::draw(canvas, selected, note.as_deref(), self.store.is_some());
             match &self.screen {
                 Screen::Resume { typed, error } => screens::saves::draw_entry(canvas, typed, error.as_deref()),
                 Screen::Notice(text) => screens::saves::draw_notice(canvas, text),
                 Screen::ConfirmNew { .. } => screens::saves::draw_confirm_new(canvas),
+                Screen::Name { typed, suggestion, .. } => screens::saves::draw_name(canvas, typed, suggestion),
+                Screen::Scores { list, mine, .. } => screens::scores::draw(canvas, list, *mine),
                 _ => {}
             }
             return;
         };
         if let Screen::Title { selected } = self.screen {
-            screens::title::draw(canvas, selected, note.as_deref());
+            screens::title::draw(canvas, selected, note.as_deref(), self.store.is_some());
             return;
         }
 
@@ -277,8 +303,9 @@ impl App {
             Screen::Encounter => screens::encounter::draw(canvas, game),
             Screen::Wager => screens::wager::draw(canvas, game),
             Screen::OpenWith { pos, selected } => screens::open_with::draw(canvas, game, *pos, *selected),
-            Screen::Ended => screens::ended::draw(canvas, game),
+            Screen::Ended => screens::ended::draw(canvas, game, self.placed),
             Screen::Saved { code } => screens::saves::draw_saved(canvas, code),
+            Screen::Scores { list, mine, .. } => screens::scores::draw(canvas, list, *mine),
             _ => {}
         }
     }
@@ -334,14 +361,24 @@ impl App {
             }
             Screen::Notice(_) => Screen::Title { selected: 0 },
             Screen::ConfirmNew { selected } => match key.code {
-                KeyCode::Char('y' | 'Y') => self.new_run(selected),
+                KeyCode::Char('y' | 'Y') => self.ask_name(selected),
                 _ => Screen::Title { selected },
             },
+            Screen::Name { selected, typed, suggestion } => self.on_name(key, selected, typed, suggestion),
+            Screen::Scores { list, mine, from_end } => {
+                match (input::is_cancel(key) || input::is_confirm(key), from_end) {
+                    (false, _) => Screen::Scores { list, mine, from_end },
+                    (true, true) => Screen::Ended,
+                    (true, false) => Screen::Title { selected: 0 },
+                }
+            }
             Screen::Ended => match key.code {
                 KeyCode::Enter => {
                     self.game = None;
+                    self.placed = None;
                     Screen::Title { selected: 0 }
                 }
+                KeyCode::Char('l' | 'L') if self.store.is_some() => self.scores_screen(true),
                 KeyCode::Char('q') | KeyCode::Char('Q') | KeyCode::Esc => {
                     self.running = false;
                     Screen::Ended
@@ -350,9 +387,10 @@ impl App {
             },
         };
         // Any action can end the game, or knock you out (back to the map to sleep it off).
-        if self.game.as_ref().is_some_and(|g| g.is_over()) && !matches!(self.screen, Screen::Title { .. }) {
+        let browsing = matches!(self.screen, Screen::Title { .. } | Screen::Scores { .. });
+        if self.game.as_ref().is_some_and(|g| g.is_over()) && !browsing {
             self.screen = Screen::Ended;
-            self.forget_run();
+            self.finish_run();
         } else if self.game.as_ref().is_some_and(|g| g.player.is_asleep()) {
             self.screen = Screen::Play;
         }
@@ -389,20 +427,44 @@ impl App {
                 if self.store.as_ref().and_then(Store::saved_local).is_some() {
                     return Screen::ConfirmNew { selected };
                 }
-                self.new_run(selected)
+                self.ask_name(selected)
             }
             KeyCode::Char('c' | 'C' | 'r' | 'R') => self.on_title_resume(selected),
+            KeyCode::Char('l' | 'L') if self.store.is_some() => self.scores_screen(false),
             _ => Screen::Title { selected: input::list_nav(key, selected, n) },
         }
     }
 
     // ── Saved runs ────────────────────────────────────────────────────────
 
-    /// Start a new run as background `selected`.
-    fn new_run(&mut self, selected: usize) -> Screen {
-        let name = Dice::from_entropy().pick(NAMES).to_string();
-        let player = Background::ALL[selected].create(name);
-        self.begin_run(Game::new(player, self.seed))
+    /// Ask for a name for a new run as background `selected`, offering the
+    /// last one chosen.
+    fn ask_name(&self, selected: usize) -> Screen {
+        let suggestion = Dice::from_entropy().pick(NAMES).to_string();
+        Screen::Name { selected, typed: self.last_name.clone().unwrap_or_default(), suggestion }
+    }
+
+    fn on_name(&mut self, key: KeyEvent, selected: usize, mut typed: String, suggestion: String) -> Screen {
+        match key.code {
+            KeyCode::Esc => Screen::Title { selected },
+            KeyCode::Enter => {
+                let name = player::tidy_name(&typed).unwrap_or(suggestion);
+                self.last_name = Some(name.clone());
+                let player = Background::ALL[selected].create(name);
+                self.begin_run(Game::new(player, self.seed))
+            }
+            _ => {
+                input::edit_line(&mut typed, key, player::NAME_MAX, player::name_char);
+                Screen::Name { selected, typed, suggestion }
+            }
+        }
+    }
+
+    /// The leaderboard, highlighting the run just finished if `from_end`.
+    fn scores_screen(&self, from_end: bool) -> Screen {
+        let list = self.store.as_ref().map(Store::scores).unwrap_or_default();
+        let mine = self.placed.filter(|_| from_end).map(|(place, _)| place - 1);
+        Screen::Scores { list, mine, from_end }
     }
 
     /// Start `game` as a new run, saved from the first turn so that its
@@ -444,6 +506,19 @@ impl App {
         if let Err(e) = store.write(slot, game) {
             game.log.push(format!("The run couldn't be saved: {e}."), Tone::Bad);
         }
+    }
+
+    /// The run has ended in death or victory: it goes on the leaderboard and
+    /// its save goes. Keyed to the slot, so a run is only recorded once.
+    fn finish_run(&mut self) {
+        let (Some(store), Some(game)) = (&self.store, &self.game) else { return };
+        if self.slot.is_none() {
+            return;
+        }
+        if let Some(score) = Score::of(game) {
+            self.placed = store.record(&score).ok().and_then(|_| store.placing(&score));
+        }
+        self.forget_run();
     }
 
     /// The run is over, by death, victory or abandoning it: its save goes.
@@ -524,7 +599,11 @@ impl App {
                 }
             }
             _ => {
-                let error = if input::edit_line(&mut typed, key, 40) { None } else { error };
+                let error = if input::edit_line(&mut typed, key, 40, |c| c.is_ascii_graphic() || c == ' ') {
+                    None
+                } else {
+                    error
+                };
                 Screen::Resume { typed, error }
             }
         }
@@ -848,9 +927,18 @@ mod tests {
         }
     }
 
+    /// Choose the first background and take the suggested name.
     fn start(app: &mut App) {
         press(app, KeyCode::Enter);
+        assert!(matches!(app.screen, Screen::Name { .. }));
+        press(app, KeyCode::Enter);
         assert!(matches!(app.screen, Screen::Play));
+    }
+
+    fn die(app: &mut App) {
+        app.game.as_mut().unwrap().outcome = Some(Outcome::Died("Tested to death in Phase 1".into()));
+        press(app, KeyCode::Char('.'));
+        assert!(matches!(app.screen, Screen::Ended));
     }
 
     #[test]
@@ -898,7 +986,46 @@ mod tests {
         assert!(second.title_note().is_some_and(|n| n.contains(&name)), "the save is untouched");
         press(&mut second, KeyCode::Enter);
         press(&mut second, KeyCode::Char('y'));
-        assert!(matches!(second.screen, Screen::Play));
+        assert!(matches!(second.screen, Screen::Name { .. }));
+    }
+
+    #[test]
+    fn the_chosen_name_is_tidied_and_offered_again() {
+        let dir = Dir::new("name");
+        let mut app = dir.app(false);
+        press(&mut app, KeyCode::Enter);
+        type_text(&mut app, "  Mad   Max\u{1F600}  ");
+        press(&mut app, KeyCode::Enter);
+        assert_eq!(app.game.as_ref().unwrap().player.name, "Mad Max", "spaces squeezed, emoji refused");
+        die(&mut app);
+        press(&mut app, KeyCode::Enter);
+        press(&mut app, KeyCode::Enter);
+        assert!(matches!(&app.screen, Screen::Name { typed, .. } if typed == "Mad Max"));
+    }
+
+    #[test]
+    fn a_finished_run_is_ranked_once() {
+        let dir = Dir::new("ranked");
+        let mut app = dir.app(true);
+        start(&mut app);
+        die(&mut app);
+        press(&mut app, KeyCode::Char('x'));
+        press(&mut app, KeyCode::Char('x'));
+        assert_eq!(app.placed, Some((1, 1)), "extra keys on the end screen don't record it again");
+        press(&mut app, KeyCode::Char('L'));
+        assert!(matches!(&app.screen, Screen::Scores { list, mine: Some(0), from_end: true } if list.len() == 1));
+        press(&mut app, KeyCode::Esc);
+        assert!(matches!(app.screen, Screen::Ended));
+    }
+
+    #[test]
+    fn an_abandoned_run_is_not_ranked() {
+        let dir = Dir::new("unranked");
+        let mut app = dir.app(false);
+        start(&mut app);
+        press(&mut app, KeyCode::Char('Q'));
+        press(&mut app, KeyCode::Char('a'));
+        assert!(app.store.as_ref().unwrap().scores().is_empty());
     }
 
     #[test]
@@ -906,11 +1033,10 @@ mod tests {
         let dir = Dir::new("death");
         let mut app = dir.app(false);
         start(&mut app);
-        app.game.as_mut().unwrap().outcome = Some(Outcome::Died("Tested to death".into()));
-        press(&mut app, KeyCode::Char('.'));
-        assert!(matches!(app.screen, Screen::Ended));
+        die(&mut app);
         app.save_run();
-        assert_eq!(dir.saves(), 0);
+        assert_eq!(dir.saves(), 1, "only the leaderboard is left");
+        assert_eq!(app.store.as_ref().unwrap().scores().len(), 1);
     }
 
     #[test]

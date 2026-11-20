@@ -23,6 +23,16 @@ You need a terminal of at least 80×24 with a font that renders emoji as double-
 | `i` `c` `m` `?` | inventory · character sheet · crafting · help |
 | `Q` | save and quit (`y`), or abandon the run (`a`) |
 
+## Leaderboard
+
+When a run ends in death or victory it goes on the leaderboard under the name
+you chose at the start. Runs rank by whether they reached the 📡 Beacon, then
+by the deepest phase, then by turns: fewer is better for a win, and more is
+better for a death, since you held out longer. Kills and crystals show but
+don't count. Press **L** on the title screen to see the board; the end screen
+shows where you placed. Abandoned runs aren't ranked. On the public server
+everyone shares one board.
+
 ## Saving
 
 `Q` then `y` saves your run and quits; **C** on the title screen continues it.

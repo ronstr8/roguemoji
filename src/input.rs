@@ -82,13 +82,13 @@ pub fn is_confirm(key: KeyEvent) -> bool {
     matches!(key.code, KeyCode::Enter | KeyCode::Char(' '))
 }
 
-/// Typing into a one-line text field: printable characters are added up to
-/// `max` characters, and Backspace removes the last one. Returns whether the
-/// key was used for editing.
-pub fn edit_line(text: &mut String, key: KeyEvent, max: usize) -> bool {
+/// Typing into a one-line text field: characters `allow` accepts are added
+/// up to `max` characters, and Backspace removes the last one. Returns whether
+/// the key was used for editing.
+pub fn edit_line(text: &mut String, key: KeyEvent, max: usize, allow: impl Fn(char) -> bool) -> bool {
     match key.code {
         KeyCode::Char(c) if !c.is_control() => {
-            if text.chars().count() < max {
+            if text.chars().count() < max && allow(c) {
                 text.push(c);
             }
             true
@@ -110,14 +110,14 @@ mod tests {
     }
 
     #[test]
-    fn edit_line_types_up_to_the_limit_and_backspaces() {
+    fn edit_line_types_allowed_characters_up_to_the_limit() {
         let mut text = String::new();
-        for c in "abcd".chars() {
-            assert!(edit_line(&mut text, key(KeyCode::Char(c)), 3));
+        for c in "axbcd".chars() {
+            assert!(edit_line(&mut text, key(KeyCode::Char(c)), 3, |c| c != 'x'));
         }
         assert_eq!(text, "abc");
-        assert!(edit_line(&mut text, key(KeyCode::Backspace), 3));
+        assert!(edit_line(&mut text, key(KeyCode::Backspace), 3, |_| true));
         assert_eq!(text, "ab");
-        assert!(!edit_line(&mut text, key(KeyCode::Enter), 3));
+        assert!(!edit_line(&mut text, key(KeyCode::Enter), 3, |_| true));
     }
 }
