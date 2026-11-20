@@ -28,7 +28,7 @@ pub const CRYSTAL_GLYPH: &str = "💎";
 pub const AMMO_GLYPH: &str = "🔸";
 pub const GUN_GLYPH: &str = "🔫";
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ItemKind {
     /// Life crystals: healing and currency.
     Crystals,
@@ -41,7 +41,7 @@ pub enum ItemKind {
     Pack(Pack),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Item {
     pub kind: ItemKind,
     pub qty: u32,

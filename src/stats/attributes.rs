@@ -1,6 +1,6 @@
 //! The six core attributes, grouped as physical/mental pairs.
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Attribute {
     Brawn,
@@ -65,7 +65,7 @@ pub fn bonus(score: i32) -> i32 {
     score - AVERAGE
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Attributes {
     scores: [i32; 6],
 }

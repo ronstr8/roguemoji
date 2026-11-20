@@ -4,8 +4,15 @@ version = "0.10.0"
 edition = "2024"
 
 [dependencies]
-crossterm = "0.28"
+# use-dev-tty: the default (mio) event source spins forever once the terminal
+# hangs up, so a dropped connection could never save its run.
+crossterm = { version = "0.28", features = ["use-dev-tty"] }
 rand = "0.8"
+rand_chacha = { version = "0.3", features = ["serde1"] }
 serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1"
 toml = { version = "1.1.8", features = ["preserve_order"] }
 unicode-width = "0.2"
+
+[target."cfg(unix)".dependencies]
+signal-hook = "0.3"

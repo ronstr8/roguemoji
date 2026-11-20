@@ -6,13 +6,14 @@ use super::feature::{Cover, Feature};
 use super::tile::Tile;
 use crate::geometry::Pos;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Map {
     width: i32,
     height: i32,
     tiles: Vec<Tile>,
     explored: Vec<bool>,
     visible: Vec<bool>,
+    #[serde(with = "crate::save::form::pairs")]
     features: HashMap<Pos, Feature>,
 }
 

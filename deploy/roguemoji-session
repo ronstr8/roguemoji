@@ -20,4 +20,6 @@ case "${TERM:-}" in
     *) ;;
 esac
 
-exec "${GAME_DIR}/roguemoji"
+# Every player is this one account, so runs are saved under resume codes
+# (--shared) in the account's own folder, the only place the game may write.
+exec "${GAME_DIR}/roguemoji" --shared --save-dir /var/lib/roguemoji/saves

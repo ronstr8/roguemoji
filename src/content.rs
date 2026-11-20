@@ -233,6 +233,23 @@ macro_rules! registry {
                 &table()[self.0 as usize]
             }
         }
+
+        // Saves name content by id, not table index, so they survive data
+        // files being added, removed or reordered between releases.
+        impl serde::Serialize for $handle {
+            fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+                s.serialize_str(&self.def().id)
+            }
+        }
+
+        impl<'de> serde::Deserialize<'de> for $handle {
+            fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<$handle, D::Error> {
+                let id = <String as serde::Deserialize>::deserialize(d)?;
+                $handle::lookup(&id).ok_or_else(|| {
+                    serde::de::Error::custom(format!(concat!("no ", $what, " `{}` in this version"), id))
+                })
+            }
+        }
     };
 }
 pub(crate) use registry;

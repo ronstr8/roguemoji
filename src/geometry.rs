@@ -1,7 +1,7 @@
 //! Grid geometry: positions, directions, lines and rectangles.
 
 /// A cell coordinate on the map grid.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Default, serde::Serialize, serde::Deserialize)]
 pub struct Pos {
     pub x: i32,
     pub y: i32,

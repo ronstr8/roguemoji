@@ -8,7 +8,8 @@ use crate::ui::{Area, theme};
 
 const BANNER: &[&str] = &[crate::ui::TITLE, "🐀 🧟 🦍   the world ended politely   📡 💎 🔫"];
 
-pub fn draw(canvas: &mut Canvas, selected: usize) {
+/// `note` is a line offering a saved run, shown above the backgrounds.
+pub fn draw(canvas: &mut Canvas, selected: usize, note: Option<&str>) {
     let w = canvas.width();
     canvas.fill(0, 0, w, canvas.height(), theme::BG);
     let center = |s: &str| w.saturating_sub(text_width(s) as u16) / 2;
@@ -17,6 +18,9 @@ pub fn draw(canvas: &mut Canvas, selected: usize) {
         let color = if i == 0 { theme::TITLE } else { theme::DIM };
         canvas.text(center(line), y, line, color, theme::BG);
         y += 2;
+    }
+    if let Some(note) = note {
+        canvas.text(center(note), y - 1, note, theme::WARN, theme::BG);
     }
 
     let panel_w = 84.min(w.saturating_sub(4));
@@ -77,10 +81,19 @@ mod tests {
     #[test]
     fn renders_the_title() {
         let mut canvas = Canvas::new(100, 30);
-        draw(&mut canvas, 0);
+        draw(&mut canvas, 0, None);
         let rows = canvas.text_rows();
         println!("{}", rows.join("\n"));
         assert_eq!(rows[1].trim(), crate::ui::TITLE);
         assert!(rows.iter().any(|r| r.contains("Who were you, before?")));
+    }
+
+    #[test]
+    fn offers_a_saved_run() {
+        let mut canvas = Canvas::new(100, 30);
+        draw(&mut canvas, 0, Some("C  continue Ash the Drifter · phase 3"));
+        let rows = canvas.text_rows();
+        assert!(rows.iter().any(|r| r.contains("C  continue Ash the Drifter · phase 3")));
+        assert!(rows.iter().any(|r| r.contains("Who were you, before?")), "the note doesn't cover the panel");
     }
 }

@@ -21,7 +21,21 @@ You need a terminal of at least 80×24 with a font that renders emoji as double-
 | `z` | nap until rested (a monster in view, a hit or any key wakes you) |
 | `S` | cycle stance |
 | `i` `c` `m` `?` | inventory · character sheet · crafting · help |
-| `Q` | quit |
+| `Q` | save and quit (`y`), or abandon the run (`a`) |
+
+## Saving
+
+`Q` then `y` saves your run and quits; **C** on the title screen continues it.
+The game also saves when a new phase begins and when your terminal closes, so a
+dropped connection doesn't cost you the run. A run is one life: loading it
+removes the save until the game writes it again, and dying removes it for good.
+`Q` then `a` abandons a run you don't want back.
+
+On a shared server like the public one, everyone plays as the same system user,
+so each run gets a **resume code** such as `ember-otter-mesa-4127`. It's shown
+when the run starts, on the character sheet (`c`) and when you quit. Press **R**
+on the title screen and type it to come back. Case and spaces don't matter.
+Runs nobody comes back to are cleared after a few weeks.
 
 ## Rules
 

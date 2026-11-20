@@ -11,7 +11,8 @@ use crate::ui::canvas::Canvas;
 use crate::ui::hud::bar;
 use crate::ui::theme;
 
-pub fn draw(canvas: &mut Canvas, game: &Game) {
+/// `code` is the run's resume code, shown on a shared server.
+pub fn draw(canvas: &mut Canvas, game: &Game, code: Option<&str>) {
     let p = &game.player;
     let inner = popup(canvas, 84, 34, &format!("{} the {}", p.name, p.background));
     let (x, mut y) = (inner.x, inner.y);
@@ -92,7 +93,8 @@ pub fn draw(canvas: &mut Canvas, game: &Game) {
         Skill = rank×2 + the average of its two attribute bonuses. ½ marks an unskilled bonus: only half of a \
         positive attribute bonus applies (penalties apply in full). Skills improve with successful use.";
     paragraph(canvas, x, y, inner.w, inner.y + inner.h.saturating_sub(1), rules, theme::DIM);
-    footer(canvas, inner, "Esc close");
+    let hint = code.map_or("Esc close".to_string(), |c| format!("Resume code {c} · Esc close"));
+    footer(canvas, inner, &hint);
 }
 
 #[cfg(test)]
@@ -104,7 +106,7 @@ mod tests {
     fn shows_needs_and_still_fits_the_rules() {
         let g = Game::new(Background::ALL[0].create("Tester".into()), Some(1));
         let mut canvas = Canvas::new(100, 40);
-        draw(&mut canvas, &g);
+        draw(&mut canvas, &g, None);
         let rows = canvas.text_rows();
         println!("{}", rows.join("\n"));
         assert!(rows.iter().any(|r| r.contains("Satiety 750/1000 (Fed)")));
@@ -113,5 +115,13 @@ mod tests {
         assert!(rows.iter().any(|r| r.contains("Lockpicking  ●○○○○") && r.contains("REF/INT")));
         assert!(rows.iter().any(|r| r.contains("Checks roll 2d10")));
         assert!(rows.iter().any(|r| r.contains("Esc close")));
+    }
+
+    #[test]
+    fn shows_the_resume_code_on_a_shared_server() {
+        let g = Game::new(Background::ALL[0].create("Tester".into()), Some(1));
+        let mut canvas = Canvas::new(100, 40);
+        draw(&mut canvas, &g, Some("ember-otter-mesa-4127"));
+        assert!(canvas.text_rows().iter().any(|r| r.contains("Resume code ember-otter-mesa-4127")));
     }
 }

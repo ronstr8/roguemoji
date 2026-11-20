@@ -1,8 +1,10 @@
 //! Timed status effects shared by the player and monsters.
 
+use std::borrow::Cow;
+
 use crate::stats::Attribute;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum EffectKind {
     /// Lose `potency` HP every other turn.
     Poison,
@@ -94,12 +96,12 @@ impl RawEffect {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Effect {
     pub kind: EffectKind,
     pub potency: i32,
     pub turns: u32,
-    pub source: &'static str,
+    pub source: Cow<'static, str>,
 }
 
 /// Result of advancing effects by one turn.
@@ -112,7 +114,7 @@ pub struct TickReport {
 
 const MAX_HARM_TURNS: u32 = 30;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Effects {
     list: Vec<Effect>,
     clock: u64,
@@ -136,7 +138,12 @@ impl Effects {
                     e.turns.max(spec.turns)
                 };
             }
-            None => self.list.push(Effect { kind: spec.kind, potency: spec.potency, turns: spec.turns, source }),
+            None => self.list.push(Effect {
+                kind: spec.kind,
+                potency: spec.potency,
+                turns: spec.turns,
+                source: source.into(),
+            }),
         }
     }
 

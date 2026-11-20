@@ -7,6 +7,19 @@ version can change rules, controls or data-file formats.
 
 ## [Unreleased]
 
+### Added
+
+- Saved runs. Quitting (`Q`, then `y`) saves your run, and **C** on the title
+  screen continues it. The game also saves at the start of each phase and when
+  the terminal closes. Loading a run removes its save until it's written again,
+  and dying or winning removes it for good, so death is still final. `Q` then
+  `a` abandons a run. Saves go in `~/.local/share/roguemoji` (`%APPDATA%\roguemoji`
+  on Windows), or wherever `--save-dir` says.
+- On the public server, every run gets a resume code like
+  `ember-otter-mesa-4127`, shown when it starts, on the character sheet (`c`)
+  and when you quit. Press **R** on the title screen and enter it to pick the run
+  up again. Unplayed saves are cleared after 30 days.
+
 ## [0.10.0] - 2026-11-20 — Sex, Drugs and Rock-n-Roll
 
 ### Added

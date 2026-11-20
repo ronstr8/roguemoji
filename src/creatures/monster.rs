@@ -4,7 +4,7 @@ use super::species::{Species, SpeciesDef};
 use crate::effects::Effects;
 use crate::geometry::Pos;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Monster {
     pub id: u32,
     pub species: Species,

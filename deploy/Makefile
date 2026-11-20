@@ -11,6 +11,9 @@ SESSION    := $(OPT)/roguemoji-session
 BANNER     := $(OPT)/banner.txt
 SSHD_CONF  := /etc/ssh/sshd_config.d/50-roguemoji.conf
 UNIT       := /etc/systemd/system/roguemoji-ttyd.service
+TMPFILES   := /etc/tmpfiles.d/roguemoji.conf
+# Saved runs nobody comes back to for this many days are deleted.
+SAVE_DAYS  ?= 30
 # ttyd to run; empty means the one on PATH (see scripts/find-ttyd).
 TTYD       ?=
 TTYD_MIN   := 1.7
@@ -28,13 +31,13 @@ SUDO := $(if $(filter 0,$(shell id -u)),,sudo)
 export SUDO FORCE TTYD
 
 .DEFAULT_GOAL := help
-.PHONY: help install game update session banner ensure-user sshd slice ensure-ttyd ttyd password check status uninstall clean
+.PHONY: help install game update session banner ensure-user saves sshd slice ensure-ttyd ttyd password check status uninstall clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[33m%-12s\033[0m %s\n", $$1, $$2}'
 
-install: game ensure-user sshd slice ttyd ## Everything: game, account, sshd, caps and the ttyd service
+install: game ensure-user saves sshd slice ttyd ## Everything: game, account, saves folder, sshd, caps and the ttyd service
 	@echo
 	@echo "Done. Add nginx/roguemoji.conf to your site's TLS server block, then: nginx -t && systemctl reload nginx"
 	@echo "  (On Apache: add apache/roguemoji.conf to the TLS VirtualHost, then: apachectl configtest && systemctl reload apache2)"
@@ -70,6 +73,11 @@ ensure-user: session ## Create the roguemoji account if it doesn't exist (passwo
 		echo "created    account $(ACCOUNT)"; \
 	fi
 
+saves: ensure-user ## Create the folder for saved runs; saves left SAVE_DAYS days are cleared
+	@mkdir -p $(BUILD) && sed 's/@DAYS@/$(SAVE_DAYS)/' systemd/tmpfiles.conf > $(BUILD)/tmpfiles.conf
+	scripts/place $(BUILD)/tmpfiles.conf $(TMPFILES) 644
+	$(SUDO) systemd-tmpfiles --create $(TMPFILES)
+
 sshd: session banner ensure-user ## Install the sshd drop-in, check it, and reload sshd
 	scripts/place sshd/50-roguemoji.conf $(SSHD_CONF) 644
 	@$(SUDO) sshd -t || { echo "sshd -t failed: fix the config before sshd restarts. Not reloading." >&2; exit 1; }
@@ -84,7 +92,7 @@ slice: ensure-user ## Cap memory, tasks and CPU for all SSH players together
 ensure-ttyd: ## Find ttyd (TTYD=path, or on PATH), apt-install it where the distro has it, and check it's new enough
 	@scripts/find-ttyd $(TTYD_MIN) >/dev/null
 
-ttyd: session ensure-user ## Install and start the browser service (restart it yourself after a unit change)
+ttyd: session ensure-user saves ## Install and start the browser service (restart it yourself after a unit change)
 	@path=$$(scripts/find-ttyd $(TTYD_MIN)) && mkdir -p $(BUILD) && \
 		sed "s|@TTYD@|$$path|" systemd/roguemoji-ttyd.service > $(BUILD)/roguemoji-ttyd.service
 	scripts/place $(BUILD)/roguemoji-ttyd.service $(UNIT) 644
@@ -103,10 +111,11 @@ check: ## Show the sshd settings the roguemoji account and root really get
 status: ## Show the ttyd service and how many players are connected
 	@systemctl --no-pager status roguemoji-ttyd | head -5 || true
 	@echo "games running: $$(pgrep -cxu $(ACCOUNT) roguemoji || true)"
+	@echo "saved runs:    $$($(SUDO) find /var/lib/$(ACCOUNT)/saves -name '*.json' | wc -l)"
 
-uninstall: ## Stop the service and remove the sshd, systemd and slice files (keeps the account and /opt/roguemoji)
+uninstall: ## Stop the service and remove the sshd, systemd and slice files (keeps the account, saves and /opt/roguemoji)
 	-$(SUDO) systemctl disable --now roguemoji-ttyd
-	$(SUDO) rm -f $(UNIT) $(SSHD_CONF)
+	$(SUDO) rm -f $(UNIT) $(SSHD_CONF) $(TMPFILES)
 	-uid=$$(id -u $(ACCOUNT) 2>/dev/null) && $(SUDO) rm -f /etc/systemd/system/user-$$uid.slice.d/50-roguemoji.conf
 	$(SUDO) systemctl daemon-reload
 	$(SUDO) systemctl reload $(SSH_UNIT)

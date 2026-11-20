@@ -2,7 +2,7 @@
 
 use crossterm::style::Color;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Tile {
     /// Concrete and brick of ruined buildings.
     Wall,

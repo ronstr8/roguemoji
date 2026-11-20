@@ -1,19 +1,22 @@
 //! Random number source with tabletop-style helpers.
 
-use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
+use rand_chacha::ChaCha12Rng;
 
+/// ChaCha12 is what `rand`'s `StdRng` uses, named directly so its state can
+/// be saved and a resumed run rolls the same dice it would have.
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Dice {
-    rng: StdRng,
+    rng: ChaCha12Rng,
 }
 
 impl Dice {
     pub fn seeded(seed: u64) -> Self {
-        Self { rng: StdRng::seed_from_u64(seed) }
+        Self { rng: ChaCha12Rng::seed_from_u64(seed) }
     }
 
     pub fn from_entropy() -> Self {
-        Self { rng: StdRng::from_entropy() }
+        Self { rng: ChaCha12Rng::from_entropy() }
     }
 
     /// Uniform integer in `lo..=hi` (order-insensitive).

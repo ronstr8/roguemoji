@@ -26,9 +26,10 @@ MemoryMax=1G
 TasksMax=200
 CPUQuota=200%
 
-# The game reads its binary and data/ and writes nothing.
+# The game reads its binary and data/, and writes only saved runs.
 NoNewPrivileges=yes
 ProtectSystem=strict
+ReadWritePaths=/var/lib/roguemoji/saves
 ProtectHome=yes
 PrivateTmp=yes
 PrivateDevices=yes

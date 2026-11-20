@@ -81,3 +81,43 @@ pub fn is_cancel(key: KeyEvent) -> bool {
 pub fn is_confirm(key: KeyEvent) -> bool {
     matches!(key.code, KeyCode::Enter | KeyCode::Char(' '))
 }
+
+/// Typing into a one-line text field: printable characters are added up to
+/// `max` characters, and Backspace removes the last one. Returns whether the
+/// key was used for editing.
+pub fn edit_line(text: &mut String, key: KeyEvent, max: usize) -> bool {
+    match key.code {
+        KeyCode::Char(c) if !c.is_control() => {
+            if text.chars().count() < max {
+                text.push(c);
+            }
+            true
+        }
+        KeyCode::Backspace => {
+            text.pop();
+            true
+        }
+        _ => false,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn key(code: KeyCode) -> KeyEvent {
+        KeyEvent::new(code, KeyModifiers::NONE)
+    }
+
+    #[test]
+    fn edit_line_types_up_to_the_limit_and_backspaces() {
+        let mut text = String::new();
+        for c in "abcd".chars() {
+            assert!(edit_line(&mut text, key(KeyCode::Char(c)), 3));
+        }
+        assert_eq!(text, "abc");
+        assert!(edit_line(&mut text, key(KeyCode::Backspace), 3));
+        assert_eq!(text, "ab");
+        assert!(!edit_line(&mut text, key(KeyCode::Enter), 3));
+    }
+}

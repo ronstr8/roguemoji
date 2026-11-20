@@ -1,6 +1,8 @@
 //! Application shell: screen state machine, input dispatch and drawing.
 
 use std::io;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, LazyLock};
 use std::time::{Duration, Instant};
 
 use crossterm::event::{self, Event as TermEvent, KeyCode, KeyEvent, KeyEventKind};
@@ -9,9 +11,10 @@ use crate::crafting::recipes;
 use crate::creatures::Background;
 use crate::creatures::player::Slot;
 use crate::dice::Dice;
-use crate::game::{Event, Game, StashSide};
+use crate::game::{Event, Game, StashSide, Tone};
 use crate::geometry::Pos;
 use crate::input::{self, Command};
+use crate::save::{self, Store};
 use crate::stats::check::success_chance;
 use crate::ui::canvas::Canvas;
 use crate::ui::screens;
@@ -31,6 +34,13 @@ const PULSE: Duration = Duration::from_millis(2400);
 const PULSE_FRAME: Duration = Duration::from_millis(100);
 /// The glow never fades below this, so encounters always stand out.
 const GLOW_FLOOR: f32 = 0.3;
+
+/// Longest wait for input before checking whether the player has gone.
+const IDLE_WAIT: Duration = Duration::from_millis(500);
+
+/// Set by a signal handler when the terminal hangs up or the server asks the
+/// game to stop, so the run is saved on the way out instead of lost.
+pub static HANGUP: LazyLock<Arc<AtomicBool>> = LazyLock::new(Default::default);
 
 const NAMES: &[&str] = &["Ash", "Rook", "Juniper", "Vega", "Sable", "Cass", "Ozzie", "Wren", "Dell", "Marlow"];
 
@@ -77,6 +87,21 @@ enum Screen {
     },
     ConfirmQuit,
     Ended,
+    /// Typing a resume code on a shared server.
+    Resume {
+        typed: String,
+        error: Option<String>,
+    },
+    /// The run is saved on a shared server; shows its code before quitting.
+    Saved {
+        code: String,
+    },
+    /// A saved run couldn't be loaded; any key goes back to the title.
+    Notice(String),
+    /// Starting a new run as background `selected` would replace the saved one.
+    ConfirmNew {
+        selected: usize,
+    },
 }
 
 pub struct App {
@@ -92,10 +117,14 @@ pub struct App {
     /// When the app started; the glow's pulse is timed from here.
     started: Instant,
     running: bool,
+    /// Where runs are saved; `None` if there's nowhere to put them.
+    store: Option<Store>,
+    /// The save slot of the run in progress: its resume code when shared.
+    slot: Option<String>,
 }
 
 impl App {
-    pub fn new(seed: Option<u64>) -> Self {
+    pub fn new(seed: Option<u64>, store: Option<Store>) -> Self {
         Self {
             game: None,
             screen: Screen::Title { selected: 0 },
@@ -106,11 +135,21 @@ impl App {
             inv_sort: Default::default(),
             started: Instant::now(),
             running: true,
+            store,
+            slot: None,
         }
     }
 
     pub fn run(mut self, term: &mut Terminal) -> io::Result<()> {
-        while self.running {
+        let result = self.event_loop(term);
+        // However the loop ended (a quit, a dropped connection, a stop
+        // signal), a run still in progress is kept.
+        self.save_run();
+        result
+    }
+
+    fn event_loop(&mut self, term: &mut Terminal) -> io::Result<()> {
+        while self.running && !HANGUP.load(Ordering::Relaxed) {
             let (w, h) = Terminal::size();
             let mut canvas = Canvas::new(w, h);
             self.draw(&mut canvas);
@@ -128,6 +167,10 @@ impl App {
                     self.expire_effects();
                     continue;
                 }
+            }
+            // Wake now and then to notice a hangup.
+            if !event::poll(IDLE_WAIT)? {
+                continue;
             }
             match event::read()? {
                 TermEvent::Key(key) if key.kind != KeyEventKind::Release => self.on_key(key),
@@ -176,6 +219,7 @@ impl App {
         game.sleep_turn();
         if game.is_over() {
             self.screen = Screen::Ended;
+            self.forget_run();
         }
     }
 
@@ -190,21 +234,30 @@ impl App {
             ui::draw_too_small(canvas);
             return;
         }
+        let note = self.title_note();
         let Some(game) = &self.game else {
-            if let Screen::Title { selected } = self.screen {
-                screens::title::draw(canvas, selected);
+            let selected = match self.screen {
+                Screen::Title { selected } | Screen::ConfirmNew { selected } => selected,
+                _ => 0,
+            };
+            screens::title::draw(canvas, selected, note.as_deref());
+            match &self.screen {
+                Screen::Resume { typed, error } => screens::saves::draw_entry(canvas, typed, error.as_deref()),
+                Screen::Notice(text) => screens::saves::draw_notice(canvas, text),
+                Screen::ConfirmNew { .. } => screens::saves::draw_confirm_new(canvas),
+                _ => {}
             }
             return;
         };
         if let Screen::Title { selected } = self.screen {
-            screens::title::draw(canvas, selected);
+            screens::title::draw(canvas, selected, note.as_deref());
             return;
         }
 
         let (target, status) = match &self.screen {
             Screen::Targeting { targets, index } => self.targeting_status(game, targets[*index]),
             Screen::Shoot { targets, selected } => (game.monster(targets[*selected]).map(|m| m.pos), None),
-            Screen::ConfirmQuit => (None, Some("Really quit? This run will be lost. (y/n)".to_string())),
+            Screen::ConfirmQuit => (None, Some(self.quit_prompt().to_string())),
             _ => (None, None),
         };
         let clock_ms = self.started.elapsed().as_millis();
@@ -213,7 +266,7 @@ impl App {
 
         match &self.screen {
             Screen::Inventory { selected } => screens::inventory::draw(canvas, game, self.inv_sort, *selected),
-            Screen::Character => screens::character::draw(canvas, game),
+            Screen::Character => screens::character::draw(canvas, game, self.shared_code()),
             Screen::Crafting { selected } => screens::crafting::draw(canvas, game, *selected),
             Screen::Shop { kiosk, selling, selected } => {
                 screens::shop::draw(canvas, game, *kiosk, *selling, self.inv_sort, *selected)
@@ -225,6 +278,7 @@ impl App {
             Screen::Wager => screens::wager::draw(canvas, game),
             Screen::OpenWith { pos, selected } => screens::open_with::draw(canvas, game, *pos, *selected),
             Screen::Ended => screens::ended::draw(canvas, game),
+            Screen::Saved { code } => screens::saves::draw_saved(canvas, code),
             _ => {}
         }
     }
@@ -272,12 +326,16 @@ impl App {
             Screen::Stash { side, selected } => self.on_stash(key, side, selected),
             Screen::Targeting { targets, index } => self.on_targeting(key, targets, index),
             Screen::Shoot { targets, selected } => self.on_shoot(key, targets, selected),
-            Screen::ConfirmQuit => match key.code {
-                KeyCode::Char('y') | KeyCode::Char('Y') => {
-                    self.running = false;
-                    Screen::Play
-                }
-                _ => Screen::Play,
+            Screen::ConfirmQuit => self.on_confirm_quit(key),
+            Screen::Resume { typed, error } => self.on_resume(key, typed, error),
+            Screen::Saved { code } => {
+                self.running = false;
+                Screen::Saved { code }
+            }
+            Screen::Notice(_) => Screen::Title { selected: 0 },
+            Screen::ConfirmNew { selected } => match key.code {
+                KeyCode::Char('y' | 'Y') => self.new_run(selected),
+                _ => Screen::Title { selected },
             },
             Screen::Ended => match key.code {
                 KeyCode::Enter => {
@@ -294,6 +352,7 @@ impl App {
         // Any action can end the game, or knock you out (back to the map to sleep it off).
         if self.game.as_ref().is_some_and(|g| g.is_over()) && !matches!(self.screen, Screen::Title { .. }) {
             self.screen = Screen::Ended;
+            self.forget_run();
         } else if self.game.as_ref().is_some_and(|g| g.player.is_asleep()) {
             self.screen = Screen::Play;
         }
@@ -326,14 +385,148 @@ impl App {
             }
             KeyCode::Char(c @ '1'..='4') => Screen::Title { selected: (c as usize - '1' as usize).min(n - 1) },
             KeyCode::Enter | KeyCode::Char(' ') => {
-                let mut dice = Dice::from_entropy();
-                let name = dice.pick(NAMES).to_string();
-                let player = Background::ALL[selected].create(name);
-                self.game = Some(Game::new(player, self.seed));
-                self.last_target = None;
+                // A new run takes over the one save slot, so check first.
+                if self.store.as_ref().and_then(Store::saved_local).is_some() {
+                    return Screen::ConfirmNew { selected };
+                }
+                self.new_run(selected)
+            }
+            KeyCode::Char('c' | 'C' | 'r' | 'R') => self.on_title_resume(selected),
+            _ => Screen::Title { selected: input::list_nav(key, selected, n) },
+        }
+    }
+
+    // ── Saved runs ────────────────────────────────────────────────────────
+
+    /// Start a new run as background `selected`.
+    fn new_run(&mut self, selected: usize) -> Screen {
+        let name = Dice::from_entropy().pick(NAMES).to_string();
+        let player = Background::ALL[selected].create(name);
+        self.begin_run(Game::new(player, self.seed))
+    }
+
+    /// Start `game` as a new run, saved from the first turn so that its
+    /// resume code works straight away.
+    fn begin_run(&mut self, game: Game) -> Screen {
+        self.slot = self.store.as_ref().map(Store::new_slot);
+        self.game = Some(game);
+        self.last_target = None;
+        if let (Some(code), Some(game)) = (self.shared_code().map(str::to_string), self.game.as_mut()) {
+            game.log.push(
+                format!("Your resume code is {code}. Write it down: you'll need it to come back."),
+                Tone::Special,
+            );
+        }
+        self.save_run();
+        Screen::Play
+    }
+
+    /// Load the run saved in `slot` and play on.
+    fn resume_run(&mut self, slot: String) -> Result<(), String> {
+        let store = self.store.as_ref().ok_or("There's nowhere to load saved runs from.")?;
+        self.game = Some(store.take(&slot)?);
+        self.slot = Some(slot);
+        self.last_target = None;
+        Ok(())
+    }
+
+    /// Write the run in progress to its slot. Does nothing between runs,
+    /// once a run has ended, or with nowhere to save.
+    fn save_run(&mut self) {
+        let (Some(store), Some(slot), Some(game)) = (&self.store, &self.slot, self.game.as_mut()) else { return };
+        if game.is_over() {
+            return;
+        }
+        // A wager's pop-up isn't saved, so get up from the table first.
+        if game.table.is_some() {
+            game.leave_table();
+        }
+        if let Err(e) = store.write(slot, game) {
+            game.log.push(format!("The run couldn't be saved: {e}."), Tone::Bad);
+        }
+    }
+
+    /// The run is over, by death, victory or abandoning it: its save goes.
+    fn forget_run(&mut self) {
+        if let (Some(store), Some(slot)) = (&self.store, self.slot.take()) {
+            store.remove(&slot);
+        }
+    }
+
+    /// The run's resume code, on a shared server.
+    fn shared_code(&self) -> Option<&str> {
+        self.slot.as_deref().filter(|_| self.store.as_ref().is_some_and(Store::is_shared))
+    }
+
+    /// The title screen's line about saved runs, if there's one to offer.
+    fn title_note(&self) -> Option<String> {
+        let store = self.store.as_ref()?;
+        if store.is_shared() {
+            return Some("R  resume a saved run with its code".into());
+        }
+        let slot = store.saved_local()?;
+        Some(match store.read(&slot) {
+            Ok(g) => format!("C  continue {} the {} · phase {}", g.player.name, g.player.background, g.depth),
+            Err(_) => "C  continue your saved run".into(),
+        })
+    }
+
+    fn quit_prompt(&self) -> &'static str {
+        if self.slot.is_some() {
+            "Save and quit? (y) save · (a) abandon this run · any other key plays on"
+        } else {
+            "Really quit? This run will be lost. (y/n)"
+        }
+    }
+
+    fn on_confirm_quit(&mut self, key: KeyEvent) -> Screen {
+        match key.code {
+            KeyCode::Char('y' | 'Y') => {
+                self.save_run();
+                if let Some(code) = self.shared_code() {
+                    return Screen::Saved { code: code.to_string() };
+                }
+                self.running = false;
                 Screen::Play
             }
-            _ => Screen::Title { selected: input::list_nav(key, selected, n) },
+            KeyCode::Char('a' | 'A') if self.slot.is_some() => {
+                self.forget_run();
+                self.running = false;
+                Screen::Play
+            }
+            _ => Screen::Play,
+        }
+    }
+
+    /// C continues the local save; R asks for a resume code on a shared server.
+    fn on_title_resume(&mut self, selected: usize) -> Screen {
+        let Some(store) = &self.store else { return Screen::Title { selected } };
+        if store.is_shared() {
+            return Screen::Resume { typed: String::new(), error: None };
+        }
+        let Some(slot) = store.saved_local() else { return Screen::Title { selected } };
+        match self.resume_run(slot) {
+            Ok(()) => Screen::Play,
+            Err(e) => Screen::Notice(e),
+        }
+    }
+
+    fn on_resume(&mut self, key: KeyEvent, mut typed: String, error: Option<String>) -> Screen {
+        const NOT_A_CODE: &str = "That isn't a resume code: three words and four digits, like ember-otter-mesa-4127.";
+        match key.code {
+            KeyCode::Esc => Screen::Title { selected: 0 },
+            KeyCode::Enter => {
+                let loaded =
+                    save::code::normalize(&typed).ok_or(NOT_A_CODE.to_string()).and_then(|c| self.resume_run(c));
+                match loaded {
+                    Ok(()) => Screen::Play,
+                    Err(e) => Screen::Resume { typed, error: Some(e) },
+                }
+            }
+            _ => {
+                let error = if input::edit_line(&mut typed, key, 40) { None } else { error };
+                Screen::Resume { typed, error }
+            }
         }
     }
 
@@ -351,7 +544,11 @@ impl App {
                 Event::OpenEncounter => return Screen::Encounter,
                 Event::OpenWager => return Screen::Wager,
                 Event::ChooseWay(pos) => return Screen::OpenWith { pos, selected: first_ready(game, pos) },
-                Event::Portal => self.whiteout = Some(Instant::now() + WHITEOUT),
+                Event::Portal => {
+                    self.whiteout = Some(Instant::now() + WHITEOUT);
+                    // A new phase is a natural bookmark, in case the game is cut off.
+                    self.save_run();
+                }
                 Event::None => {}
             },
             Command::Wait => game.wait(),
@@ -609,4 +806,148 @@ fn screen_restore(screen: &Screen) -> Screen {
 /// open-with pop-up on.
 fn first_ready(game: &Game, pos: Pos) -> usize {
     game.node_at(pos).and_then(|d| d.ways_for(&game.player).first().copied()).unwrap_or(0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::game::Outcome;
+    use crossterm::event::KeyModifiers;
+    use std::path::PathBuf;
+
+    fn press(app: &mut App, code: KeyCode) {
+        app.on_key(KeyEvent::new(code, KeyModifiers::NONE));
+    }
+
+    fn type_text(app: &mut App, text: &str) {
+        text.chars().for_each(|c| press(app, KeyCode::Char(c)));
+    }
+
+    /// An empty save folder for one test, removed when it ends.
+    struct Dir(PathBuf);
+
+    impl Dir {
+        fn new(name: &str) -> Self {
+            let dir = std::env::temp_dir().join(format!("roguemoji-app-test-{}-{name}", std::process::id()));
+            let _ = std::fs::remove_dir_all(&dir);
+            Dir(dir)
+        }
+
+        fn app(&self, shared: bool) -> App {
+            App::new(Some(1), Some(Store::new(self.0.clone(), shared)))
+        }
+
+        fn saves(&self) -> usize {
+            std::fs::read_dir(&self.0).map_or(0, |d| d.count())
+        }
+    }
+
+    impl Drop for Dir {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+
+    fn start(app: &mut App) {
+        press(app, KeyCode::Enter);
+        assert!(matches!(app.screen, Screen::Play));
+    }
+
+    #[test]
+    fn a_new_run_is_saved_at_once_and_kept_on_quitting() {
+        let dir = Dir::new("quit");
+        let mut app = dir.app(false);
+        start(&mut app);
+        assert_eq!(dir.saves(), 1, "saved from the first turn");
+        press(&mut app, KeyCode::Char('Q'));
+        press(&mut app, KeyCode::Char('y'));
+        assert!(!app.running);
+        assert_eq!(dir.saves(), 1);
+    }
+
+    #[test]
+    fn continuing_loads_the_run_and_takes_its_file() {
+        let dir = Dir::new("continue");
+        let mut first = dir.app(false);
+        start(&mut first);
+        first.game.as_mut().unwrap().wait();
+        let turn = first.game.as_ref().unwrap().turn;
+        first.save_run();
+
+        let mut second = dir.app(false);
+        assert!(second.title_note().is_some_and(|n| n.starts_with("C  continue")));
+        press(&mut second, KeyCode::Char('c'));
+        assert!(matches!(second.screen, Screen::Play));
+        assert_eq!(second.game.as_ref().unwrap().turn, turn);
+        assert_eq!(dir.saves(), 0, "loading removes the save until it's written again");
+    }
+
+    #[test]
+    fn a_new_run_asks_before_replacing_the_saved_one() {
+        let dir = Dir::new("replace");
+        let mut first = dir.app(false);
+        start(&mut first);
+        let name = first.game.as_ref().unwrap().player.name.clone();
+        first.save_run();
+
+        let mut second = dir.app(false);
+        press(&mut second, KeyCode::Enter);
+        assert!(matches!(second.screen, Screen::ConfirmNew { .. }));
+        press(&mut second, KeyCode::Char('n'));
+        assert!(matches!(second.screen, Screen::Title { .. }));
+        assert!(second.title_note().is_some_and(|n| n.contains(&name)), "the save is untouched");
+        press(&mut second, KeyCode::Enter);
+        press(&mut second, KeyCode::Char('y'));
+        assert!(matches!(second.screen, Screen::Play));
+    }
+
+    #[test]
+    fn dying_removes_the_save_for_good() {
+        let dir = Dir::new("death");
+        let mut app = dir.app(false);
+        start(&mut app);
+        app.game.as_mut().unwrap().outcome = Some(Outcome::Died("Tested to death".into()));
+        press(&mut app, KeyCode::Char('.'));
+        assert!(matches!(app.screen, Screen::Ended));
+        app.save_run();
+        assert_eq!(dir.saves(), 0);
+    }
+
+    #[test]
+    fn abandoning_removes_the_save() {
+        let dir = Dir::new("abandon");
+        let mut app = dir.app(false);
+        start(&mut app);
+        press(&mut app, KeyCode::Char('Q'));
+        press(&mut app, KeyCode::Char('a'));
+        assert!(!app.running);
+        app.save_run();
+        assert_eq!(dir.saves(), 0);
+    }
+
+    #[test]
+    fn a_shared_run_comes_back_by_its_code() {
+        let dir = Dir::new("shared");
+        let mut first = dir.app(true);
+        start(&mut first);
+        let code = first.shared_code().unwrap().to_string();
+        let log = first.game.as_ref().unwrap().log.recent(1)[0].text.clone();
+        assert!(log.contains(&code), "the code is announced: {log}");
+        press(&mut first, KeyCode::Char('Q'));
+        press(&mut first, KeyCode::Char('y'));
+        assert!(matches!(&first.screen, Screen::Saved { code: c } if *c == code));
+
+        let mut second = dir.app(true);
+        press(&mut second, KeyCode::Char('r'));
+        type_text(&mut second, "wrong-code");
+        press(&mut second, KeyCode::Enter);
+        assert!(matches!(&second.screen, Screen::Resume { error: Some(e), .. } if e.contains("isn't a resume code")));
+        for _ in 0.."wrong-code".len() {
+            press(&mut second, KeyCode::Backspace);
+        }
+        type_text(&mut second, &code.to_uppercase().replace('-', " "));
+        press(&mut second, KeyCode::Enter);
+        assert!(matches!(second.screen, Screen::Play));
+        assert_eq!(second.shared_code(), Some(code.as_str()));
+    }
 }

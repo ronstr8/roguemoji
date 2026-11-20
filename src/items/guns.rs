@@ -152,7 +152,7 @@ fn load() -> Result<Vec<GunDef>, String> {
 const FPS_PER_EXTRA_TILE: f64 = 400.0;
 
 /// A firearm instance with its current loaded rounds.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Gun {
     pub model: GunModel,
     pub loaded: u32,

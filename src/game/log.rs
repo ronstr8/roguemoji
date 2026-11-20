@@ -1,6 +1,6 @@
 //! The message log.
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Tone {
     Info,
     Good,
@@ -10,7 +10,7 @@ pub enum Tone {
     Special,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Message {
     pub text: String,
     pub tone: Tone,
@@ -25,7 +25,7 @@ impl Message {
 
 const CAPACITY: usize = 200;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Log {
     messages: Vec<Message>,
 }

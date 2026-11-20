@@ -4,7 +4,7 @@ use super::{Ammo, Component, Item, ItemKind};
 
 pub const MAX_SLOTS: usize = 26;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Inventory {
     items: Vec<Item>,
     slots: usize,

@@ -18,7 +18,7 @@
 use crate::dice::Dice;
 use crate::stats::check::{self, Tier};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Stance {
     Aggressive,
     Balanced,
@@ -70,7 +70,7 @@ impl Stance {
 pub const MAX_MOMENTUM: i32 = 3;
 
 /// Consecutive-hit bonus against a single target.
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Momentum {
     target: Option<u32>,
     stacks: i32,

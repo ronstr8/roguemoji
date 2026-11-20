@@ -2,7 +2,7 @@
 
 use super::attributes::{Attribute, bonus};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Skill {
     Melee,
@@ -102,7 +102,7 @@ pub fn breakdown(skill: Skill, rank: u8, score: impl Fn(Attribute) -> i32) -> Sk
 }
 
 /// Ranks plus accumulated practice for every skill.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct SkillSet {
     ranks: [u8; Skill::ALL.len()],
     xp: [u32; Skill::ALL.len()],

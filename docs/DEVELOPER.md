@@ -10,6 +10,8 @@ files, see [data/README.md](../data/README.md).
 cargo run --release            # play
 cargo run --release -- --seed 42   # reproducible world
 cargo run --release -- --version   # print the version
+cargo run --release -- --save-dir DIR   # keep saved runs in DIR
+cargo run --release -- --shared    # resume codes instead of one slot (see deploy/)
 cargo test                     # unit + soak tests
 make static                    # self-contained Linux binary (musl), no shared-lib deps
 make dist                      # package that binary with docs and data/ into dist/
@@ -73,6 +75,7 @@ src/
   dice.rs          RNG with dice helpers
   geometry.rs      Pos, Dir, lines, rects
   effects.rs       timed status effects (poison, bleed, buffs…)
+  save/            saved runs: the store, resume codes and JSON helpers
   combat.rs        Margin & Momentum resolution, stances
   crafting.rs      recipe loader and crafting outcomes
   stats/           attributes, skills, the 2d10 check

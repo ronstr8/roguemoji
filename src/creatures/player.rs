@@ -1,5 +1,7 @@
 //! The player character: stats, equipment, pack and derived values.
 
+use std::borrow::Cow;
+
 use crate::combat::{Momentum, Stance};
 use crate::creatures::face::{Face, FaceDef, When};
 use crate::creatures::needs::{self, Meter, Need, SleepDef};
@@ -20,7 +22,7 @@ pub const CAPACITY_PER_BRAWN: i32 = 6_00;
 pub const MIN_CAPACITY: u32 = 15_00;
 
 /// How weighed down the player is, by carried weight vs. capacity.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
 pub enum Burden {
     /// At or under capacity.
     Light,
@@ -92,7 +94,7 @@ impl Burden {
 }
 
 /// Why the player is asleep, which decides what wakes them.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Sleep {
     /// Chose to rest (`z`): until fully rested, a monster comes into view, or a key.
     Nap,
@@ -122,10 +124,10 @@ impl Slot {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Player {
     pub name: String,
-    pub background: &'static str,
+    pub background: Cow<'static, str>,
     pub pos: Pos,
     pub hp: i32,
     pub base: Attributes,
@@ -160,7 +162,7 @@ impl Player {
     pub fn new(name: String, background: &'static str, base: Attributes, skills: SkillSet) -> Self {
         let mut p = Self {
             name,
-            background,
+            background: background.into(),
             pos: Pos::default(),
             hp: 1,
             base,

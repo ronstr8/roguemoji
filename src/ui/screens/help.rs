@@ -22,7 +22,7 @@ const LINES: &[(&str, &str)] = &[
     ("z", "nap until rested: a monster in view, a hit or any key wakes you"),
     ("S", "cycle stance: Aggressive ⇄ Balanced ⇄ Guarded"),
     ("i c m", "inventory · character sheet · crafting"),
-    ("Q", "quit"),
+    ("Q", "save and quit"),
     ("", ""),
     ("COMBAT", "2d10 + skill vs Defense. Margin 0-3 graze (½), 4-8 hit, 9+ crit (×1.5, skips armor)."),
     ("", "Momentum: consecutive solid hits on one target add +1 to hit (max +3)."),

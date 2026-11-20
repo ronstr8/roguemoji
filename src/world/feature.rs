@@ -5,7 +5,7 @@ use super::encounter::{Encounter, Mood};
 use super::harvest::Harvestable;
 
 /// Whether a hidden node has been found yet.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Cover {
     /// Drawn on the map like anything else.
     Found,
@@ -15,7 +15,7 @@ pub enum Cover {
     Overlooked,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Feature {
     Harvest {
         kind: Harvestable,

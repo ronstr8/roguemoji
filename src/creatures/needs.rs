@@ -190,7 +190,7 @@ impl RawUnsafeDrink {
 }
 
 /// One need's current level.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Meter {
     pub need: Need,
     pub value: i32,

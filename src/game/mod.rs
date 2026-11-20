@@ -37,23 +37,24 @@ pub const FINAL_DEPTH: u32 = 10;
 /// Stacks the shared lockbox stash can hold.
 pub const STASH_SLOTS: usize = 20;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct FloorItem {
     pub pos: Pos,
     pub item: Item,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Kiosk {
     pub stock: Vec<(Item, u32)>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Outcome {
     Died(String),
     Won,
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Game {
     pub player: Player,
     pub monsters: Vec<Monster>,
@@ -68,8 +69,10 @@ pub struct Game {
     /// Items left in the Visitor lockbox network, reachable from any lockbox.
     pub stash: Inventory,
     /// The encounter just walked into, for its pop-up.
+    #[serde(skip)]
     pub last_encounter: Option<EncounterReport>,
     /// The wager you're sitting at, while its pop-up is open.
+    #[serde(skip)]
     pub table: Option<Table>,
     /// Burden as of the last check, to announce changes.
     last_burden: Burden,
