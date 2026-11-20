@@ -135,8 +135,8 @@ it, and sometimes hands you something. Horrors like 😱 Witness Horrors erode i
 a Willpower check halves the blow. Places like the 🧘 Peaceful Sanctum stay put and
 restore a little each time you bump them. You can tell them apart from across the map
 by their glow: green for hopeful, pale yellow for a gamble, red for a horror. To lift your spirits: smoke 🚬 Ditch Weed (it dulls you and gives you the munchies),
-pick it wild from 🌱 patches in the wastes, use a 🔦 Fleshlight Multitool or play a 🎵 Harmonica
-(neither is used up, but each needs a long rest between uses), or nap. The first 30 turns of a nap
+pick it wild from 🌱 patches in the wastes, use a 🔦 Fleshlight Multitool or play a 🎵 Harmonica or 🎻 Violin
+(none of them is used up, but each needs a long rest between uses), or nap. The first 30 turns of a nap
 restore hope, but sleeping past 80 turns wears it down, so nap when you're
 Tired rather than holding out until you're nearly empty. Passing out from
 exhaustion brings no relief. Downcast lowers Willpower; Despairing lowers

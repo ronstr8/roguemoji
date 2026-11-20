@@ -1,0 +1,11 @@
+name = "Violin"
+glyph = "🎻"
+description = "A scuffed fiddle with three good strings and a bow that's mostly horsehair. Somebody kept it safe through the end of the world."
+weight = 1.0
+
+# Kept after use, like the harmonica: playing takes it out of you.
+needs = { hope = 250 }
+message = "With your work all done and the sun setting low, you pull out your fiddle and rosin up the bow. The kids are all dead, but you still keep it kinda low."
+reusable = { cooldown = 400, refusal = "Your music making muscles need a rest." }
+loot_weight = 1
+price = 30

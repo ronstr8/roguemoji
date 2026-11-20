@@ -7,6 +7,11 @@ version can change rules, controls or data-file formats.
 
 ## [Unreleased]
 
+### Added
+
+- A rare 🎻 Violin: like the harmonica, Hope +250 and 400 turns between tunes,
+  with a verse of its own.
+
 ## [0.12.0] - 2026-11-20 — Take Me to Your Leader
 
 ### Added

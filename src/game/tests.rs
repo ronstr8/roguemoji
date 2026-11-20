@@ -964,3 +964,17 @@ fn the_harmonica_rests_between_tunes() {
     g.use_item(idx);
     assert!(logged(&g, "Your music making muscles need a rest."));
 }
+
+#[test]
+fn the_violin_plays_its_verse_and_rests_too() {
+    let mut g = quiet_game(3);
+    let fiddle = crate::items::Consumable::named("violin");
+    g.player.inventory.add(Item::food(fiddle, 1)).unwrap();
+    let idx = g.player.inventory.items().iter().position(|i| i.kind == ItemKind::Consumable(fiddle)).unwrap();
+    let hope = g.player.hope.value;
+    g.use_item(idx);
+    assert!(g.player.hope.value > hope + 200);
+    assert!(logged(&g, "you pull out your fiddle and rosin up the bow"));
+    g.use_item(idx);
+    assert!(logged(&g, "Your music making muscles need a rest."));
+}
