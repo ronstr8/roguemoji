@@ -7,6 +7,12 @@ version can change rules, controls or data-file formats.
 
 ## [Unreleased]
 
+### Fixed
+
+- The inventory priced a stack as a whole, so three Dirty Water looked worth more
+  than one Bottled Water. Stacks now show the price of one (`2💎 ea`), and the
+  details give the total too. Sorting by value goes by that unit price.
+
 ### Added
 
 - Your face on the map shows how you're holding up: it sags as health drops

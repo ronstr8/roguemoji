@@ -72,7 +72,8 @@ Damage is derived from physics rather than tuned by hand:
 
 The inventory screen shows a table for each gun with every load it accepts: bullet weight,
 muzzle velocity, range, damage and penetration, with the loaded one marked ▸. Each item in your
-pack lists what an Autovend would pay for it and its weight. Press `s` there to sort by name,
+pack lists what an Autovend would pay for it and its weight. Stacks show the price of
+one (`2💎 ea`), since an Autovend buys them one at a time; ammo is priced by the box. Press `s` there to sort by name,
 weight or value, ascending then descending. The Autovend's Sell tab and the Visitor Lockbox use
 the same order, and `s` works there too.
 

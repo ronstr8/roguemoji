@@ -1,11 +1,11 @@
 //! Inventory pop-up: equipped gear, the pack, and item details.
 
-use super::{footer, item_details, item_row, need_text, popup, scroll_offset};
+use super::{footer, item_details, item_row, need_text, paragraph, popup, scroll_offset};
 use crate::creatures::Player;
 use crate::creatures::player::Slot;
 use crate::game::Game;
 use crate::items::Item;
-use crate::items::loot::sale_value;
+use crate::items::loot::{sell_price, sold_singly};
 use crate::items::weight::fmt_lb;
 use crate::ui::canvas::Canvas;
 use crate::ui::{Area, theme};
@@ -68,7 +68,7 @@ impl Sort {
             SortKey::Name => order.sort_by_cached_key(|&i| name(i)),
             SortKey::Weight => order.sort_by_cached_key(|&i| (items[i].weight(), name(i))),
             // Things an Autovend won't buy count as worth least.
-            SortKey::Value => order.sort_by_cached_key(|&i| (sale_value(&items[i], depth), name(i))),
+            SortKey::Value => order.sort_by_cached_key(|&i| (sell_price(&items[i], depth), name(i))),
         }
         if self.descending {
             order.reverse();
@@ -189,12 +189,14 @@ fn draw_detail(canvas: &mut Canvas, area: Area, game: &Game, row: Option<Row>) {
     let category = if equipped { format!("{} · equipped", item.category()) } else { item.category().to_string() };
     canvas.text_max(dx, dy, &category, dw, theme::DIM, theme::POPUP);
     dy += 1;
-    let worth = match sale_value(&item, game.depth) {
+    let worth = match sell_price(&item, game.depth) {
+        Some(v) if sold_singly(&item) => {
+            format!("An Autovend would pay {v} 💎 each ({} 💎 for all {}).", v * item.qty, item.qty)
+        }
         Some(v) => format!("An Autovend would pay {v} 💎 for it."),
         None => "No Autovend will buy it.".to_string(),
     };
-    canvas.text_max(dx, dy, &worth, dw, theme::LOOT, theme::POPUP);
-    dy += 2;
+    dy = paragraph(canvas, dx, dy, dw, bottom, &worth, theme::LOOT) + 1;
     // The equipped slot itself has nothing to compare with; a spare in the pack does.
     let against = if equipped { None } else { game.player.compare_stats(&item) };
     item_details(canvas, Area::new(dx, dy, dw, bottom.saturating_sub(dy)), &item, &game.player, against.as_deref());
@@ -248,7 +250,7 @@ mod tests {
         let values: Vec<Option<u32>> = Sort { key: SortKey::Value, descending: true }
             .order(items, g.depth)
             .into_iter()
-            .map(|i| sale_value(&items[i], g.depth))
+            .map(|i| sell_price(&items[i], g.depth))
             .collect();
         assert!(values.windows(2).all(|w| w[0] >= w[1]), "{values:?}");
         assert_eq!(values.last(), Some(&None), "unsellable items sort last when descending");
@@ -271,11 +273,28 @@ mod tests {
         println!("{screen}");
         assert!(screen.contains("sort: value ↓"));
         let vest = rows.iter().find(|r| r.contains("Kevlar Vest") && r.contains("a)")).expect("vest is first");
-        let worth = sale_value(&Item::one(ItemKind::Armor(Armor::named("kevlar_vest"))), g.depth).unwrap();
+        let worth = sell_price(&Item::one(ItemKind::Armor(Armor::named("kevlar_vest"))), g.depth).unwrap();
         assert!(vest.contains(&format!("{worth}💎")) && vest.contains("8.0 lb"), "{vest}");
         let title = rows.iter().find(|r| r.contains("Pack (")).unwrap();
         assert!(title.contains(" lb  sort: value ↓"), "{title}");
         assert!(rows.iter().any(|r| r.contains("Claw Hammer") && r.contains("—")));
+    }
+
+    #[test]
+    fn stacks_are_priced_per_unit() {
+        let g = game();
+        let items = g.player.inventory.items();
+        let idx = items.iter().position(|i| i.base_name() == "Hardtack").unwrap();
+        let each = sell_price(&items[idx], g.depth).unwrap();
+        let mut canvas = Canvas::new(120, 40);
+        draw(&mut canvas, &g, Sort::default(), SLOT_ROWS + idx);
+        let rows = canvas.text_rows();
+        let screen = rows.join("\n");
+        println!("{screen}");
+        let row = rows.iter().find(|r| r.contains("Hardtack") && r.contains("lb")).expect("hardtack row");
+        assert!(row.contains(&format!("{each}💎 ea")), "{row}");
+        // The line wraps in the details pane, so check its two halves.
+        assert!(screen.contains(&format!("pay {each} 💎 each ({} 💎 for all", each * 4)), "{screen}");
     }
 
     #[test]

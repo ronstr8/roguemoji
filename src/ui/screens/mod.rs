@@ -17,7 +17,7 @@ use super::canvas::Canvas;
 use super::{Area, theme};
 use crate::creatures::player::Player;
 use crate::items::guns::LoadStats;
-use crate::items::loot::sale_value;
+use crate::items::loot::{sell_price, sold_singly};
 use crate::items::weight::fmt_lb;
 use crate::items::{Item, ItemKind, Stat};
 use std::cmp::Ordering;
@@ -64,7 +64,7 @@ pub fn need_text(m: &crate::creatures::needs::Meter) -> String {
 
 /// List columns, right-aligned: value then weight.
 const WT_W: u16 = 9;
-const VAL_W: u16 = 6;
+const VAL_W: u16 = 8;
 
 /// One item-list row at `at`: a label, then the item's sale value and weight if there is one.
 pub fn item_row(canvas: &mut Canvas, at: Area, label: &str, item: Option<&Item>, depth: u32, on: bool) {
@@ -75,7 +75,12 @@ pub fn item_row(canvas: &mut Canvas, at: Area, label: &str, item: Option<&Item>,
     canvas.text_max(x, y, label, w.saturating_sub(WT_W + VAL_W + 1), color, bg);
     let Some(item) = item else { return };
     let right = |s: &str, end: u16| end.saturating_sub(crate::ui::canvas::text_width(s) as u16);
-    let value = sale_value(item, depth).map_or("—".to_string(), |v| format!("{v}💎"));
+    // A stack sold one at a time is priced per unit, as the Sell tab charges it.
+    let value = match sell_price(item, depth) {
+        Some(v) if sold_singly(item) => format!("{v}💎 ea"),
+        Some(v) => format!("{v}💎"),
+        None => "—".to_string(),
+    };
     canvas.text(right(&value, x + w - WT_W), y, &value, theme::LOOT, bg);
     let wt = fmt_lb(item.weight());
     canvas.text(right(&wt, x + w), y, &wt, theme::DIM, bg);

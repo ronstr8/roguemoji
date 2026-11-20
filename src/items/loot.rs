@@ -264,6 +264,11 @@ pub fn sell_qty(item: &Item) -> u32 {
     }
 }
 
+/// Whether a stack goes one at a time, so its price is shown per unit.
+pub fn sold_singly(item: &Item) -> bool {
+    sell_qty(item) < item.qty
+}
+
 /// What an Autovend on `depth` pays for one sale of `item` (see
 /// [`sell_qty`]), or `None` if it won't buy it.
 pub fn sell_price(item: &Item, depth: u32) -> Option<u32> {
