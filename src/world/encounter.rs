@@ -11,7 +11,7 @@ use serde::Deserialize;
 
 use crate::content::flavor::Flavor;
 use crate::content::{self, Loot, Problems};
-use crate::creatures::needs::Need;
+use crate::creatures::needs::{self, Need};
 use crate::items::{Component, Consumable, Item};
 use crate::stats::Attribute;
 
@@ -41,6 +41,28 @@ pub struct EncounterDef {
     pub resist: Option<Resist>,
     /// A bet offered instead of fixed effects.
     pub wager: Option<Wager>,
+}
+
+/// What an encounter promises from across the map, which colors its glow.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Mood {
+    Hope,
+    /// A gambler or a den: it could go either way.
+    Chance,
+    Horror,
+}
+
+impl EncounterDef {
+    /// A wager is chance; otherwise one that costs Hope is a horror, and
+    /// anything else is a hope.
+    pub fn mood(&self) -> Mood {
+        if self.wager.is_some() {
+            return Mood::Chance;
+        }
+        let hope = Need::named(needs::HOPE);
+        let change: i32 = self.needs.iter().filter(|(n, _)| *n == hope).map(|(_, v)| v).sum();
+        if change < 0 { Mood::Horror } else { Mood::Hope }
+    }
 }
 
 /// A check that softens a bad encounter: on success, losses are halved.
@@ -150,6 +172,17 @@ mod tests {
     fn stock_encounters_load() {
         load().expect("stock encounter data is valid");
         assert!(Encounter::all().any(|e| e.def().stays), "there's at least one place to return to");
+    }
+
+    #[test]
+    fn mood_follows_hope_and_wagers() {
+        assert_eq!(parse(GOOD).unwrap().mood(), Mood::Hope);
+        assert_eq!(parse(&GOOD.replace("hope = 150", "hope = -150")).unwrap().mood(), Mood::Horror);
+        assert_eq!(parse(DEN).unwrap().mood(), Mood::Chance);
+        let mood = |id: &str| Encounter::all().find(|e| e.def().id == id).unwrap().def().mood();
+        assert_eq!(mood("campfire_circle"), Mood::Hope);
+        assert_eq!(mood("card_sharp"), Mood::Chance);
+        assert_eq!(mood("witness_horrors"), Mood::Horror);
     }
 
     #[test]

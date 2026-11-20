@@ -25,6 +25,13 @@ const SLEEP_TICK: Duration = Duration::from_millis(40);
 /// How long the screen stays white after stepping through a portal.
 const WHITEOUT: Duration = Duration::from_millis(500);
 
+/// One full breath of an encounter's glow, bright to bright.
+const PULSE: Duration = Duration::from_millis(2400);
+/// How often the glow is redrawn while an encounter is in sight.
+const PULSE_FRAME: Duration = Duration::from_millis(100);
+/// The glow never fades below this, so encounters always stand out.
+const GLOW_FLOOR: f32 = 0.3;
+
 const NAMES: &[&str] = &["Ash", "Rook", "Juniper", "Vega", "Sable", "Cass", "Ozzie", "Wren", "Dell", "Marlow"];
 
 enum Screen {
@@ -77,6 +84,8 @@ pub struct App {
     /// The screen is blanked white until this moment, after a portal jump.
     whiteout: Option<Instant>,
     inv_sort: screens::inventory::Sort,
+    /// When the app started; the glow's pulse is timed from here.
+    started: Instant,
     running: bool,
 }
 
@@ -90,6 +99,7 @@ impl App {
             flash: None,
             whiteout: None,
             inv_sort: Default::default(),
+            started: Instant::now(),
             running: true,
         }
     }
@@ -105,9 +115,9 @@ impl App {
                 self.sleep_tick();
                 continue;
             }
-            // While a flash or whiteout is up, wait only until the first one
-            // expires, then redraw.
-            if let Some(until) = self.flash.map(|(_, t)| t).into_iter().chain(self.whiteout).min() {
+            // While a flash, whiteout or glow is up, wait only until the next
+            // one is due, then redraw.
+            if let Some(until) = self.next_redraw() {
                 let left = until.saturating_duration_since(Instant::now());
                 if left.is_zero() || !event::poll(left)? {
                     self.expire_effects();
@@ -121,6 +131,26 @@ impl App {
             }
         }
         Ok(())
+    }
+
+    /// The soonest moment a timed effect needs the screen redrawn, if any.
+    fn next_redraw(&self) -> Option<Instant> {
+        let pulse = self.pulsing().then(|| Instant::now() + PULSE_FRAME);
+        self.flash.map(|(_, t)| t).into_iter().chain(self.whiteout).chain(pulse).min()
+    }
+
+    /// Whether encounter glows are on screen and uncovered, so worth animating.
+    /// Pop-ups dim the map, which hides the glow anyway.
+    fn pulsing(&self) -> bool {
+        let map_showing = matches!(self.screen, Screen::Play | Screen::Targeting { .. } | Screen::ConfirmQuit);
+        map_showing && self.game.as_ref().is_some_and(|g| !g.is_over() && g.map.sees_encounter())
+    }
+
+    /// The glow's strength now: a slow breath between `GLOW_FLOOR` and full.
+    fn glow(&self) -> f32 {
+        let phase = self.started.elapsed().as_secs_f32() / PULSE.as_secs_f32();
+        let breath = 0.5 - 0.5 * (phase * std::f32::consts::TAU).cos();
+        GLOW_FLOOR + (1.0 - GLOW_FLOOR) * breath
     }
 
     /// Drop the timed screen effects whose moment has passed.
@@ -171,8 +201,8 @@ impl App {
             Screen::ConfirmQuit => (None, Some("Really quit? This run will be lost. (y/n)".to_string())),
             _ => (None, None),
         };
-        let flash = self.flash.map(|(pos, _)| pos);
-        ui::draw_play(canvas, game, target, flash, status.as_deref());
+        let fx = ui::Effects { flash: self.flash.map(|(pos, _)| pos), glow: self.glow() };
+        ui::draw_play(canvas, game, target, fx, status.as_deref());
 
         match &self.screen {
             Screen::Inventory { selected } => screens::inventory::draw(canvas, game, self.inv_sort, *selected),

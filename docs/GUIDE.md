@@ -101,7 +101,8 @@ you press a key. Sleep heals a little, but hunger and thirst keep draining.
 on the map that you walk into. A 🤝 Friendly Stranger or a 🔥 Campfire Circle restores
 it, and sometimes hands you something. Horrors like 😱 Witness Horrors erode it, unless
 a Willpower check halves the blow. Places like the 🧘 Peaceful Sanctum stay put and
-restore a little each time you bump them. Downcast lowers Willpower; Despairing lowers
+restore a little each time you bump them. You can tell them apart from across the map
+by their glow: green for hopeful, pale yellow for a gamble, red for a horror. Downcast lowers Willpower; Despairing lowers
 it further, and Wit too. Willpower powers crystal healing and resisting dread, so
 despair makes 💎 heal less and terror land more often. It never costs HP.
 

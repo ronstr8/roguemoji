@@ -3,7 +3,7 @@
 use std::collections::{HashMap, HashSet};
 
 use super::canvas::Canvas;
-use super::{Area, theme};
+use super::{Area, Effects, theme};
 use crate::game::Game;
 use crate::geometry::{Pos, line};
 
@@ -17,7 +17,7 @@ fn camera(origin: i32, view: i32, size: i32) -> i32 {
     (origin - view / 2).clamp(0, (size - view).max(0))
 }
 
-pub fn draw(canvas: &mut Canvas, area: Area, game: &Game, target: Option<Pos>, flash: Option<Pos>) {
+pub fn draw(canvas: &mut Canvas, area: Area, game: &Game, target: Option<Pos>, fx: Effects) {
     canvas.fill(area.x, area.y, area.w, area.h, theme::BG);
     let map = &game.map;
     let view_w = (area.w / 2) as i32;
@@ -48,7 +48,11 @@ pub fn draw(canvas: &mut Canvas, area: Area, game: &Game, target: Option<Pos>, f
             };
             let tile = map.tile(p);
             if map.is_visible(p) {
-                let glyph = if Some(p) == flash {
+                let bg = match map.feature(p).and_then(|f| f.mood()) {
+                    Some(mood) if bg == theme::BG => theme::glow(mood, fx.glow),
+                    _ => bg,
+                };
+                let glyph = if Some(p) == fx.flash {
                     Some(BANG_GLYPH)
                 } else if p == me {
                     Some(if game.player.is_asleep() { SLEEP_GLYPH } else { PLAYER_GLYPH })
@@ -67,5 +71,35 @@ pub fn draw(canvas: &mut Canvas, area: Area, game: &Game, target: Option<Pos>, f
                 };
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::creatures::Background;
+    use crate::world::Feature;
+    use crate::world::Tile;
+    use crate::world::encounter::{Encounter, Mood};
+
+    /// The background behind the first cell drawing `glyph`.
+    fn bg_of(canvas: &Canvas, glyph: &str) -> Option<crossterm::style::Color> {
+        let ch = glyph.chars().next()?;
+        (0..canvas.height()).flat_map(|y| canvas.row(y).iter()).find(|c| c.ch == ch).map(|c| c.bg)
+    }
+
+    #[test]
+    fn encounters_glow_by_mood() {
+        let mut g = Game::new(Background::ALL[0].create("Tester".into()), Some(1));
+        let horror = Encounter::all().find(|e| e.def().id == "witness_horrors").unwrap();
+        let spot = Pos::new(g.player.pos.x + 1, g.player.pos.y);
+        g.map.set_tile(spot, Tile::Floor);
+        g.map.set_feature(spot, Feature::encounter(horror));
+        g.map.mark_visible(spot);
+        let mut canvas = Canvas::new(60, 20);
+        draw(&mut canvas, Area::new(0, 0, 60, 20), &g, None, Effects { flash: None, glow: 1.0 });
+        assert_eq!(bg_of(&canvas, &horror.def().glyph), Some(theme::glow(Mood::Horror, 1.0)));
+        assert_eq!(bg_of(&canvas, PLAYER_GLYPH), Some(theme::BG));
+        assert!(g.map.sees_encounter());
     }
 }

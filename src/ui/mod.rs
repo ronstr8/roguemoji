@@ -38,13 +38,21 @@ impl Area {
     }
 }
 
-/// Draw the main play view: map, sidebar and message log. `flash` marks a
-/// tile to draw an impact burst on.
-pub fn draw_play(canvas: &mut Canvas, game: &Game, target: Option<Pos>, flash: Option<Pos>, status_line: Option<&str>) {
+/// Timed effects on the map.
+#[derive(Clone, Copy, Debug)]
+pub struct Effects {
+    /// A tile to draw an impact burst on.
+    pub flash: Option<Pos>,
+    /// How strongly encounters glow right now, from 0 to 1.
+    pub glow: f32,
+}
+
+/// Draw the main play view: map, sidebar and message log.
+pub fn draw_play(canvas: &mut Canvas, game: &Game, target: Option<Pos>, fx: Effects, status_line: Option<&str>) {
     let (w, h) = (canvas.width(), canvas.height());
     let map_w = w.saturating_sub(SIDEBAR_WIDTH);
     let map_h = h.saturating_sub(LOG_HEIGHT);
-    map_view::draw(canvas, Area::new(0, 0, map_w, map_h), game, target, flash);
+    map_view::draw(canvas, Area::new(0, 0, map_w, map_h), game, target, fx);
     hud::draw_sidebar(canvas, Area::new(map_w, 0, SIDEBAR_WIDTH, map_h), game);
     hud::draw_log(canvas, Area::new(0, map_h, w, LOG_HEIGHT), game, status_line);
 }

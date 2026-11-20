@@ -85,6 +85,11 @@ impl Map {
         self.idx(p).is_some_and(|i| self.visible[i])
     }
 
+    /// Whether an encounter is in sight right now, so its glow is worth animating.
+    pub fn sees_encounter(&self) -> bool {
+        self.features.iter().any(|(p, f)| f.mood().is_some() && self.is_visible(*p))
+    }
+
     pub fn is_explored(&self, p: Pos) -> bool {
         self.idx(p).is_some_and(|i| self.explored[i])
     }

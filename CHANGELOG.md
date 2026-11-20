@@ -7,6 +7,11 @@ version can change rules, controls or data-file formats.
 
 ## [Unreleased]
 
+### Added
+
+- Encounters glow on the map so they stand out from items: a slow pulse of
+  green for hopeful ones, pale yellow for gamblers and red for horrors.
+
 ### Changed
 
 - The title screen, the sidebar and the SSH login banner spell the name r💀guem☢️ji.

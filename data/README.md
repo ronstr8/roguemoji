@@ -218,6 +218,9 @@ resist = { attribute = "willpower", target = 11, text = "You look away in time."
 An encounter needs `needs`, `gives` or a `wager`, or it would do nothing. Each
 level places two or three, picked by `chance` at that depth.
 
+Its glow on the map comes from these fields too: yellow for one with a `wager`,
+red for one whose `needs` lower Hope, and green for anything else.
+
 ### Wagers
 
 An encounter with a `[wager]` table offers a bet instead of fixed effects, so

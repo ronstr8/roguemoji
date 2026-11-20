@@ -1,7 +1,7 @@
 //! Map features: harvestable nodes, Autovend kiosks, Visitor lockboxes,
 //! encounters, portals, and the Beacon.
 
-use super::encounter::Encounter;
+use super::encounter::{Encounter, Mood};
 use crate::stats::Skill;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -157,6 +157,14 @@ impl Feature {
             Feature::Encounter { kind, .. } => kind.def().glyph.as_str(),
             Feature::Portal => "🌀",
             Feature::Beacon => "📡",
+        }
+    }
+
+    /// The mood of an encounter; `None` for every other feature.
+    pub fn mood(&self) -> Option<Mood> {
+        match self {
+            Feature::Encounter { kind, .. } => Some(kind.def().mood()),
+            _ => None,
         }
     }
 

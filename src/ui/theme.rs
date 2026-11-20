@@ -4,6 +4,7 @@ use crossterm::style::Color;
 
 use crate::creatures::player::Burden;
 use crate::game::Tone;
+use crate::world::encounter::Mood;
 
 const fn rgb(r: u8, g: u8, b: u8) -> Color {
     Color::Rgb { r, g, b }
@@ -25,6 +26,11 @@ pub const LOOT: Color = rgb(120, 200, 240);
 pub const SPECIAL: Color = rgb(200, 150, 255);
 pub const TARGET_BG: Color = rgb(90, 30, 30);
 pub const PATH_BG: Color = rgb(50, 30, 30);
+/// Encounter glows at full strength, behind the glyph: emoji ignore the
+/// foreground color, so the tint has to go in the background.
+pub const HOPE_GLOW: Color = rgb(40, 150, 90);
+pub const CHANCE_GLOW: Color = rgb(150, 135, 70);
+pub const HORROR_GLOW: Color = rgb(165, 60, 60);
 /// The blinding flash of a portal jump.
 pub const WHITEOUT: Color = rgb(255, 255, 255);
 
@@ -45,4 +51,21 @@ pub fn tone(t: Tone) -> Color {
         Tone::Loot => LOOT,
         Tone::Special => SPECIAL,
     }
+}
+
+/// The background behind an encounter, at `strength` from 0 (bare floor) to 1.
+pub fn glow(mood: Mood, strength: f32) -> Color {
+    let full = match mood {
+        Mood::Hope => HOPE_GLOW,
+        Mood::Chance => CHANCE_GLOW,
+        Mood::Horror => HORROR_GLOW,
+    };
+    blend(BG, full, strength)
+}
+
+/// Mix two colors: `t` of 0 is all `a`, 1 is all `b`.
+fn blend(a: Color, b: Color, t: f32) -> Color {
+    let (Color::Rgb { r: ar, g: ag, b: ab }, Color::Rgb { r: br, g: bg, b: bb }) = (a, b) else { return b };
+    let mix = |x: u8, y: u8| (x as f32 + (y as f32 - x as f32) * t.clamp(0.0, 1.0)).round() as u8;
+    rgb(mix(ar, br), mix(ag, bg), mix(ab, bb))
 }
