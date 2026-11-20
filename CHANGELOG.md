@@ -7,7 +7,7 @@ version can change rules, controls or data-file formats.
 
 ## [Unreleased]
 
-## [0.11.0] - 2026-11-20
+## [0.11.0] - 2026-11-20 — Saving the World
 
 ### Added
 
