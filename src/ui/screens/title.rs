@@ -6,10 +6,7 @@ use crate::stats::{Attribute, Skill};
 use crate::ui::canvas::{Canvas, text_width};
 use crate::ui::{Area, theme};
 
-// ☢ without its variation selector, which the canvas would drop anyway. The
-// canvas counts ☢ as one column, but some terminals draw it two wide, so the
-// extra space after it keeps it from crowding the j.
-const BANNER: &[&str] = &["r 💀 g u e m ☢  j i", "🐀 🧟 🦍   the world ended politely   📡 💎 🔫"];
+const BANNER: &[&str] = &[crate::ui::TITLE, "🐀 🧟 🦍   the world ended politely   📡 💎 🔫"];
 
 pub fn draw(canvas: &mut Canvas, selected: usize) {
     let w = canvas.width();
@@ -83,7 +80,7 @@ mod tests {
         draw(&mut canvas, 0);
         let rows = canvas.text_rows();
         println!("{}", rows.join("\n"));
-        assert!(rows[1].trim() == "r 💀 g u e m ☢  j i");
+        assert_eq!(rows[1].trim(), crate::ui::TITLE);
         assert!(rows.iter().any(|r| r.contains("Who were you, before?")));
     }
 }

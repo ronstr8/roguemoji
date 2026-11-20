@@ -13,6 +13,12 @@ use canvas::Canvas;
 use crate::game::Game;
 use crate::geometry::Pos;
 
+/// The game's name as drawn on screen, spaced a letter apart.
+// ☢ without its variation selector, which the canvas would drop anyway. The
+// canvas counts ☢ as one column, but some terminals draw it two wide, so the
+// extra space after it keeps it from crowding the j.
+pub const TITLE: &str = "r 💀 g u e m ☢  j i";
+
 pub const MIN_WIDTH: u16 = 80;
 pub const MIN_HEIGHT: u16 = 24;
 const SIDEBAR_WIDTH: u16 = 38;

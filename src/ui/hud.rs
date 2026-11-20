@@ -17,7 +17,7 @@ pub fn bar(value: i32, max: i32, width: usize) -> String {
 
 pub fn draw_sidebar(canvas: &mut Canvas, area: Area, game: &Game) {
     let bg = theme::PANEL;
-    canvas.frame(area, "roguemoji", theme::BORDER, bg);
+    canvas.frame(area, super::TITLE, theme::BORDER, bg);
     let x = area.x + 2;
     let max = area.w.saturating_sub(4);
     let mut y = area.y + 1;
@@ -160,6 +160,7 @@ mod tests {
         let mut g = Game::new(Background::ALL[0].create("Tester".into()), Some(1));
         let rows = sidebar(&g);
         println!("{}", rows.join("\n"));
+        assert!(rows[0].contains(super::super::TITLE));
         assert!(rows.iter().any(|r| r.contains("Fed  ·  Hydrated")));
         assert!(rows.iter().any(|r| r.contains("Rested  ·  Hopeful")));
         assert!(rows.iter().any(|r| r.contains("💎") && r.contains("crystals")));

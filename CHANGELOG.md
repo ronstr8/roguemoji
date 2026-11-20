@@ -9,7 +9,7 @@ version can change rules, controls or data-file formats.
 
 ### Changed
 
-- The title screen and the SSH login banner spell the name r💀guem☢️ji.
+- The title screen, the sidebar and the SSH login banner spell the name r💀guem☢️ji.
 
 ## [0.8.0] - 2026-11-19
 
