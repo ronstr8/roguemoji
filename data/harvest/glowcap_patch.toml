@@ -1,6 +1,7 @@
 name = "Glowcap Patch"
 glyph = "🍄"
 biome = "wastes"
+chance = { weight = 10 }
 uses = 2
 yields = [
     { item = "glowcap", min = 1, max = 2 },

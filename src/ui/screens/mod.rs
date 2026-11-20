@@ -6,6 +6,7 @@ pub mod encounter;
 pub mod ended;
 pub mod help;
 pub mod inventory;
+pub mod open_with;
 pub mod shoot;
 pub mod shop;
 pub mod stash;

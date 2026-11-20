@@ -48,7 +48,7 @@ pub fn draw(canvas: &mut Canvas, area: Area, game: &Game, target: Option<Pos>, f
             };
             let tile = map.tile(p);
             if map.is_visible(p) {
-                let bg = match map.feature(p).and_then(|f| f.mood()) {
+                let bg = match map.shown_feature(p).and_then(|f| f.mood()) {
                     Some(mood) if bg == theme::BG => theme::glow(mood, fx.glow),
                     _ => bg,
                 };
@@ -57,7 +57,11 @@ pub fn draw(canvas: &mut Canvas, area: Area, game: &Game, target: Option<Pos>, f
                 } else if p == me {
                     Some(if game.player.is_asleep() { SLEEP_GLYPH } else { PLAYER_GLYPH })
                 } else {
-                    monsters.get(&p).or_else(|| items.get(&p)).copied().or_else(|| map.feature(p).map(|f| f.glyph()))
+                    monsters
+                        .get(&p)
+                        .or_else(|| items.get(&p))
+                        .copied()
+                        .or_else(|| map.shown_feature(p).map(|f| f.glyph()))
                 };
                 match glyph {
                     Some(g) => canvas.text(sx, sy, g, theme::TEXT, bg),
@@ -65,7 +69,7 @@ pub fn draw(canvas: &mut Canvas, area: Area, game: &Game, target: Option<Pos>, f
                 };
             } else {
                 // Remembered terrain is drawn dim; features are remembered as-is.
-                match map.feature(p) {
+                match map.shown_feature(p) {
                     Some(f) => canvas.text(sx, sy, f.glyph(), theme::MEMORY, bg),
                     None => canvas.text(sx, sy, tile.glyph(), theme::MEMORY, bg),
                 };

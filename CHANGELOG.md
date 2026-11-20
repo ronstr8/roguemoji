@@ -9,6 +9,11 @@ version can change rules, controls or data-file formats.
 
 ### Added
 
+- Hidden caches. A 🪖 Military Crate (ruins) and a 🪧 Buried Cache (wastes) aren't
+  drawn until you notice them: one Scavenging or Survival check when they first
+  come into view, or walk into one to stumble onto it. Pick a crate's lock with
+  Lockpicks or pry it with a crowbar on Brawn, choosing from a pop-up that shows
+  your odds; dig up a cache with a shovel, at a cost in rest.
 - A Lockpicking skill (Reflexes and Brains). The Scavenger starts at rank 1 with a
   set of 🪛 Lockpicks.
 - Autovends sometimes stock a tool, most often a shovel, and the shovel and crowbar

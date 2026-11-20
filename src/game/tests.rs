@@ -9,7 +9,7 @@ use crate::geometry::Dir;
 use crate::items::Item;
 use crate::items::{Component, ItemKind, Pack};
 use crate::stats::Attribute;
-use crate::world::{Feature, Tile};
+use crate::world::{Cover, Feature, Tile};
 
 fn new_game(seed: u64) -> Game {
     let bg = Background::ALL[seed as usize % Background::ALL.len()];
@@ -457,8 +457,14 @@ fn bumping_a_harvest_node_gathers_until_its_picked_clean() {
     let spot = g.player.pos.step(dir);
     let toolbox = Harvestable::named("toolbox");
     g.map.set_feature(spot, Feature::harvest(toolbox));
-    let held =
-        |g: &Game| toolbox.def().yields.iter().map(|y| g.player.inventory.count_component(y.component)).sum::<u32>();
+    let held = |g: &Game| -> u32 {
+        use crate::items::loot::Prize;
+        let parts = toolbox.def().yields.iter().filter_map(|y| match y.prize {
+            Prize::Component(c) => Some(c),
+            _ => None,
+        });
+        parts.map(|c| g.player.inventory.count_component(c)).sum()
+    };
     let before = held(&g);
     for _ in 0..50 {
         if g.map.feature(spot).is_none() {
@@ -482,6 +488,7 @@ fn lock_beside(g: &mut Game, difficulty: i32) -> (Pos, crate::world::harvest::Ha
         name = "Strongbox"
         glyph = "🔒"
         biome = "ruins"
+        chance = {{ weight = 1 }}
         uses = 1
         yields = [{{ item = "nails", min = 1, max = 1 }}]
         [[open]]
@@ -503,13 +510,13 @@ fn a_way_that_needs_a_tool_waits_for_one() {
     while g.player.inventory.consume(&picks.kind, 1) {}
     let (spot, def) = lock_beside(&mut g, 1);
     let turn = g.turn;
-    g.harvest(spot, &def);
+    assert_eq!(g.open_node(spot, &def), Event::None);
     assert_eq!(g.turn, turn, "no tool, no time spent");
-    assert!(g.log.recent(1)[0].text.contains("without a tool: 🪛 Lockpicks"));
+    assert!(g.log.recent(1)[0].text.contains("won't open for you. It takes 🪛 Lockpicks."));
 
     g.player.inventory.add(picks.clone()).unwrap();
     let nails = g.player.inventory.count_component(Component::named("nails"));
-    g.harvest(spot, &def);
+    assert_eq!(g.open_node(spot, &def), Event::None, "one way open, so it's used straight away");
     assert!(g.turn > turn);
     assert!(g.player.inventory.count_component(Component::named("nails")) > nails, "picked it");
     assert_eq!(g.player.inventory.count(&picks.kind), 1, "and the picks aren't used up");
@@ -541,11 +548,111 @@ fn a_fumble_can_break_the_tool() {
     let mut broke = 0;
     for _ in 0..40 {
         let had = g.player.inventory.count(&picks.kind);
-        g.harvest(spot, &def);
+        g.harvest(spot, &def, 0);
         broke += had - g.player.inventory.count(&picks.kind);
     }
     assert!(broke > 0, "a hard lock fumbles now and then, snapping picks");
     assert_eq!(g.player.inventory.count(&picks.kind), before - broke);
+}
+
+/// Put a stock cache on the open cell next to the player, hidden and not yet
+/// looked at; returns its direction and position.
+fn cache_beside(g: &mut Game, id: &str) -> (Dir, Pos) {
+    use crate::world::Harvestable;
+    let dir = open_step(g);
+    let pos = g.player.pos.step(dir);
+    g.map.set_feature(pos, Feature::harvest(Harvestable::named(id)));
+    (dir, pos)
+}
+
+fn cover_at(g: &Game, pos: Pos) -> Option<Cover> {
+    match g.map.feature(pos) {
+        Some(Feature::Harvest { cover, .. }) => Some(*cover),
+        _ => None,
+    }
+}
+
+#[test]
+fn a_hidden_cache_is_neither_drawn_nor_in_the_way() {
+    let mut g = quiet_game(16);
+    let (_, pos) = cache_beside(&mut g, "military_crate");
+    assert_eq!(cover_at(&g, pos), Some(Cover::Hidden));
+    assert!(g.map.shown_feature(pos).is_none());
+    assert!(g.map.passable(pos), "you could walk right over it");
+}
+
+#[test]
+fn a_hidden_cache_gets_one_look_when_it_comes_into_view() {
+    let mut spotted = 0;
+    for seed in 0..40 {
+        let mut g = quiet_game(seed);
+        let (_, pos) = cache_beside(&mut g, "military_crate");
+        g.map.mark_visible(pos);
+        g.look_for_hidden();
+        let first = cover_at(&g, pos).unwrap();
+        assert_ne!(first, Cover::Hidden, "seed {seed}: the look is taken");
+        for _ in 0..10 {
+            g.look_for_hidden();
+        }
+        assert_eq!(cover_at(&g, pos), Some(first), "seed {seed}: and never retaken");
+        spotted += usize::from(first == Cover::Found);
+    }
+    assert!(spotted > 0 && spotted < 40, "spotted {spotted} of 40");
+}
+
+#[test]
+fn walking_onto_a_hidden_cache_finds_it_and_says_what_it_takes() {
+    let mut g = quiet_game(4);
+    g.player.melee = None;
+    let picks = Item::component(Component::named("lockpicks"), 1);
+    while g.player.inventory.consume(&picks.kind, 1) {}
+    let (dir, pos) = cache_beside(&mut g, "military_crate");
+    g.map.set_cover(pos, Cover::Overlooked);
+    let (start, turn) = (g.player.pos, g.turn);
+    assert_eq!(g.move_player(dir), Event::None);
+    assert_eq!(g.player.pos, start, "the find stops you");
+    assert_eq!(g.turn, turn, "and a locked crate with no tools takes no time");
+    assert_eq!(cover_at(&g, pos), Some(Cover::Found));
+    let log: Vec<&str> = g.log.recent(2).iter().map(|m| m.text.as_str()).collect();
+    assert!(log[0].contains("You stumble onto a 🪖 Military Crate."), "{log:?}");
+    assert!(log[1].contains("It takes 🪛 Lockpicks or 🦯 Crowbar."), "{log:?}");
+    assert!(!g.map.passable(pos), "found, it's in the way like any crate");
+}
+
+#[test]
+fn two_ways_in_means_choosing_one() {
+    let mut g = quiet_game(8);
+    assert!(g.player.melee.is_some_and(|m| m.def().id == "crowbar"), "a Scavenger");
+    let (dir, pos) = cache_beside(&mut g, "military_crate");
+    g.map.set_cover(pos, Cover::Found);
+    assert_eq!(g.move_player(dir), Event::ChooseWay(pos));
+    let turn = g.turn;
+    g.harvest_at(pos, 1);
+    assert!(g.turn > turn, "prying takes a turn");
+}
+
+#[test]
+fn digging_up_a_cache_is_tiring() {
+    let mut g = quiet_game(17);
+    g.player.inventory.add(Item::one(ItemKind::Melee(crate::items::MeleeWeapon::named("shovel")))).unwrap();
+    let (_, pos) = cache_beside(&mut g, "buried_cache");
+    let def = g.node_at(pos).unwrap();
+    let before = g.player.rest.value;
+    g.harvest(pos, def, 0);
+    assert!(before - g.player.rest.value >= 150, "rest {before} -> {}", g.player.rest.value);
+}
+
+#[test]
+fn levels_hide_caches_now_and_then() {
+    let mut caches = 0;
+    for seed in 0..6 {
+        let mut g = new_game(seed);
+        for depth in 1..=FINAL_DEPTH {
+            g.enter_level(depth);
+            caches += g.map.cells().filter(|p| g.node_at(*p).is_some_and(|d| d.hidden.is_some())).count();
+        }
+    }
+    assert!((5..200).contains(&caches), "{caches} caches in 60 levels");
 }
 
 #[test]

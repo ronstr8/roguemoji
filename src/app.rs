@@ -70,6 +70,11 @@ enum Screen {
     Encounter,
     /// Sitting at a wager; the table is in `Game::table`.
     Wager,
+    /// Choosing how to open the harvest node or cache at `pos`.
+    OpenWith {
+        pos: Pos,
+        selected: usize,
+    },
     ConfirmQuit,
     Ended,
 }
@@ -216,6 +221,7 @@ impl App {
             Screen::Help { scroll } => screens::help::draw(canvas, *scroll),
             Screen::Encounter => screens::encounter::draw(canvas, game),
             Screen::Wager => screens::wager::draw(canvas, game),
+            Screen::OpenWith { pos, selected } => screens::open_with::draw(canvas, game, *pos, *selected),
             Screen::Ended => screens::ended::draw(canvas, game),
             _ => {}
         }
@@ -258,6 +264,7 @@ impl App {
                 }
             }
             Screen::Wager => self.on_wager(key),
+            Screen::OpenWith { pos, selected } => self.on_open_with(key, pos, selected),
             Screen::Crafting { selected } => self.on_crafting(key, selected),
             Screen::Shop { kiosk, selling, selected } => self.on_shop(key, kiosk, selling, selected),
             Screen::Stash { side, selected } => self.on_stash(key, side, selected),
@@ -341,6 +348,7 @@ impl App {
                 Event::OpenStash => return Screen::Stash { side: StashSide::Pack, selected: 0 },
                 Event::OpenEncounter => return Screen::Encounter,
                 Event::OpenWager => return Screen::Wager,
+                Event::ChooseWay(pos) => return Screen::OpenWith { pos, selected: first_ready(game, pos) },
                 Event::Portal => self.whiteout = Some(Instant::now() + WHITEOUT),
                 Event::None => {}
             },
@@ -493,6 +501,26 @@ impl App {
         Screen::Crafting { selected: input::list_nav(key, selected, recipes().len()) }
     }
 
+    fn on_open_with(&mut self, key: KeyEvent, pos: Pos, selected: usize) -> Screen {
+        let Some(game) = self.game.as_mut() else { return Screen::Play };
+        let ways = game.node_at(pos).map_or(0, |d| d.open.len());
+        let chosen = match key.code {
+            KeyCode::Char(c @ '1'..='9') => Some(c as usize - '1' as usize),
+            _ if input::is_confirm(key) => Some(selected),
+            _ => None,
+        };
+        // A way you lack the tool for keeps the pop-up open.
+        let ready = |w: usize| game.node_at(pos).is_some_and(|d| d.ways_for(&game.player).contains(&w));
+        if input::is_cancel(key) {
+            Screen::Play
+        } else if let Some(way) = chosen.filter(|&w| ready(w)) {
+            game.harvest_at(pos, way);
+            Screen::Play
+        } else {
+            Screen::OpenWith { pos, selected: input::list_nav(key, selected, ways) }
+        }
+    }
+
     fn on_shop(&mut self, key: KeyEvent, kiosk: usize, selling: bool, selected: usize) -> Screen {
         let sort = self.inv_sort;
         let Some(game) = self.game.as_mut() else { return Screen::Play };
@@ -573,4 +601,10 @@ fn screen_restore(screen: &Screen) -> Screen {
         Screen::Encounter => Screen::Encounter,
         _ => Screen::Character,
     }
+}
+
+/// The first way into the node at `pos` you have the tools for, to start the
+/// open-with pop-up on.
+fn first_ready(game: &Game, pos: Pos) -> usize {
+    game.node_at(pos).and_then(|d| d.ways_for(&game.player).first().copied()).unwrap_or(0)
 }

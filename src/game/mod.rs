@@ -11,6 +11,7 @@
 mod actions;
 mod ai;
 mod encounters;
+mod harvesting;
 mod level;
 pub mod log;
 #[cfg(test)]
@@ -137,6 +138,7 @@ impl Game {
 
     fn refresh_fov(&mut self) {
         fov::compute(&mut self.map, self.player.pos, fov::SIGHT_RADIUS);
+        self.look_for_hidden();
         for m in &mut self.monsters {
             if !m.seen && !m.is_dead() && self.map.is_visible(m.pos) {
                 m.seen = true;

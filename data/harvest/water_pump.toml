@@ -1,6 +1,7 @@
 name = "Hand Pump"
 glyph = "🚰"
 biome = "wastes"
+chance = { weight = 10 }
 uses = 3
 yields = [
     { item = "dirty_water", min = 1, max = 2 },

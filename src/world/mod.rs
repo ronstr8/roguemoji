@@ -9,7 +9,7 @@ pub mod map;
 pub mod tile;
 pub mod wager;
 
-pub use feature::Feature;
+pub use feature::{Cover, Feature};
 pub use generator::Biome;
 pub use harvest::Harvestable;
 pub use map::Map;

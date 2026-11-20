@@ -49,13 +49,16 @@ impl Game {
             .collect();
         self.dice.shuffle(&mut open);
 
-        let (primary, secondary): (Vec<Harvestable>, Vec<Harvestable>) =
-            Harvestable::all().partition(|h| h.def().biome == self.biome);
+        // Weighted by each node's chance at this depth: caches are rare.
+        let (primary, secondary): (Vec<Weighted>, Vec<Weighted>) = Harvestable::all()
+            .map(|h| (h, h.def().chance.weight_at(depth)))
+            .filter(|(_, w)| *w > 0)
+            .partition(|(h, _)| h.def().biome == self.biome);
         let n_harvest = 14 + self.dice.range(0, 6) as usize;
         for _ in 0..n_harvest {
             let Some(p) = take_isolated(&mut open, &self.map) else { break };
             let pool = if self.dice.chance(0.75) || secondary.is_empty() { &primary } else { &secondary };
-            let kind = *self.dice.pick(pool);
+            let Some(kind) = self.dice.weighted(pool) else { break };
             self.map.set_feature(p, Feature::harvest(kind));
         }
 
@@ -163,3 +166,6 @@ fn take_isolated(open: &mut Vec<Pos>, map: &crate::world::Map) -> Option<Pos> {
     }
     None
 }
+
+/// A harvest node and its placement weight at a depth.
+type Weighted = (Harvestable, u32);

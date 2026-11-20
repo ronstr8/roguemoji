@@ -16,7 +16,6 @@ use crate::items::{Component, Consumable, Gun, Item, ItemKind};
 use crate::stats::Skill;
 use crate::stats::check::{self, Tier};
 use crate::world::fov::SIGHT_RADIUS;
-use crate::world::harvest::{HarvestDef, Way};
 use crate::world::{Feature, Tile};
 
 /// Something the UI needs to react to after an action.
@@ -29,6 +28,8 @@ pub enum Event {
     OpenEncounter,
     /// Walked up to a wager; it's in `Game::table`.
     OpenWager,
+    /// Bumped a harvest node with more than one way open to you: pick one.
+    ChooseWay(Pos),
     /// Stepped into a portal and arrived in the next world.
     Portal,
 }
@@ -60,10 +61,7 @@ impl Game {
             return Event::None;
         }
         match self.map.feature(target).copied() {
-            Some(Feature::Harvest { kind, .. }) => {
-                self.harvest(target, kind.def());
-                return Event::None;
-            }
+            Some(Feature::Harvest { .. }) => return self.bump_node(target),
             Some(Feature::Kiosk(k)) => return Event::OpenShop(k),
             Some(Feature::Encounter { kind, .. }) if kind.def().stays => return self.encounter(target, kind),
             Some(Feature::Lockbox) => {
@@ -168,90 +166,6 @@ impl Game {
         let healed = self.player.heal(per * used as i32);
         self.log.push(format!("You crush {used} 💎 in your fist and absorb the light: +{healed} HP."), Tone::Good);
         self.pass_time(1);
-    }
-
-    pub(super) fn harvest(&mut self, pos: Pos, def: &HarvestDef) {
-        let way = def.way();
-        if let Some(tool) = way.tool
-            && !self.player.has_tool(tool)
-        {
-            let glyph = tool.glyph();
-            self.log.info(format!("You can't {} the {} without a tool: {glyph} {}.", way.verb, def.name, tool.name()));
-            return;
-        }
-        let skill = self.player.skill(way.skill).total();
-        let result = check::roll(&mut self.dice, skill, way.difficulty);
-        let used = match result.tier {
-            Tier::Fumble => {
-                self.fumble_harvest(def, way);
-                true
-            }
-            Tier::Fail => {
-                let summary = result.summary();
-                self.log.info(format!("You try to {} the {} but come up empty. {summary}", way.verb, def.name));
-                false
-            }
-            tier => {
-                let names = self.gather(def, tier);
-                let summary = result.summary();
-                self.log.push(format!("You {} the {}: {names}. {summary}", way.verb, def.name), Tone::Loot);
-                self.train(way.skill, if tier == Tier::Critical { 2 } else { 1 });
-                true
-            }
-        };
-        if used {
-            self.wear_node(pos, def);
-        }
-        self.pass_time(1);
-    }
-
-    /// A fumble costs the way's HP and may break its tool.
-    fn fumble_harvest(&mut self, def: &HarvestDef, way: &Way) {
-        self.player.hp += way.fumble.hp;
-        let hurt = if way.fumble.hp < 0 { " and hurt yourself" } else { "" };
-        let mut msg = format!("You fumble with the {}{hurt}.", def.name);
-        if let Some(tool) = way.tool.filter(|_| way.fumble.breaks)
-            && self.player.break_tool(tool)
-        {
-            msg.push_str(&format!(" Your {} {} breaks.", tool.glyph(), tool.name()));
-        }
-        self.log.push(msg, Tone::Bad);
-    }
-
-    /// Roll a successful harvest's yields into the pack; returns what you got,
-    /// for the log. A partial stops at the first yield that comes up, and a
-    /// critical adds one to each.
-    fn gather(&mut self, def: &HarvestDef, tier: Tier) -> String {
-        let mut gathered: Vec<(Component, u32)> = Vec::new();
-        for y in &def.yields {
-            let n = self.dice.range(y.min as i32, y.max as i32) as u32;
-            if n > 0 {
-                gathered.push((y.component, n + u32::from(tier == Tier::Critical)));
-                if tier == Tier::Partial {
-                    break;
-                }
-            }
-        }
-        if gathered.is_empty() {
-            let first = def.yields[0];
-            gathered.push((first.component, first.min.max(1)));
-        }
-        let names: Vec<String> = gathered.iter().map(|(c, n)| format!("{} {}", n, c.def().name)).collect();
-        for (c, n) in gathered {
-            self.give_player(Item::component(c, n));
-        }
-        names.join(", ")
-    }
-
-    /// Use up one of a node's harvests, removing it when it's picked clean.
-    fn wear_node(&mut self, pos: Pos, def: &HarvestDef) {
-        if let Some(Feature::Harvest { uses_left, .. }) = self.map.feature_mut(pos) {
-            *uses_left = uses_left.saturating_sub(1);
-            if *uses_left == 0 {
-                self.map.remove_feature(pos);
-                self.log.info(format!("The {} is picked clean.", def.name));
-            }
-        }
     }
 
     // ── Combat ────────────────────────────────────────────────────────────

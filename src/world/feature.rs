@@ -3,11 +3,24 @@
 
 use super::encounter::{Encounter, Mood};
 use super::harvest::Harvestable;
+
+/// Whether a hidden node has been found yet.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Cover {
+    /// Drawn on the map like anything else.
+    Found,
+    /// Hidden, and you haven't had your look at it yet.
+    Hidden,
+    /// Hidden, and you looked and missed it: only walking into it finds it now.
+    Overlooked,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Feature {
     Harvest {
         kind: Harvestable,
         uses_left: u8,
+        cover: Cover,
     },
     /// Index into the level's kiosk list.
     Kiosk(usize),
@@ -31,8 +44,15 @@ impl Feature {
         Feature::Encounter { kind, purse }
     }
 
+    /// A harvest node as placed: full, and hidden if its kind hides.
     pub fn harvest(kind: Harvestable) -> Self {
-        Feature::Harvest { kind, uses_left: kind.def().uses }
+        let cover = if kind.def().hidden.is_some() { Cover::Hidden } else { Cover::Found };
+        Feature::Harvest { kind, uses_left: kind.def().uses, cover }
+    }
+
+    /// Not yet found, so not drawn and not in the way.
+    pub fn is_hidden(&self) -> bool {
+        matches!(self, Feature::Harvest { cover: Cover::Hidden | Cover::Overlooked, .. })
     }
 
     pub fn glyph(&self) -> &'static str {
@@ -55,10 +75,11 @@ impl Feature {
     }
 
     /// Harvest nodes, kiosks, lockboxes and encounters that stay are bumped,
-    /// not walked over.
+    /// not walked over. A hidden node doesn't block until it's found.
     pub fn blocks(&self) -> bool {
         match self {
-            Feature::Harvest { .. } | Feature::Kiosk(_) | Feature::Lockbox => true,
+            Feature::Harvest { .. } => !self.is_hidden(),
+            Feature::Kiosk(_) | Feature::Lockbox => true,
             Feature::Encounter { kind, .. } => kind.def().stays,
             Feature::Portal | Feature::Beacon => false,
         }

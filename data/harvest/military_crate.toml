@@ -1,0 +1,28 @@
+name = "Military Crate"
+glyph = "🪖"
+biome = "ruins"
+chance = { weight = 2 }
+hidden = { skill = "scavenging", target = 13, text = "Under a slump of rubble: the corner of an olive-drab crate, stenciled and padlocked." }
+uses = 1
+yields = [
+    { item = "556_nato_fmj", min = 10, max = 30 },
+    { item = "9mm_fmj", min = 0, max = 15 },
+    { item = "kevlar_vest", min = 0, max = 1 },
+    { item = "ar15", min = 0, max = 1 },
+]
+
+[[open]]
+verb = "pick the lock on"
+skill = "lockpicking"
+difficulty = 12
+tool = "lockpicks"
+fumble = { breaks = true }
+
+[[open]]
+verb = "pry open"
+attribute = "brawn"
+difficulty = 14
+tool = "crowbar"
+needs = { rest = -40 }
+partial = "Something inside cracks under the bar"
+fumble = { hp = -1 }

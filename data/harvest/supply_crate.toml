@@ -1,6 +1,7 @@
 name = "Supply Crate"
 glyph = "📦"
 biome = "ruins"
+chance = { weight = 10 }
 uses = 1
 yields = [
     { item = "canned_beans", min = 0, max = 2 },

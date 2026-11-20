@@ -112,6 +112,15 @@ buffs, such as Glowcap Brew (+Brains/Wit), Grilled Meat (+Brawn), Mutant Stew
 (+Fortitude, armor) and Cryptid Tonic. You can also craft scrap weapons and armor. The
 crafting screen shows your exact success chance.
 
+**Caches.** Some finds aren't drawn on the map. A 🪖 Military Crate lies under
+rubble in the ruins, and a 🪧 Buried Cache is marked by a half-sunk sign out in the
+wastes. When one first comes into view you get a single Scavenging (crate) or
+Survival (cache) check to notice it. Miss it and it stays hidden unless you walk
+right into it. Crates open with 🪛 Lockpicks (Lockpicking, and a fumble snaps them)
+or a 🦯 Crowbar (Brawn, and tiring); a pop-up shows your odds for each. Caches need
+a 🧹 Shovel, and digging wears you out. Inside: ammo, armor and guns, or water, food
+and shells. Autovends often sell shovels.
+
 **Encumbrance.** Everything has a weight, including your worn and wielded gear
 and the rounds in your gun. You can carry 45 lb, plus 6 lb for each point of
 Brawn over 5 (or minus 6 lb per point under), plus whatever a worn pack 🎒

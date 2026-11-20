@@ -1,6 +1,7 @@
 name = "Dead Electronics"
 glyph = "📺"
 biome = "ruins"
+chance = { weight = 10 }
 uses = 2
 yields = [
     { item = "circuit", min = 0, max = 1 },

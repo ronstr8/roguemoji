@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use super::feature::Feature;
+use super::feature::{Cover, Feature};
 use super::tile::Tile;
 use crate::geometry::Pos;
 
@@ -58,6 +58,31 @@ impl Map {
 
     pub fn feature(&self, p: Pos) -> Option<&Feature> {
         self.features.get(&p)
+    }
+
+    /// The feature here as the player knows it: hidden nodes are left out.
+    pub fn shown_feature(&self, p: Pos) -> Option<&Feature> {
+        self.feature(p).filter(|f| !f.is_hidden())
+    }
+
+    /// Hidden nodes in sight that haven't had their one look yet, in a fixed
+    /// order so seeded games roll the same.
+    pub fn unlooked_in_sight(&self) -> Vec<Pos> {
+        let mut found: Vec<Pos> = self
+            .features
+            .iter()
+            .filter(|(p, f)| matches!(f, Feature::Harvest { cover: Cover::Hidden, .. }) && self.is_visible(**p))
+            .map(|(p, _)| *p)
+            .collect();
+        found.sort_by_key(|p| (p.y, p.x));
+        found
+    }
+
+    /// Settle a hidden node's cover: found, or overlooked for good.
+    pub fn set_cover(&mut self, p: Pos, to: Cover) {
+        if let Some(Feature::Harvest { cover, .. }) = self.features.get_mut(&p) {
+            *cover = to;
+        }
     }
 
     pub fn feature_mut(&mut self, p: Pos) -> Option<&mut Feature> {

@@ -1,6 +1,7 @@
 name = "Wild Herbs"
 glyph = "🌿"
 biome = "wastes"
+chance = { weight = 10 }
 uses = 2
 yields = [
     { item = "herbs", min = 1, max = 2 },

@@ -192,38 +192,72 @@ recovering that slowly would make a nap hundreds of turns long, so rest refills
 
 ## Harvest nodes — `harvest/*.toml`
 
-Plants, pumps, wrecks and crates on the map. Bump one to gather components.
+Plants, pumps, wrecks, crates and hidden caches on the map. Bump one to gather
+from it.
 
 ```toml
 name = "Car Wreck"
 glyph = "🚗"
 biome = "ruins"              # ruins | wastes: three in four of a level's nodes
                              # come from its own biome, the rest from the other
+chance = { weight = 10 }     # how often it's picked against the others, by depth
+                             # (same fields as an encounter's `chance`)
 uses = 3                     # successful harvests before it's picked clean
 
-# What a success can gather, in order. Each rolls min..max on its own (a
-# critical adds 1 to any that came up). A partial success stops at the first
-# that comes up; if none do, you get the first entry's min (at least 1).
+# What a success can gather, in order: any item id (component, food, ammo in
+# rounds, gun, armor, melee weapon or pack). Each rolls min..max on its own (a
+# critical adds 1 to each stack that came up). A partial success stops at the
+# first that comes up; if none do, you get the first entry's min (at least 1).
 yields = [
     { item = "scrap_metal", min = 1, max = 2 },
     { item = "wire", min = 0, max = 1 },
 ]
 
-# How to work it: a check of `skill` against `difficulty` (1 to 20). A failure
-# costs nothing but the turn; a success trains the skill.
+# How to work it: a check of `skill` (or `attribute`) against `difficulty`
+# (1 to 20). A failure costs nothing but the turn; a success trains the skill.
 [[open]]
 verb = "strip"               # "You strip the Car Wreck: 2 Scrap Metal."
 skill = "scavenging"         # any skill, e.g. survival or lockpicking
 difficulty = 11
-tool = "crowbar"             # optional: needed in the pack or in hand, not used up
-fumble = { hp = -1 }         # optional: hp is HP lost (default 0); add
-                             # breaks = true to destroy one of the tool
+fumble = { hp = -1 }         # optional: hp is HP lost (default 0)
 ```
 
-`yields` names components, and `tool` names a component (like `lockpicks`) or a
-melee weapon (like `crowbar` or `shovel`). A tool you're wielding counts, and it's
-the one that breaks. Without the tool, bumping says what's missing and takes no
-time. A node has exactly one `[[open]]` way for now.
+A cache adds `hidden` and usually more than one way in:
+
+```toml
+name = "Military Crate"
+glyph = "🪖"
+biome = "ruins"
+chance = { weight = 2 }
+# Not drawn until found. When it first comes into view you get one check of
+# `skill` against `target`; miss it and only walking into it finds it.
+# `text` is logged when you spot it (optional).
+hidden = { skill = "scavenging", target = 13, text = "The corner of a crate…" }
+uses = 1
+yields = [{ item = "556_nato_fmj", min = 10, max = 30 }, { item = "ar15", min = 0, max = 1 }]
+
+[[open]]
+verb = "pick the lock on"
+skill = "lockpicking"
+difficulty = 12
+tool = "lockpicks"           # optional: needed in the pack or in hand, not used up
+fumble = { breaks = true }   # destroys one of the tool
+
+[[open]]
+verb = "pry open"
+attribute = "brawn"          # instead of a skill: the raw attribute bonus, untrained
+difficulty = 14
+tool = "crowbar"
+needs = { rest = -40 }       # optional: need changes every attempt costs
+partial = "Something inside cracks under the bar"  # optional: logged on a partial
+fumble = { hp = -1 }
+```
+
+A way names a `skill` or an `attribute`, not both. `tool` names a component (like
+`lockpicks`) or a melee weapon (like `crowbar` or `shovel`). A tool you're wielding
+counts, and it's the one that breaks. Bumping a node with no way you have the
+tools for says what it takes and costs no time. With one way, bumping uses it;
+with several, a pop-up lists them with your odds.
 
 ## Encounters — `encounters/*.toml`
 

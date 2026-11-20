@@ -1,6 +1,7 @@
 name = "Car Wreck"
 glyph = "🚗"
 biome = "ruins"
+chance = { weight = 10 }
 uses = 3
 yields = [
     { item = "scrap_metal", min = 1, max = 2 },

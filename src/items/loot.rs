@@ -5,6 +5,54 @@ use super::{Ammo, Armor, Component, Consumable, Gun, GunModel, Item, ItemKind, M
 use crate::content::{Loot, Price};
 use crate::dice::Dice;
 
+/// Any item a data table can name by id. Guns are rolled fresh when made
+/// (partly loaded, with ammo that fits), so the prize is the model.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Prize {
+    Component(Component),
+    Consumable(Consumable),
+    Ammo(Ammo),
+    Melee(MeleeWeapon),
+    Armor(Armor),
+    Pack(Pack),
+    Gun(GunModel),
+}
+
+impl Prize {
+    /// The item of any kind with this id.
+    pub fn lookup(id: &str) -> Option<Prize> {
+        Component::lookup(id)
+            .map(Prize::Component)
+            .or_else(|| Consumable::lookup(id).map(Prize::Consumable))
+            .or_else(|| Ammo::lookup(id).map(Prize::Ammo))
+            .or_else(|| MeleeWeapon::lookup(id).map(Prize::Melee))
+            .or_else(|| Armor::lookup(id).map(Prize::Armor))
+            .or_else(|| Pack::lookup(id).map(Prize::Pack))
+            .or_else(|| GunModel::lookup(id).map(Prize::Gun))
+    }
+
+    /// Whether several make one stack (rounds, food, components) rather than
+    /// separate items.
+    pub fn stacks(self) -> bool {
+        matches!(self, Prize::Component(_) | Prize::Consumable(_) | Prize::Ammo(_))
+    }
+
+    /// `qty` of it: rounds of ammo, a stack of food or components, or
+    /// separate pieces of gear.
+    pub fn make(self, qty: u32, dice: &mut Dice) -> Vec<Item> {
+        let pieces = |kind: ItemKind| vec![Item::one(kind); qty as usize];
+        match self {
+            Prize::Component(c) => vec![Item::component(c, qty)],
+            Prize::Consumable(c) => vec![Item::food(c, qty)],
+            Prize::Ammo(a) => vec![Item::ammo(a, qty)],
+            Prize::Melee(m) => pieces(ItemKind::Melee(m)),
+            Prize::Armor(a) => pieces(ItemKind::Armor(a)),
+            Prize::Pack(p) => pieces(ItemKind::Pack(p)),
+            Prize::Gun(g) => (0..qty).map(|_| Item::gun(gun_from(g, dice))).collect(),
+        }
+    }
+}
+
 /// A gun model found at `depth`, weighted by each gun's `loot`. Falls back
 /// to any gun at all if none is marked as loot here.
 fn random_model(dice: &mut Dice, depth: u32) -> GunModel {
