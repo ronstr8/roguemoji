@@ -1,0 +1,14 @@
+name = "Ditch Weed"
+glyph = "🚬"
+description = "Scraggly wild hemp, rolled in a page of something. Harsh, weak, and it helps."
+weight = 0.1
+
+# Lifts your mood, dulls your edge, and gives you the munchies.
+needs = { hope = 350, hunger = -100 }
+effects = [
+    { kind = "boost", attribute = "wit", potency = -1, turns = 80 },
+    { kind = "boost", attribute = "reflexes", potency = -1, turns = 80 },
+]
+message = "You light up and hold it in. Everything's going to be fine, man."
+loot_weight = 2
+price = 4

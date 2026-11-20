@@ -28,7 +28,9 @@ fn main() -> io::Result<()> {
     }
     let seed = std::env::args().skip_while(|a| a != "--seed").nth(1).and_then(|s| s.parse().ok());
     // Validate content before taking over the terminal, so errors are readable.
-    if let Err(e) = items::components::init()
+    // Needs come first: other content names them.
+    if let Err(e) = creatures::needs::init()
+        .and_then(|_| items::components::init())
         .and_then(|_| items::consumables::init())
         .and_then(|_| items::melee::init())
         .and_then(|_| items::armor::init())
@@ -38,7 +40,6 @@ fn main() -> io::Result<()> {
         .and_then(|_| items::guns::init())
         .and_then(|_| crafting::init())
         .and_then(|_| creatures::species::init())
-        .and_then(|_| creatures::needs::init())
         .and_then(|_| creatures::face::init())
         .and_then(|_| world::harvest::init())
         .and_then(|_| world::encounter::init())

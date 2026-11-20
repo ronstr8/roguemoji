@@ -48,7 +48,7 @@ pub struct NeedDef {
 }
 
 /// Sleep, for the need it restores: you collapse when the meter hits 0.
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SleepDef {
     /// Added to the meter each turn asleep.
@@ -58,6 +58,60 @@ pub struct SleepDef {
     /// Regain 1 HP every this many turns asleep; 0 for none.
     #[serde(default)]
     pub heal_every: u32,
+    /// A short nap lifts your mood: hope gained each early turn of a nap.
+    #[serde(default)]
+    pub relief: Option<Relief>,
+    /// Sleeping too long, nap or collapse, wears hope down.
+    #[serde(default)]
+    pub oversleep: Option<Oversleep>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Relief {
+    /// Hope gained each turn.
+    pub hope: i32,
+    /// For this many turns from the start of a nap.
+    pub turns: u32,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Oversleep {
+    /// Turns asleep before it starts.
+    pub after: u32,
+    /// Hope lost each turn after that (negative).
+    pub hope: i32,
+    /// Logged once, the turn it starts.
+    pub message: String,
+}
+
+impl SleepDef {
+    /// Hope change for the `slept`th turn of a sleep (counting from 1).
+    /// Only a nap brings relief; passing out from exhaustion isn't rest.
+    pub fn hope_for_turn(&self, slept: u32, napping: bool) -> i32 {
+        let relief = self.relief.filter(|r| napping && slept <= r.turns).map_or(0, |r| r.hope);
+        let oversleep = self.oversleep.as_ref().filter(|o| slept > o.after).map_or(0, |o| o.hope);
+        relief + oversleep
+    }
+
+    /// The oversleep message, on the one turn it applies: the first turn too long.
+    pub fn overslept_now(&self, slept: u32) -> Option<&str> {
+        self.oversleep.as_ref().filter(|o| slept == o.after + 1).map(|o| o.message.as_str())
+    }
+
+    fn check(&self, max: i32, p: &mut Problems) {
+        p.check(self.recover > 0, "sleep.recover must be positive");
+        p.check(self.wake_at > 0 && self.wake_at <= max, "sleep.wake_at must be above 0 and at most max");
+        if let Some(r) = self.relief {
+            p.check(r.hope > 0 && r.turns > 0, "sleep.relief: hope and turns must be positive");
+        }
+        if let Some(o) = &self.oversleep {
+            p.check(o.hope < 0, "sleep.oversleep.hope must be negative: it's a loss");
+            p.check(o.after > 0, "sleep.oversleep.after must be 1 or more turns");
+            p.check(!o.message.trim().is_empty(), "sleep.oversleep.message is empty");
+        }
+    }
 }
 
 /// A named range of a need's meter and what being in it does.
@@ -85,6 +139,13 @@ impl Stage {
     /// Whether this stage costs the player something, so the HUD flags it.
     pub fn is_warning(&self) -> bool {
         self.message.is_some() || self.hurts.is_some() || !self.modifiers.is_empty()
+    }
+}
+
+impl Need {
+    /// A change to this need as the log shows it, e.g. `Hope +350`.
+    pub fn change_text(self, delta: i32) -> String {
+        format!("{} {delta:+}", self.def().name)
     }
 }
 
@@ -272,9 +333,8 @@ fn build(id: String, raw: RawNeed) -> Result<NeedDef, Vec<String>> {
     p.check((0..=raw.max).contains(&raw.start), "start must be between 0 and max");
     p.check(raw.drain >= 0, "drain cannot be negative");
     p.check(raw.fighting >= 1, "fighting must be 1 or more");
-    if let Some(s) = raw.sleep {
-        p.check(s.recover > 0, "sleep.recover must be positive");
-        p.check(s.wake_at > 0 && s.wake_at <= raw.max, "sleep.wake_at must be above 0 and at most max");
+    if let Some(s) = &raw.sleep {
+        s.check(raw.max, &mut p);
     }
     p.check(!raw.stages.is_empty(), "needs at least one stage");
     let stages: Vec<Stage> = raw.stages.into_iter().map(|s| build_stage(s, &mut p)).collect();
@@ -319,6 +379,18 @@ fn check_thresholds(stages: &[Stage], max: i32, p: &mut Problems) {
             None => p.check(false, format!("stage {}: every stage after the first needs at_most", s.name)),
         }
     }
+}
+
+/// Turn need ids into handles, noting any that don't exist.
+pub fn resolve(raw: BTreeMap<String, i32>, p: &mut Problems, label: &str) -> Vec<(Need, i32)> {
+    let mut needs = Vec::new();
+    for (need, n) in raw {
+        match Need::lookup(&need) {
+            Some(handle) => needs.push((handle, n)),
+            None => p.check(false, format!("{label}: `{need}` is not in data/needs/")),
+        }
+    }
+    needs
 }
 
 content::registry!(Need, NeedDef, "need", load);
@@ -439,5 +511,33 @@ mod tests {
         calm.tick(1, Strain::NONE);
         strained.tick(1, Strain { fought: true, burden_halves: 4 });
         assert_eq!(calm.value, strained.value);
+    }
+
+    #[test]
+    fn sleep_lifts_hope_early_in_a_nap_and_drains_it_late() {
+        let sleep: SleepDef = toml::from_str(
+            "recover = 10\nwake_at = 400\nrelief = { hope = 4, turns = 30 }\noversleep = { after = 50, hope = -3, message = \"Too long.\" }",
+        )
+        .unwrap();
+        assert_eq!(sleep.hope_for_turn(1, true), 4);
+        assert_eq!(sleep.hope_for_turn(30, true), 4);
+        assert_eq!(sleep.hope_for_turn(31, true), 0);
+        assert_eq!(sleep.hope_for_turn(1, false), 0, "a collapse brings no relief");
+        assert_eq!(sleep.hope_for_turn(50, false), 0);
+        assert_eq!(sleep.hope_for_turn(51, false), -3, "but oversleeping counts either way");
+        assert_eq!(sleep.overslept_now(51), Some("Too long."));
+        assert_eq!(sleep.overslept_now(52), None, "said once");
+    }
+
+    #[test]
+    fn rejects_backwards_sleep_moods() {
+        let with = |extra: &str| {
+            parse(&format!(
+                "name = \"R\"\nmax = 100\nstart = 50\ndrain = 1\nsleep = {{ recover = 1, wake_at = 50, {extra} }}\n[[stages]]\nname = \"A\""
+            ))
+        };
+        assert!(with("relief = { hope = 4, turns = 30 }").is_ok());
+        assert!(with("relief = { hope = -4, turns = 30 }").unwrap_err().contains("relief"));
+        assert!(with("oversleep = { after = 5, hope = 3, message = \"x\" }").unwrap_err().contains("negative"));
     }
 }

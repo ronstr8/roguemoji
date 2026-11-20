@@ -64,7 +64,7 @@ pub fn draw_sidebar(canvas: &mut Canvas, area: Area, game: &Game) {
     let load = format!("Load {}/{} ({})", fmt_lb(p.carried_weight()), fmt_lb(p.carry_capacity()), burden.name());
     line(canvas, &mut y, &load, theme::burden(burden));
     let status = match p.sleep {
-        Some(Sleep::Nap) => "💤 Napping (any key to get up)".to_string(),
+        Some(Sleep::Nap) => format!("💤 Napping {} (any key wakes)", p.slept),
         Some(Sleep::Collapse) => "💤 Out cold".to_string(),
         None => format!("Stance {}  {}", p.stance.name(), "▲".repeat(p.momentum.stacks() as usize)),
     };
@@ -166,6 +166,14 @@ mod tests {
         assert!(rows.iter().any(|r| r.contains("💎") && r.contains("crystals")));
         g.player.thirst.value = 0;
         assert!(sidebar(&g).iter().any(|r| r.contains("Parched")));
+    }
+
+    #[test]
+    fn a_nap_counts_its_turns() {
+        let mut g = Game::new(Background::ALL[0].create("Tester".into()), Some(1));
+        g.player.fall_asleep(crate::creatures::player::Sleep::Nap);
+        g.player.slept = 12;
+        assert!(sidebar(&g).iter().any(|r| r.contains("💤 Napping 12 (any key wakes)")), "{:?}", sidebar(&g));
     }
 
     #[test]

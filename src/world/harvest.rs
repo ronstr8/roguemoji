@@ -10,7 +10,6 @@ use std::collections::BTreeMap;
 use serde::Deserialize;
 
 use super::Biome;
-use super::wager::resolve_needs;
 use crate::content::{self, Loot, Problems};
 use crate::creatures::Player;
 use crate::creatures::needs::Need;
@@ -178,7 +177,7 @@ fn resolve_way(raw: RawWay, p: &mut Problems) -> Option<Way> {
         p.check(tool.is_some(), format!("open: tool `{id}` is not a component or melee weapon"));
         tool
     });
-    let needs = resolve_needs(raw.needs, p, "open.needs");
+    let needs = crate::creatures::needs::resolve(raw.needs, p, "open.needs");
     let test = match (raw.skill, raw.attribute) {
         (Some(s), None) => Test::Skill(s),
         (None, Some(a)) => Test::Attribute(a),

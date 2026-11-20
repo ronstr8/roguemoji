@@ -11,7 +11,12 @@ burden = true
 # People are awake about 16 hours per 8 asleep, but recovering at that rate
 # would make a nap hundreds of turns long. A full nap here is about 100
 # turns, which costs roughly 3/4 quart of water and some food.
-sleep = { recover = 10, wake_at = 400, heal_every = 10 }
+#
+# Sleep and hope: the first 30 turns of a nap lift your mood (+4 hope a turn,
+# +120 in all), but past 120 turns asleep, nap or collapse, the day feels
+# wasted (-4 a turn). A nap refills 10 rest a turn, so even one from nearly
+# empty ends in about 100 turns: oversleep is a backstop for slower recovery.
+sleep = { recover = 10, wake_at = 400, heal_every = 10, relief = { hope = 4, turns = 30 }, oversleep = { after = 120, hope = -4, message = "You've slept too long. The day feels wasted." } }
 
 [[stages]]
 name = "Rested"

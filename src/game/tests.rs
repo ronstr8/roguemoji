@@ -863,3 +863,72 @@ fn walking_into_a_portal_carries_you_to_the_next_world() {
     assert_ne!(g.map.feature(g.player.pos), Some(&Feature::Portal), "you arrive at the new start");
     assert!(g.log.recent(5).iter().any(|m| m.text.starts_with("Spacetime swallows you up")));
 }
+
+#[test]
+fn a_nap_lifts_hope_and_oversleeping_wears_it_down() {
+    let mut g = quiet_game(8);
+    g.player.rest.value = 400;
+    let before = g.player.hope.value;
+    g.nap();
+    sleep_it_off(&mut g, 500);
+    assert!(g.player.hope.value > before, "a nap nets hope, even after its drain");
+    assert!(!logged(&g, "slept too long"));
+
+    let after = g.player.sleep_def().oversleep.as_ref().unwrap().after;
+    g.player.rest.value = 100;
+    g.nap();
+    g.player.slept = after;
+    let before = g.player.hope.value;
+    g.sleep_turn();
+    assert!(logged(&g, "slept too long"));
+    assert!(g.player.hope.value < before - 1, "more than the usual drain");
+}
+
+#[test]
+fn a_collapse_brings_no_relief() {
+    let mut g = quiet_game(7);
+    g.player.rest.value = 1;
+    g.wait();
+    let before = g.player.hope.value;
+    for _ in 0..10 {
+        g.sleep_turn();
+    }
+    assert!(g.player.hope.value < before, "only the usual drain");
+}
+
+#[test]
+fn ditch_weed_lifts_hope_and_gives_the_munchies() {
+    let mut g = quiet_game(3);
+    let (hope, hunger) = (g.player.hope.value, g.player.hunger.value);
+    let weed = crate::items::Consumable::named("ditch_weed");
+    add_and_use(&mut g, Item::food(weed, 1));
+    assert!(g.player.hope.value > hope + 300);
+    assert!(g.player.hunger.value < hunger - 90);
+    assert!(g.player.attr(Attribute::Wit) < g.player.base.get(Attribute::Wit));
+    assert_eq!(g.player.inventory.count(&ItemKind::Consumable(weed)), 0, "smoked");
+    assert!(logged(&g, "Hope +350"));
+}
+
+#[test]
+fn a_reusable_item_is_kept_and_rests_between_uses() {
+    let mut g = quiet_game(3);
+    let tool = crate::items::Consumable::named("fleshlight_multitool");
+    let kind = ItemKind::Consumable(tool);
+    g.player.inventory.add(Item::food(tool, 1)).unwrap();
+    let idx = || g.player.inventory.items().iter().position(|i| i.kind == kind).unwrap();
+    let hope = g.player.hope.value;
+    g.use_item(idx());
+    assert!(g.player.hope.value > hope + 200);
+    assert_eq!(g.player.inventory.count(&kind), 1, "kept");
+
+    let (turn, hope) = (g.turn, g.player.hope.value);
+    let idx = g.player.inventory.items().iter().position(|i| i.kind == kind).unwrap();
+    g.use_item(idx);
+    assert_eq!((g.turn, g.player.hope.value), (turn, hope), "too soon: refused, and no time passes");
+    assert!(logged(&g, "not in the mood"));
+
+    g.pass_time(400);
+    let hope = g.player.hope.value;
+    g.use_item(idx);
+    assert!(g.player.hope.value > hope + 200, "ready again after the cooldown");
+}

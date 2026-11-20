@@ -1,0 +1,11 @@
+name = "Fleshlight Multitool"
+glyph = "🔦"
+description = "A pre-war personal massager with attachments for every body. Refurbished. Hopefully thoroughly."
+weight = 1
+
+# Kept after use: it needs a while before you're in the mood again.
+needs = { hope = 250, rest = -50 }
+message = "You find a quiet corner and a few minutes to yourself. The world feels a little lighter."
+reusable = { cooldown = 400, refusal = "Not again so soon. You're not in the mood." }
+loot_weight = 1
+price = 40

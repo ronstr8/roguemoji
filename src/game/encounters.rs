@@ -26,7 +26,7 @@ pub struct EncounterReport {
 impl EncounterReport {
     /// One line for the log, e.g. `Hope +200 · got Bottled Water`.
     pub fn summary(&self) -> String {
-        let mut parts: Vec<String> = self.changes.iter().map(|(n, d)| format!("{} {d:+}", n.def().name)).collect();
+        let mut parts: Vec<String> = self.changes.iter().map(|(n, d)| n.change_text(*d)).collect();
         parts.extend(self.gifts.iter().map(|i| format!("got {}", i.display_name())));
         parts.join(" · ")
     }

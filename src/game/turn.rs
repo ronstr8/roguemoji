@@ -51,11 +51,7 @@ impl Game {
         let turn = self.turn;
         let mut changes: Vec<Change> = p.waking_needs_mut().map(|m| m.tick(turn, strain)).into();
         if p.is_asleep() {
-            let sleep = p.sleep_def();
-            p.rest.adjust(sleep.recover);
-            if sleep.heal_every > 0 && turn.is_multiple_of(u64::from(sleep.heal_every)) {
-                p.heal(1);
-            }
+            changes.push(self.tick_sleep(turn));
         } else {
             changes.push(p.rest.tick(turn, strain));
         }
@@ -69,9 +65,27 @@ impl Game {
             }
         }
         if !self.player.is_asleep() && self.player.rest.value == 0 {
-            self.player.sleep = Some(Sleep::Collapse);
+            self.player.fall_asleep(Sleep::Collapse);
             self.log.push("Exhaustion takes you. You collapse where you stand. 💤", Tone::Bad);
         }
+    }
+
+    /// One turn asleep: rest refills, HP trickles back, and hope rises early
+    /// in a nap but sinks once you've slept too long.
+    fn tick_sleep(&mut self, turn: u64) -> Change {
+        let p = &mut self.player;
+        let sleep = p.sleep_def();
+        p.rest.adjust(sleep.recover);
+        if sleep.heal_every > 0 && turn.is_multiple_of(u64::from(sleep.heal_every)) {
+            p.heal(1);
+        }
+        p.slept += 1;
+        let napping = p.sleep == Some(Sleep::Nap);
+        let change = p.hope.adjust(sleep.hope_for_turn(p.slept, napping));
+        if let Some(msg) = sleep.overslept_now(p.slept) {
+            self.log.push(msg, Tone::Bad);
+        }
+        change
     }
 
     /// Wake the player if something should: being hit, or for a nap, a

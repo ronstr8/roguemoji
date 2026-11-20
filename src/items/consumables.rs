@@ -1,9 +1,12 @@
 //! Food and drink: crafted buffs and scavenged provisions, loaded from
 //! `data/consumables/*.toml` (see `data/README.md`).
 
+use std::collections::BTreeMap;
+
 use serde::Deserialize;
 
 use crate::content::{self, Price, Problems};
+use crate::creatures::needs::{self, Need};
 use crate::effects::{EffectSpec, RawEffect};
 
 /// A handle to a loaded consumable: an index into the consumable table.
@@ -27,11 +30,27 @@ pub struct ConsumableDef {
     pub heal: i32,
     /// Removes poison and bleeding.
     pub cures: bool,
+    /// Changes to any need, e.g. Hope +350 and Satiety −100.
+    pub needs: Vec<(Need, i32)>,
     pub effects: Vec<EffectSpec>,
+    /// Logged on use in place of "You consume the …".
+    pub message: Option<String>,
+    /// Kept after use, and usable again once its cooldown passes.
+    pub reusable: Option<Reusable>,
     /// Relative chance among food found on the floor or sold at Autovends; 0 = never.
     pub loot_weight: u32,
     /// Autovend price; never sold if zero.
     pub price: Price,
+}
+
+/// A consumable that isn't used up: it rests between uses instead.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Reusable {
+    /// Turns after a use before it works again.
+    pub cooldown: u32,
+    /// Logged when you try it too soon.
+    pub refusal: String,
 }
 
 #[derive(Deserialize)]
@@ -51,7 +70,13 @@ struct RawConsumable {
     #[serde(default)]
     cures: bool,
     #[serde(default)]
+    needs: BTreeMap<String, i32>,
+    #[serde(default)]
     effects: Vec<RawEffect>,
+    #[serde(default)]
+    message: Option<String>,
+    #[serde(default)]
+    reusable: Option<Reusable>,
     #[serde(default)]
     loot_weight: u32,
     #[serde(default = "default_price")]
@@ -71,6 +96,11 @@ fn build(id: String, raw: RawConsumable) -> Result<ConsumableDef, Vec<String>> {
     p.check(raw.heal >= 0, "heal cannot be negative");
     let effects: Vec<EffectSpec> = raw.effects.iter().map(RawEffect::spec).collect();
     p.check(effects.iter().all(|e| e.turns > 0), "effect turns must be positive");
+    let needs = needs::resolve(raw.needs, &mut p, "needs");
+    if let Some(r) = &raw.reusable {
+        p.check(r.cooldown > 0, "reusable.cooldown must be 1 or more turns");
+        p.check(!r.refusal.trim().is_empty(), "reusable.refusal is empty");
+    }
     p.finish(|| ConsumableDef {
         id,
         name: raw.name,
@@ -81,7 +111,10 @@ fn build(id: String, raw: RawConsumable) -> Result<ConsumableDef, Vec<String>> {
         hydration: raw.hydration,
         heal: raw.heal,
         cures: raw.cures,
+        needs,
         effects,
+        message: raw.message,
+        reusable: raw.reusable,
         loot_weight: raw.loot_weight,
         price: raw.price,
     })
@@ -138,5 +171,20 @@ mod tests {
         assert!(parse(&GOOD.replace("turns = 50", "turns = 0")).unwrap_err().contains("turns"));
         assert!(parse(&GOOD.replace("satiety = 100", "satiety = -1")).is_err());
         assert_eq!(parse(&GOOD.replace("satiety = 100", "hydration = -50")).unwrap().hydration, -50);
+    }
+
+    #[test]
+    fn reads_needs_messages_and_reuse() {
+        let d = parse(&format!(
+            "{GOOD}needs = {{ hope = 300, hunger = -50 }}\nmessage = \"Ahh.\"\nreusable = {{ cooldown = 40, refusal = \"Not yet.\" }}"
+        ))
+        .unwrap();
+        assert_eq!(d.needs.len(), 2);
+        assert_eq!(d.message.as_deref(), Some("Ahh."));
+        assert_eq!(d.reusable.map(|r| r.cooldown), Some(40));
+        assert!(parse(&format!("{GOOD}needs = {{ joy = 1 }}")).unwrap_err().contains("joy"));
+        assert!(
+            parse(&format!("{GOOD}reusable = {{ cooldown = 0, refusal = \"x\" }}")).unwrap_err().contains("cooldown")
+        );
     }
 }

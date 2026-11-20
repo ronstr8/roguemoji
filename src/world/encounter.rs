@@ -15,7 +15,7 @@ use crate::creatures::needs::{self, Need};
 use crate::items::{Component, Consumable, Item};
 use crate::stats::Attribute;
 
-use super::wager::{self, RawWager, Wager};
+use super::wager::{RawWager, Wager};
 
 /// A handle to a loaded encounter: an index into the encounter table.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -107,7 +107,7 @@ fn build(id: String, raw: RawEncounter) -> Result<EncounterDef, Vec<String>> {
     p.check(!raw.name.trim().is_empty(), "name is empty");
     p.check(!raw.glyph.trim().is_empty(), "glyph is empty");
     p.check(!raw.text.is_blank(), "text is empty");
-    let needs = wager::resolve_needs(raw.needs, &mut p, "needs");
+    let needs = needs::resolve(raw.needs, &mut p, "needs");
     let mut gives = Vec::new();
     for (item, qty) in raw.gives {
         p.check(qty > 0, format!("gives: `{item}` needs a quantity of 1 or more"));

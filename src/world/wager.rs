@@ -12,7 +12,7 @@ use serde::Deserialize;
 
 use crate::content::Problems;
 use crate::content::flavor::Flavor;
-use crate::creatures::needs::Need;
+use crate::creatures::needs::{self, Need};
 use crate::stats::Attribute;
 use crate::stats::check::Tier;
 
@@ -146,21 +146,9 @@ struct RawPayout {
     needs: BTreeMap<String, i32>,
 }
 
-/// Turn need ids into handles, noting any that don't exist.
-pub(super) fn resolve_needs(raw: BTreeMap<String, i32>, p: &mut Problems, label: &str) -> Vec<(Need, i32)> {
-    let mut needs = Vec::new();
-    for (need, n) in raw {
-        match Need::lookup(&need) {
-            Some(handle) => needs.push((handle, n)),
-            None => p.check(false, format!("{label}: `{need}` is not in data/needs/")),
-        }
-    }
-    needs
-}
-
 fn payout(raw: RawPayout, p: &mut Problems, label: &str) -> Payout {
     p.check(!raw.text.is_blank(), format!("{label}: text is empty"));
-    let needs = resolve_needs(raw.needs, p, &format!("{label}.needs"));
+    let needs = needs::resolve(raw.needs, p, &format!("{label}.needs"));
     Payout { text: raw.text, crystals: raw.crystals, needs }
 }
 

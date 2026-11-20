@@ -112,6 +112,11 @@ cures = false                # optional, default false; true removes poison and 
 loot_weight = 0              # optional; relative chance among food found on the floor
                              # and sold at Autovends. 0 or absent = crafted only
 price = 5                    # optional, default 5; Autovend price in 💎. 0 = never sold
+needs = { hope = 350, hunger = -100 }   # optional; changes any need by id (data/needs/)
+message = "You light up."    # optional; logged on use in place of "You consume the …"
+reusable = { cooldown = 400, refusal = "You're not in the mood." }
+                             # optional; kept after use, and refuses (taking no time)
+                             # until `cooldown` turns have passed
 
 # Optional timed effects. Each is one of:
 #   { kind = "boost", attribute = "brawn", potency = 2, turns = 120 }
@@ -174,7 +179,18 @@ sleep = { recover = 10, wake_at = 400, heal_every = 10 }
 # recover:    rest regained each turn asleep
 # wake_at:    after a collapse, you wake once rest reaches this
 # heal_every: optional, default 0 (none); regain 1 HP every this many turns asleep
+
+# Optional, and both about hope (TOML needs them inside the same inline table):
+#   relief = { hope = 4, turns = 30 }
+#       a nap (not a collapse) gains `hope` each of its first `turns` turns
+#   oversleep = { after = 120, hope = -4, message = "You've slept too long." }
+#       past `after` turns asleep, nap or collapse, lose `hope` (negative) each
+#       turn; `message` is logged once when it starts
 ```
+
+With the stock numbers a nap gains up to +120 hope. Oversleep starts after 120
+turns, longer than any stock nap or collapse lasts (rest refills 10 a turn), so
+it only bites if you slow recovery down.
 
 A nap lasts until rest is full, a monster comes into view, you're hit, or you
 press a key. A collapse lasts until `wake_at` or a hit. Waking from a hit

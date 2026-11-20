@@ -430,11 +430,7 @@ impl Game {
     pub fn use_item(&mut self, idx: usize) {
         let Some(item) = self.player.inventory.get(idx).cloned() else { return };
         match item.kind {
-            ItemKind::Consumable(c) => {
-                self.player.inventory.take(idx, 1);
-                self.consume(c);
-                self.pass_time(1);
-            }
+            ItemKind::Consumable(c) => self.use_consumable(idx, c),
             ItemKind::Gun(_) | ItemKind::Melee(_) | ItemKind::Armor(_) | ItemKind::Pack(_) => self.equip(idx),
             ItemKind::Ammo(_) => self.log.info("Equip a matching gun and press r to load it."),
             ItemKind::Component(c) => match c.def().drink {
@@ -448,10 +444,25 @@ impl Game {
         }
     }
 
+    /// Use up a consumable, or for a reusable one, rest it until its
+    /// cooldown passes. Trying one too soon takes no time.
+    fn use_consumable(&mut self, idx: usize, c: Consumable) {
+        match &c.def().reusable {
+            Some(r) if self.player.cooldown_left(c, self.turn).is_some() => return self.log.info(r.refusal.as_str()),
+            Some(r) => self.player.start_cooldown(c, self.turn + u64::from(r.cooldown)),
+            None => {
+                self.player.inventory.take(idx, 1);
+            }
+        }
+        self.consume(c);
+        self.pass_time(1);
+    }
+
     fn consume(&mut self, c: Consumable) {
         let def = c.def();
         self.adjust_need(|p| &mut p.hunger, def.satiety);
         self.adjust_need(|p| &mut p.thirst, def.hydration);
+        let changes = self.apply_needs(&def.needs, false);
         let p = &mut self.player;
         let healed = if def.heal > 0 { p.heal(def.heal) } else { 0 };
         if def.cures {
@@ -460,7 +471,10 @@ impl Game {
         for spec in &def.effects {
             p.effects.add(*spec, &def.name);
         }
-        let mut msg = format!("You consume the {}.", def.name);
+        let mut msg = def.message.clone().unwrap_or_else(|| format!("You consume the {}.", def.name));
+        for (need, delta) in changes {
+            msg.push_str(&format!(" {}.", need.change_text(delta)));
+        }
         if healed > 0 {
             msg.push_str(&format!(" +{healed} HP."));
         }
@@ -487,7 +501,7 @@ impl Game {
         } else if !self.in_sight().is_empty() {
             self.log.push("You can't rest with enemies in sight.", Tone::Bad);
         } else {
-            self.player.sleep = Some(Sleep::Nap);
+            self.player.fall_asleep(Sleep::Nap);
             self.log.info("You lie down to rest. 💤 (any key to get up)");
         }
     }

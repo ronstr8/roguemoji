@@ -7,12 +7,6 @@ version can change rules, controls or data-file formats.
 
 ## [Unreleased]
 
-### Fixed
-
-- The inventory priced a stack as a whole, so three Dirty Water looked worth more
-  than one Bottled Water. Stacks now show the price of one (`2💎 ea`), and the
-  details give the total too. Sorting by value goes by that unit price.
-
 ### Added
 
 - Your face on the map shows how you're holding up: it sags as health drops
@@ -21,10 +15,26 @@ version can change rules, controls or data-file formats.
   warning color behind you. Faces are data files in `data/faces/`, so mods can
   change them, their colors (`#RRGGBB` or an X11 name like `firebrick`) and how
   fast they blink.
+- Ways to lift your hope: 🚬 Ditch Weed (Hope +350, but −1 Wit and Reflexes and
+  the munchies), found, sold, or picked from 🌱 patches in the wastes; and the rare
+  🔦 Fleshlight Multitool, which isn't used up but needs 400 turns between uses.
+- Naps lift your mood: the first 30 turns restore hope. Sleeping past 120 turns,
+  nap or collapse, wears it down. Passing out brings no relief. The sidebar
+  counts the turns of a nap.
+- Consumables can change any need (`needs`), log their own `message`, and be
+  `reusable` with a cooldown.
 
 ### Changed
 
 - The player is a 🙂 smiley instead of 🧑.
+- The new 🌱 Ditch Weed patches change world layouts: a given seed lays out a
+  different world than it did in 0.9.0.
+
+### Fixed
+
+- The inventory priced a stack as a whole, so three Dirty Water looked worth more
+  than one Bottled Water. Stacks now show the price of one (`2💎 ea`), and the
+  details give the total too. Sorting by value goes by that unit price.
 
 ## [0.9.0] - 2026-11-20
 

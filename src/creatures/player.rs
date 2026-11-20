@@ -5,6 +5,7 @@ use crate::creatures::face::{Face, FaceDef, When};
 use crate::creatures::needs::{self, Meter, Need, SleepDef};
 use crate::effects::{EffectKind, Effects};
 use crate::geometry::Pos;
+use crate::items::Consumable;
 use crate::items::melee::{FISTS, MeleeDef};
 use crate::items::{self, Armor, Gun, Inventory, Item, ItemKind, MeleeWeapon, Pack, Stat, Tool, weight};
 use crate::stats::attributes::{self, MAX_SCORE, MIN_SCORE};
@@ -142,6 +143,10 @@ pub struct Player {
     pub hope: Meter,
     /// Asleep, and why.
     pub sleep: Option<Sleep>,
+    /// Turns asleep so far this sleep.
+    pub slept: u32,
+    /// Reusable items resting after use, with the turn each is ready again.
+    pub cooldowns: Vec<(Consumable, u64)>,
     /// Attacked or was attacked since the last turn's needs were drained.
     pub fought: bool,
     pub stance: Stance,
@@ -172,6 +177,8 @@ impl Player {
             rest: Meter::new(Need::named(needs::REST)),
             hope: Meter::new(Need::named(needs::HOPE)),
             sleep: None,
+            slept: 0,
+            cooldowns: Vec::new(),
             fought: false,
             stance: Stance::Balanced,
             momentum: Momentum::default(),
@@ -340,12 +347,29 @@ impl Player {
         }
     }
 
+    /// Fall asleep, starting the count of turns slept.
+    pub fn fall_asleep(&mut self, kind: Sleep) {
+        self.sleep = Some(kind);
+        self.slept = 0;
+    }
+
+    /// Turns until a reusable item works again on `turn`; `None` if it's ready.
+    pub fn cooldown_left(&self, c: Consumable, turn: u64) -> Option<u64> {
+        self.cooldowns.iter().find(|(k, until)| *k == c && *until > turn).map(|(_, until)| until - turn)
+    }
+
+    /// Rest a reusable item until `until`.
+    pub fn start_cooldown(&mut self, c: Consumable, until: u64) {
+        self.cooldowns.retain(|(k, _)| *k != c);
+        self.cooldowns.push((c, until));
+    }
+
     pub fn is_asleep(&self) -> bool {
         self.sleep.is_some()
     }
 
     /// How sleeping restores rest; validated present at startup.
-    pub fn sleep_def(&self) -> SleepDef {
-        self.rest.def().sleep.expect("rest has sleep (checked at load)")
+    pub fn sleep_def(&self) -> &'static SleepDef {
+        self.rest.def().sleep.as_ref().expect("rest has sleep (checked at load)")
     }
 }
