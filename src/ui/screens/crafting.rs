@@ -41,6 +41,12 @@ pub fn draw(canvas: &mut Canvas, game: &Game, selected: usize) {
         canvas.text_max(dx, y, &format!("  {} {}  {}/{}", c.def().glyph, c.def().name, have, n), dw, color, bg);
         y += 1;
     }
+    for (tag, n) in &r.any {
+        let have = inv.count_tagged(tag);
+        let color = if have >= *n { theme::GOOD } else { theme::BAD };
+        canvas.text_max(dx, y, &format!("  any {tag}  {have}/{n}"), dw, color, bg);
+        y += 1;
+    }
     if let Some(tool) = r.consumes_tool {
         let color = if game.has_tool(r) { theme::GOOD } else { theme::BAD };
         canvas.text_max(dx, y, &format!("  {} {} (consumed)", tool.def().glyph, tool.def().name), dw, color, bg);
@@ -76,4 +82,22 @@ pub fn draw(canvas: &mut Canvas, game: &Game, selected: usize) {
         theme::DIM,
     );
     footer(canvas, inner, "↑↓ select · Enter craft (2 turns) · Esc close");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::creatures::Background;
+
+    #[test]
+    fn lists_an_any_ingredient_with_what_you_carry() {
+        let g = Game::new(Background::ALL[0].create("Tester".into()), Some(1));
+        let coffee = recipes().iter().position(|r| r.name() == "Hot Coffee").unwrap();
+        let mut canvas = Canvas::new(120, 36);
+        draw(&mut canvas, &g, coffee);
+        let rows = canvas.text_rows();
+        println!("{}", rows.join("\n"));
+        let water = g.player.inventory.count_tagged("water");
+        assert!(rows.iter().any(|r| r.contains(&format!("any water  {water}/1"))));
+    }
 }

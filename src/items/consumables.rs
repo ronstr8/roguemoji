@@ -37,6 +37,8 @@ pub struct ConsumableDef {
     pub message: Option<String>,
     /// Kept after use, and usable again once its cooldown passes.
     pub reusable: Option<Reusable>,
+    /// Groups a recipe can ask for by name, e.g. `water`.
+    pub tags: Vec<String>,
     /// Relative chance among food found on the floor or sold at Autovends; 0 = never.
     pub loot_weight: u32,
     /// Autovend price; never sold if zero.
@@ -78,6 +80,8 @@ struct RawConsumable {
     #[serde(default)]
     reusable: Option<Reusable>,
     #[serde(default)]
+    tags: Vec<String>,
+    #[serde(default)]
     loot_weight: u32,
     #[serde(default = "default_price")]
     price: Price,
@@ -115,6 +119,7 @@ fn build(id: String, raw: RawConsumable) -> Result<ConsumableDef, Vec<String>> {
         effects,
         message: raw.message,
         reusable: raw.reusable,
+        tags: raw.tags,
         loot_weight: raw.loot_weight,
         price: raw.price,
     })

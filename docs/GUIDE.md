@@ -121,8 +121,11 @@ despair makes 💎 heal less and terror land more often. It never costs HP.
 **Harvesting and crafting.** Bump plants, pumps, wrecks, toolboxes, electronics and crates
 to gather components with Survival or Scavenging. Then craft food and drink with timed
 buffs, such as Glowcap Brew (+Brains/Wit), Grilled Meat (+Brawn), Mutant Stew
-(+Fortitude, armor) and Cryptid Tonic. You can also craft scrap weapons and armor. The
-crafting screen shows your exact success chance.
+(+Fortitude, armor), Cryptid Tonic, and ☕ Hot Coffee from 🥄 Instant Coffee (rest
+and +Wit). Recipes that call for water take any water, Dirty, Boiled or Bottled,
+and use the cheapest you carry first; cooking boils it, so it's always safe. You
+can also craft scrap weapons and armor. The crafting screen shows your exact
+success chance.
 
 **Caches.** Some finds aren't drawn on the map. A 🪖 Military Crate lies under
 rubble in the ruins, and a 🪧 Buried Cache is marked by a half-sunk sign out in the

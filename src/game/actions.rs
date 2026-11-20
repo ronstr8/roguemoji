@@ -625,7 +625,10 @@ impl Game {
     }
 
     pub fn can_craft(&self, recipe: &Recipe) -> bool {
-        self.has_tool(recipe) && recipe.components().all(|(c, n)| self.player.inventory.count_component(c) >= n)
+        let inv = &self.player.inventory;
+        self.has_tool(recipe)
+            && recipe.components().all(|(c, n)| inv.count_component(c) >= n)
+            && recipe.any.iter().all(|(tag, n)| inv.count_tagged(tag) >= *n)
     }
 
     pub fn craft(&mut self, recipe_idx: usize) {
@@ -670,6 +673,9 @@ impl Game {
         for (c, n) in recipe.components() {
             self.player.inventory.consume_component(c, n);
         }
+        for (tag, n) in &recipe.any {
+            self.consume_tagged(tag, *n);
+        }
         if let Some(tool) = recipe.consumes_tool {
             let kind = ItemKind::Melee(tool);
             if let Some(i) = self.player.inventory.items().iter().position(|it| it.kind == kind) {
@@ -677,6 +683,21 @@ impl Game {
             } else if self.player.melee == Some(tool) {
                 self.player.melee = None;
             }
+        }
+    }
+
+    /// Use up `n` items tagged `tag`, cheapest first, so a recipe that takes
+    /// any water spends your Dirty Water before your Bottled.
+    fn consume_tagged(&mut self, tag: &str, mut n: u32) {
+        let inv = &mut self.player.inventory;
+        let mut kinds: Vec<Item> =
+            inv.items().iter().filter(|i| i.has_tag(tag)).map(|i| Item::one(i.kind.clone())).collect();
+        kinds.sort_by_key(|i| loot::shop_price(i, self.depth).unwrap_or(u32::MAX));
+        kinds.dedup();
+        for item in kinds {
+            let take = n.min(inv.count(&item.kind));
+            inv.consume(&item.kind, take);
+            n -= take;
         }
     }
 

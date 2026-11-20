@@ -1,0 +1,6 @@
+name = "Instant Coffee"
+glyph = "🥄"
+description = "A spoonful of freeze-dried crystals, scraped from a jar that outlived its brand."
+weight = 0.1
+loot_weight = 2
+price = 3

@@ -102,6 +102,16 @@ impl Item {
         }
     }
 
+    /// Whether a recipe asking for any `tag` (e.g. `water`) can use this.
+    pub fn has_tag(&self, tag: &str) -> bool {
+        let tags: &[String] = match &self.kind {
+            ItemKind::Component(c) => &c.def().tags,
+            ItemKind::Consumable(c) => &c.def().tags,
+            _ => &[],
+        };
+        tags.iter().any(|t| t == tag)
+    }
+
     pub fn glyph(&self) -> &'static str {
         match &self.kind {
             ItemKind::Crystals => CRYSTAL_GLYPH,

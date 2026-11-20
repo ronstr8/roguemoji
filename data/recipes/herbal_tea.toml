@@ -1,3 +1,4 @@
 makes = { food = "herbal_tea" }
 difficulty = 8
-ingredients = { herbs = 1, dirty_water = 1 }
+ingredients = { herbs = 1 }
+any = { water = 1 }

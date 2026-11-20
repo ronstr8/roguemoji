@@ -3,6 +3,7 @@ glyph = "💧"
 description = "A quart of murky water. Boil it first. Probably."
 weight = 2
 loot_weight = 1
+tags = ["water"]
 
 # Drink it as is: a Survival check against risk, or you get sick.
 # Drinking from a water tile on the map works the same way.

@@ -1,3 +1,4 @@
 makes = { food = "bone_broth" }
 difficulty = 11
 ingredients = { bone = 1, dirty_water = 1, herbs = 1 }
+any = { water = 1 }

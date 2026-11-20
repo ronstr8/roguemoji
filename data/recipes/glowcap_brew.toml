@@ -1,3 +1,4 @@
 makes = { food = "glowcap_brew" }
 difficulty = 11
-ingredients = { glowcap = 1, dirty_water = 1 }
+ingredients = { glowcap = 1 }
+any = { water = 1 }

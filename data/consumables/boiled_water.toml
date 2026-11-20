@@ -4,4 +4,5 @@ description = "Dirty water, boiled. Flat and warm, but it won't make you sick."
 weight = 2
 
 hydration = 400
-price = 0
+price = 3                    # between Dirty (2) and Bottled (5); recipes that take any water use the cheapest first
+tags = ["water"]

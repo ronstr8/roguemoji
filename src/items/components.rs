@@ -25,6 +25,8 @@ pub struct ComponentDef {
     pub price: Price,
     /// Drinkable as is, at a risk of sickness.
     pub drink: Option<UnsafeDrink>,
+    /// Groups a recipe can ask for by name, e.g. `water`.
+    pub tags: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -41,6 +43,8 @@ struct RawComponent {
     price: Price,
     #[serde(default)]
     drink: Option<RawUnsafeDrink>,
+    #[serde(default)]
+    tags: Vec<String>,
 }
 
 fn default_price() -> Price {
@@ -62,6 +66,7 @@ fn build(id: String, raw: RawComponent) -> Result<ComponentDef, Vec<String>> {
         loot_weight: raw.loot_weight,
         price: raw.price,
         drink,
+        tags: raw.tags,
     })
 }
 

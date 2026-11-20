@@ -1,3 +1,4 @@
 makes = { food = "stim_soda" }
 difficulty = 13
-ingredients = { sugar = 1, mutagen = 1, dirty_water = 1 }
+ingredients = { sugar = 1, mutagen = 1 }
+any = { water = 1 }

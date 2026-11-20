@@ -1,0 +1,6 @@
+# Any water will do: brewing boils it, so dirty water is as good as bottled.
+# The cheapest water you carry goes in first.
+makes = { food = "coffee" }
+difficulty = 5
+ingredients = { instant_coffee = 1 }
+any = { water = 1 }

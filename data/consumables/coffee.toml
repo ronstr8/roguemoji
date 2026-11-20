@@ -1,0 +1,11 @@
+name = "Hot Coffee"
+glyph = "☕"
+description = "Bitter, scalding and wonderful. Boiled, so whatever water went in, it's safe."
+weight = 2
+
+hydration = 350              # a quart in, a little lost to the boil
+needs = { rest = 200 }       # a couple of hundred turns before Tired comes back
+effects = [
+    { kind = "boost", attribute = "wit", potency = 1, turns = 60 },
+]
+price = 6

@@ -21,12 +21,16 @@ version can change rules, controls or data-file formats.
 - Naps lift your mood: the first 30 turns restore hope. Sleeping past 120 turns,
   nap or collapse, wears it down. Passing out brings no relief. The sidebar
   counts the turns of a nap.
+- ☕ Hot Coffee, brewed from 🥄 Instant Coffee and any water: rest +200 and +1 Wit.
 - Consumables can change any need (`needs`), log their own `message`, and be
-  `reusable` with a cooldown.
+  `reusable` with a cooldown. Items can carry `tags`, and recipes can ask for
+  `any` item with a tag.
 
 ### Changed
 
 - The player is a 🙂 smiley instead of 🧑.
+- Recipes that used Dirty Water now take any water (Dirty, Boiled or Bottled),
+  cheapest first. Boiled Water still needs Dirty Water, and now sells for 3 💎.
 - The new 🌱 Ditch Weed patches change world layouts: a given seed lays out a
   different world than it did in 0.9.0.
 

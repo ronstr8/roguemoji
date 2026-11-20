@@ -932,3 +932,22 @@ fn a_reusable_item_is_kept_and_rests_between_uses() {
     g.use_item(idx);
     assert!(g.player.hope.value > hope + 200, "ready again after the cooldown");
 }
+
+#[test]
+fn coffee_takes_any_water_and_spends_the_cheapest_first() {
+    let coffee = recipes().iter().position(|r| r.name() == "Hot Coffee").unwrap();
+    let mut g = quiet_game(4);
+    g.player.inventory = Default::default();
+    let bottled = crate::items::Consumable::named("bottled_water");
+    let dirty = Component::named("dirty_water");
+    g.player.inventory.add(Item::component(Component::named("instant_coffee"), 1)).unwrap();
+    g.player.inventory.add(Item::food(bottled, 1)).unwrap();
+    assert!(g.can_craft(&recipes()[coffee]), "bottled water will do");
+    g.player.inventory.add(Item::component(dirty, 1)).unwrap();
+    g.player.skills.set_rank(crate::stats::Skill::Crafting, 10);
+    g.craft(coffee);
+    assert_eq!(g.player.inventory.count_component(dirty), 0, "the dirty water went in");
+    assert_eq!(g.player.inventory.count(&ItemKind::Consumable(bottled)), 1, "the bottled water is kept");
+    let log: Vec<String> = g.log.recent(5).iter().map(|m| m.text.clone()).collect();
+    assert!(g.player.inventory.count(&ItemKind::Consumable(crate::items::Consumable::named("coffee"))) >= 1, "{log:?}");
+}

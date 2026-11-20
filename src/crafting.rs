@@ -56,6 +56,8 @@ pub struct Recipe {
     pub id: String,
     pub output: Output,
     pub ingredients: Vec<(Component, u32)>,
+    /// Ingredients any tagged item will do for, e.g. any `water`: (tag, count).
+    pub any: Vec<(String, u32)>,
     /// Extra non-component tool consumed (e.g. a bat to nail).
     pub consumes_tool: Option<MeleeWeapon>,
     pub difficulty: i32,
@@ -83,7 +85,11 @@ struct RawRecipe {
     makes: RawOutput,
     difficulty: i32,
     /// `{ component_id = count, … }`, in the order written.
+    #[serde(default)]
     ingredients: toml::Table,
+    /// `{ tag = count, … }`: any component or food with that tag.
+    #[serde(default)]
+    any: toml::Table,
     #[serde(default)]
     uses_up: Option<String>,
 }
@@ -117,18 +123,20 @@ fn build(id: String, raw: RawRecipe) -> Result<Recipe, Vec<String>> {
         p.check(false, format!("uses_up `{t}` is not in data/melee/"));
     }
     let consumes_tool = tool.and_then(|(_, m)| m);
-    p.check(!raw.ingredients.is_empty(), "ingredients is empty");
+    p.check(!raw.ingredients.is_empty() || !raw.any.is_empty(), "ingredients and any are both empty");
     let mut ingredients = Vec::new();
-    for (name, count) in &raw.ingredients {
-        let n = count.as_integer().filter(|n| (1..=99).contains(n));
-        p.check(n.is_some(), format!("ingredient `{name}` needs a count from 1 to 99"));
-        match Component::lookup(name) {
-            Some(c) => ingredients.push((c, n.unwrap_or(1) as u32)),
+    for (name, n) in counts(&raw.ingredients, "ingredient", &mut p) {
+        match Component::lookup(&name) {
+            Some(c) => ingredients.push((c, n)),
             None => p.check(false, format!("ingredient `{name}` is not in data/components/")),
         }
     }
+    let any = counts(&raw.any, "any", &mut p);
+    for (tag, _) in &any {
+        p.check(tagged_exists(tag), format!("any `{tag}`: no component or consumable has that tag"));
+    }
     match output {
-        Some(output) => p.finish(|| Recipe { id, output, ingredients, consumes_tool, difficulty: raw.difficulty }),
+        Some(output) => p.finish(|| Recipe { id, output, ingredients, any, consumes_tool, difficulty: raw.difficulty }),
         None => Err(p.0),
     }
 }
@@ -152,6 +160,23 @@ pub fn init() -> Result<(), String> {
 /// Every recipe, in menu order.
 pub fn recipes() -> &'static [Recipe] {
     RECIPES.get_or_init(|| load().unwrap_or_else(|e| panic!("invalid recipe data:\n{e}")))
+}
+
+/// `{ name = count }` pairs in the order written, each count 1 to 99.
+fn counts(table: &toml::Table, what: &str, p: &mut Problems) -> Vec<(String, u32)> {
+    let mut out = Vec::new();
+    for (name, count) in table {
+        let n = count.as_integer().filter(|n| (1..=99).contains(n));
+        p.check(n.is_some(), format!("{what} `{name}` needs a count from 1 to 99"));
+        out.push((name.clone(), n.unwrap_or(1) as u32));
+    }
+    out
+}
+
+/// Whether any component or consumable carries `tag`.
+fn tagged_exists(tag: &str) -> bool {
+    let has = |tags: &[String]| tags.iter().any(|t| t == tag);
+    Component::all().any(|c| has(&c.def().tags)) || Consumable::all().any(|c| has(&c.def().tags))
 }
 
 #[cfg(test)]

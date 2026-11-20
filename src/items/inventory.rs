@@ -95,6 +95,11 @@ impl Inventory {
         true
     }
 
+    /// How many items carried have `tag`, across every kind that does.
+    pub fn count_tagged(&self, tag: &str) -> u32 {
+        self.items.iter().filter(|i| i.has_tag(tag)).map(|i| i.qty).sum()
+    }
+
     pub fn count_component(&self, c: Component) -> u32 {
         self.count(&ItemKind::Component(c))
     }

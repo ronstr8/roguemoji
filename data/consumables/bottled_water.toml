@@ -6,3 +6,4 @@ weight = 2
 hydration = 400
 heal = 1
 loot_weight = 5
+tags = ["water"]

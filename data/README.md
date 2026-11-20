@@ -85,6 +85,7 @@ price = 2                    # optional, default 2; Autovend price of one, in �
 # adds `hydration` to thirst, then a Survival check against `risk` decides
 # whether `sickness` (any timed effect, see Consumables) follows.
 drink = { hydration = 400, risk = 10, sickness = { kind = "poison", potency = 1, turns = 8 } }
+tags = ["water"]             # optional; groups a recipe can ask for with `any`
 ```
 
 Some components are named by the game's own tables: starting kits, plus `dirty_water`, whose `drink` is required: drinking from a
@@ -117,6 +118,7 @@ message = "You light up."    # optional; logged on use in place of "You consume 
 reusable = { cooldown = 400, refusal = "You're not in the mood." }
                              # optional; kept after use, and refuses (taking no time)
                              # until `cooldown` turns have passed
+tags = ["water"]             # optional; groups a recipe can ask for with `any`
 
 # Optional timed effects. Each is one of:
 #   { kind = "boost", attribute = "brawn", potency = 2, turns = 120 }
@@ -418,9 +420,16 @@ first ingredient for gear.
 makes = { food = "glowcap_brew" }   # or { melee = "nail_bat" }, { armor = "scrap_vest" },
                                     #    { pack = "rag_satchel" }
 difficulty = 11                     # target for 2d10 + Crafting (8 easy … 15 hard)
-ingredients = { glowcap = 1, dirty_water = 1 }   # component id = count, in display order
+ingredients = { glowcap = 1 }       # component id = count, in display order
+any = { water = 1 }                 # optional; tag = count: any component or food
+                                    # with that tag will do
 uses_up = "kitchen_knife"           # optional; a melee weapon consumed as well
 ```
+
+A recipe needs `ingredients`, `any`, or both. When several carried items fit an
+`any`, the cheapest goes in first, so stock recipes that take any water spend
+Dirty Water (2 💎) before Boiled (3 💎) or Bottled (5 💎). Every stock recipe
+that uses water takes any water, except Boiled Water itself.
 
 Each output names an id from the matching folder, including your own files:
 `food` → `consumables/`, `melee` → `melee/`, `armor` → `armor/`, `pack` → `packs/`.
