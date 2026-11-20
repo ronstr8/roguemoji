@@ -31,6 +31,11 @@ pub const PATH_BG: Color = rgb(50, 30, 30);
 pub const HOPE_GLOW: Color = rgb(40, 150, 90);
 pub const CHANCE_GLOW: Color = rgb(150, 135, 70);
 pub const HORROR_GLOW: Color = rgb(165, 60, 60);
+/// A color given as red, green and blue in a data file.
+pub fn rgb_of((r, g, b): crate::color::Rgb) -> Color {
+    rgb(r, g, b)
+}
+
 /// The blinding flash of a portal jump.
 pub const WHITEOUT: Color = rgb(255, 255, 255);
 

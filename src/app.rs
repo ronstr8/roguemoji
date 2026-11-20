@@ -144,11 +144,12 @@ impl App {
         self.flash.map(|(_, t)| t).into_iter().chain(self.whiteout).chain(pulse).min()
     }
 
-    /// Whether encounter glows are on screen and uncovered, so worth animating.
-    /// Pop-ups dim the map, which hides the glow anyway.
+    /// Whether an encounter glow or a flashing face is on screen and
+    /// uncovered, so worth animating. Pop-ups dim the map, which hides both.
     fn pulsing(&self) -> bool {
         let map_showing = matches!(self.screen, Screen::Play | Screen::Targeting { .. } | Screen::ConfirmQuit);
-        map_showing && self.game.as_ref().is_some_and(|g| !g.is_over() && g.map.sees_encounter())
+        let animated = |g: &Game| g.map.sees_encounter() || g.player.face().flash.is_some();
+        map_showing && self.game.as_ref().is_some_and(|g| !g.is_over() && animated(g))
     }
 
     /// The glow's strength now: a slow breath between `GLOW_FLOOR` and full.
@@ -206,7 +207,8 @@ impl App {
             Screen::ConfirmQuit => (None, Some("Really quit? This run will be lost. (y/n)".to_string())),
             _ => (None, None),
         };
-        let fx = ui::Effects { flash: self.flash.map(|(pos, _)| pos), glow: self.glow() };
+        let clock_ms = self.started.elapsed().as_millis();
+        let fx = ui::Effects { flash: self.flash.map(|(pos, _)| pos), glow: self.glow(), clock_ms };
         ui::draw_play(canvas, game, target, fx, status.as_deref());
 
         match &self.screen {

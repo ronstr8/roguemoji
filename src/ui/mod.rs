@@ -45,6 +45,8 @@ pub struct Effects {
     pub flash: Option<Pos>,
     /// How strongly encounters glow right now, from 0 to 1.
     pub glow: f32,
+    /// Milliseconds since the app started, for blinking faces.
+    pub clock_ms: u128,
 }
 
 /// Draw the main play view: map, sidebar and message log.

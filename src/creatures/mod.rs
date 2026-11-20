@@ -1,6 +1,7 @@
 //! Everything that lives: the player, monsters, and the bestiary.
 
 pub mod background;
+pub mod face;
 pub mod monster;
 pub mod needs;
 pub mod player;

@@ -2,16 +2,23 @@
 
 use std::collections::{HashMap, HashSet};
 
+use crossterm::style::Color;
+
 use super::canvas::Canvas;
 use super::{Area, Effects, theme};
 use crate::game::Game;
 use crate::geometry::{Pos, line};
 
-pub const PLAYER_GLYPH: &str = "🧑";
-/// The player while asleep.
-pub const SLEEP_GLYPH: &str = "💤";
 /// Drawn briefly over a creature a shot strikes.
 pub const BANG_GLYPH: &str = "💥";
+
+/// Behind the player: the face's flash color while it's lit, else `bg`.
+fn face_bg(game: &Game, fx: Effects, bg: Color) -> Color {
+    match game.player.face().flash {
+        Some(f) if f.lit(fx.clock_ms) => theme::rgb_of(f.color),
+        _ => bg,
+    }
+}
 
 fn camera(origin: i32, view: i32, size: i32) -> i32 {
     (origin - view / 2).clamp(0, (size - view).max(0))
@@ -50,12 +57,13 @@ pub fn draw(canvas: &mut Canvas, area: Area, game: &Game, target: Option<Pos>, f
             if map.is_visible(p) {
                 let bg = match map.shown_feature(p).and_then(|f| f.mood()) {
                     Some(mood) if bg == theme::BG => theme::glow(mood, fx.glow),
+                    _ if p == me => face_bg(game, fx, bg),
                     _ => bg,
                 };
                 let glyph = if Some(p) == fx.flash {
                     Some(BANG_GLYPH)
                 } else if p == me {
-                    Some(if game.player.is_asleep() { SLEEP_GLYPH } else { PLAYER_GLYPH })
+                    Some(game.player.face().glyph.as_str())
                 } else {
                     monsters
                         .get(&p)
@@ -101,9 +109,24 @@ mod tests {
         g.map.set_feature(spot, Feature::encounter(horror));
         g.map.mark_visible(spot);
         let mut canvas = Canvas::new(60, 20);
-        draw(&mut canvas, Area::new(0, 0, 60, 20), &g, None, Effects { flash: None, glow: 1.0 });
+        draw(&mut canvas, Area::new(0, 0, 60, 20), &g, None, Effects { flash: None, glow: 1.0, clock_ms: 0 });
         assert_eq!(bg_of(&canvas, &horror.def().glyph), Some(theme::glow(Mood::Horror, 1.0)));
-        assert_eq!(bg_of(&canvas, PLAYER_GLYPH), Some(theme::BG));
+        assert_eq!(bg_of(&canvas, "🙂"), Some(theme::BG));
         assert!(g.map.sees_encounter());
+    }
+
+    #[test]
+    fn a_flashing_face_blinks_its_color() {
+        let mut g = Game::new(Background::ALL[0].create("Tester".into()), Some(1));
+        g.player.hp = 1;
+        let face = g.player.face();
+        let flash = face.flash.expect("the stock near-death face flashes");
+        let at = |clock_ms| {
+            let mut canvas = Canvas::new(60, 20);
+            draw(&mut canvas, Area::new(0, 0, 60, 20), &g, None, Effects { flash: None, glow: 1.0, clock_ms });
+            bg_of(&canvas, &face.glyph)
+        };
+        assert_eq!(at(0), Some(theme::rgb_of(flash.color)));
+        assert_eq!(at(u128::from(flash.every_ms) / 2), Some(theme::BG));
     }
 }

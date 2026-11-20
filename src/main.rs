@@ -1,6 +1,7 @@
 //! roguemoji — a post-apocalyptic roguelike drawn entirely in Unicode.
 
 mod app;
+mod color;
 mod combat;
 mod content;
 mod crafting;
@@ -38,6 +39,7 @@ fn main() -> io::Result<()> {
         .and_then(|_| crafting::init())
         .and_then(|_| creatures::species::init())
         .and_then(|_| creatures::needs::init())
+        .and_then(|_| creatures::face::init())
         .and_then(|_| world::harvest::init())
         .and_then(|_| world::encounter::init())
     {

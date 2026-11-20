@@ -190,6 +190,40 @@ turns from a fresh start to Tired. People sleep about 8 hours per 16 awake, but
 recovering that slowly would make a nap hundreds of turns long, so rest refills
 10 a turn: a full nap is about 100 turns.
 
+## Faces — `faces/*.toml`
+
+The player is drawn as a face that shows how they're holding up, the way a
+health face does on a shooter's status bar. Each file is one face and the
+condition that brings it up. Of the faces whose condition holds, the one with
+the highest `rank` shows.
+
+```toml
+glyph = "🥵"                 # drawn on the map in the player's cell
+rank = 38                    # highest applicable rank wins; no two faces may share one
+# At most one condition:
+need = "thirst"              # a need, with one of its stage names; holds at that
+stage = "Parched"            #   stage or any lower one
+# health_below = 25          # HP under this percentage of max (1-100)
+# asleep = true              # napping or collapsed
+flash = { color = "firebrick", every_ms = 1200 }  # optional; blink this background
+                             # behind the face, lit for the first half of each
+                             # every_ms (at least 200)
+```
+
+A `color` is `#RRGGBB` or a name from the X11 color list (`firebrick`,
+`dark orange`, `gray40`), matched ignoring case and spaces. The list is
+`src/rgb.txt`, the same one as `/etc/X11/rgb.txt`.
+
+Exactly one face has no condition: it's the default (stock: 🙂 `fine`). Because
+a need's face holds at its stage and every stage below it, a face for Thirsty
+also covers Parched unless a higher-ranked Parched face takes over.
+
+The stock ladder, lowest rank first: 🙂 fine, 😐 under 75% HP, 😔 Downcast,
+🤤 Hungry, 🥱 Tired, 😓 Thirsty, 😣 under 50% HP, 😞 Despairing, 😩 Exhausted,
+😖 Starving, 🥵 Parched, 🤕 under 25% HP, 💤 asleep. Stages that cost HP outrank
+half health, and near death outranks every need. Starving and Parched flash
+red, Exhausted flashes amber, and under 25% HP flashes a fast red.
+
 ## Harvest nodes — `harvest/*.toml`
 
 Plants, pumps, wrecks, crates and hidden caches on the map. Bump one to gather

@@ -1,0 +1,5 @@
+glyph = "🥵"
+rank = 38
+need = "thirst"
+stage = "Parched"
+flash = { color = "firebrick", every_ms = 1200 }   # red: this is costing you HP

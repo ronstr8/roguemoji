@@ -175,6 +175,11 @@ impl Meter {
         self.def().stage(self.value)
     }
 
+    /// How far down the stages the meter is: 0 for the top stage.
+    pub fn depth(&self) -> usize {
+        self.def().stage_index(self.value)
+    }
+
     pub fn label(&self) -> &'static str {
         &self.stage().name
     }

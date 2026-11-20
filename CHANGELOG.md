@@ -7,6 +7,19 @@ version can change rules, controls or data-file formats.
 
 ## [Unreleased]
 
+### Added
+
+- Your face on the map shows how you're holding up: it sags as health drops
+  (😐 😣 🤕) and changes when hunger, thirst, rest or hope run low, worst condition
+  first. The faces for needs that cost HP, near-collapse and near death flash a
+  warning color behind you. Faces are data files in `data/faces/`, so mods can
+  change them, their colors (`#RRGGBB` or an X11 name like `firebrick`) and how
+  fast they blink.
+
+### Changed
+
+- The player is a 🙂 smiley instead of 🧑.
+
 ## [0.9.0] - 2026-11-20
 
 ### Added

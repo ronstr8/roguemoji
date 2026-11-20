@@ -1,0 +1,5 @@
+glyph = "😩"
+rank = 34
+need = "rest"
+stage = "Exhausted"
+flash = { color = "dark goldenrod", every_ms = 1600 }   # amber: you will drop soon

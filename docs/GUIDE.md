@@ -97,6 +97,13 @@ load. Tired lowers Reflexes; Exhausted lowers Reflexes and Wit. At empty you col
 Press `z` to nap first: it lasts until you're fully rested, a monster comes into view, or
 you press a key. Sleep heals a little, but hunger and thirst keep draining.
 
+**Your face** 🙂 on the map shows how you're holding up. It sags as your health
+drops (😐 😣 🤕) and changes when a need goes wrong: 🤤 hungry, 😓 thirsty,
+🥱 tired, 😔 downcast, and worse faces (😖 🥵 😩 😞) once a need starts to hurt.
+The worst of them shows, and 💤 while you sleep. When a need is costing you HP
+or you're close to collapse the face flashes red or amber, and fast red when
+you're nearly dead.
+
 **Hope** wears down slowly on its own and swings with **encounters**: things happening
 on the map that you walk into. A 🤝 Friendly Stranger or a 🔥 Campfire Circle restores
 it, and sometimes hands you something. Horrors like 😱 Witness Horrors erode it, unless

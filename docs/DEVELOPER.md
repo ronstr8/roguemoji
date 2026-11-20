@@ -54,6 +54,7 @@ data/
   components/      one TOML file per crafting component
   consumables/     food, drink and medicine
   needs/           hunger, thirst, rest and hope: drain rates, stages and sleep
+  faces/           the player's face on the map, by health and needs
   encounters/      scenes and places on the map, and what they do
   recipes/         crafting recipes
   melee/ armor/ packs/   wieldable and wearable gear

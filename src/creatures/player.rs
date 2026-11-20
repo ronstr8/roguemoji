@@ -1,6 +1,7 @@
 //! The player character: stats, equipment, pack and derived values.
 
 use crate::combat::{Momentum, Stance};
+use crate::creatures::face::{Face, FaceDef, When};
 use crate::creatures::needs::{self, Meter, Need, SleepDef};
 use crate::effects::{EffectKind, Effects};
 use crate::geometry::Pos;
@@ -322,6 +323,21 @@ impl Player {
     /// The meter for a need, by handle.
     pub fn meter_mut(&mut self, need: Need) -> Option<&mut Meter> {
         [&mut self.hunger, &mut self.thirst, &mut self.rest, &mut self.hope].into_iter().find(|m| m.need == need)
+    }
+
+    /// The face the map shows for you: how you're holding up, at a glance.
+    pub fn face(&self) -> &'static FaceDef {
+        Face::pick(|when| self.shows(when)).def()
+    }
+
+    /// Whether a face's condition holds for you right now.
+    fn shows(&self, when: When) -> bool {
+        match when {
+            When::Always => true,
+            When::Asleep => self.is_asleep(),
+            When::HealthBelow(pct) => self.hp * 100 < self.max_hp() * pct as i32,
+            When::Need { need, stage } => self.needs().iter().any(|m| m.need == need && m.depth() >= stage),
+        }
     }
 
     pub fn is_asleep(&self) -> bool {
